@@ -503,6 +503,11 @@ impl eframe::App for PixeshApp {
                 self.export_name = "pixesh.png".into();
                 self.show_export = true;
             }
+            if !i.modifiers.alt && !i.modifiers.ctrl {
+                if i.consume_key(egui::Modifiers::NONE, egui::Key::B) { self.tool = Tool::Brush; }
+                if i.consume_key(egui::Modifiers::NONE, egui::Key::E) { self.tool = Tool::Eraser; }
+                if i.consume_key(egui::Modifiers::NONE, egui::Key::F) { self.tool = Tool::Fill; }
+            }
         });
 
         // zoom (anywhere in window)
