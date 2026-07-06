@@ -58,8 +58,8 @@ struct PixeshApp {
     redo_stack: Vec<Snapshot>,
 
     show_resize: bool,
-    resize_w: usize,
-    resize_h: usize,
+    resize_w: f32,
+    resize_h: f32,
 
     show_export: bool,
     export_name: String,
@@ -97,8 +97,8 @@ impl PixeshApp {
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
             show_resize: false,
-            resize_w: 64,
-            resize_h: 64,
+            resize_w: 64.0,
+            resize_h: 64.0,
             show_export: false,
             export_name: "pixesh.png".into(),
         }
@@ -613,8 +613,8 @@ impl eframe::App for PixeshApp {
                         }
                     }
                     if btn(ui, "Resize") {
-                        self.resize_w = self.width;
-                        self.resize_h = self.height;
+                        self.resize_w = self.width as f32;
+                        self.resize_h = self.height as f32;
                         self.show_resize = true;
                     }
 
@@ -1052,18 +1052,15 @@ impl eframe::App for PixeshApp {
                 .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
                 .frame(egui::Frame::new().fill(PANEL).stroke(Stroke::new(2.0, BORDER)))
                 .show(ctx, |ui| {
-                    ui.add(
-                        egui::Slider::new(&mut self.resize_w, 1..=512).text("Width"),
-                    );
-                    ui.add(
-                        egui::Slider::new(&mut self.resize_h, 1..=512).text("Height"),
-                    );
+                    slider(ui, "W", &mut self.resize_w, 1.0, 512.0);
+                    slider(ui, "H", &mut self.resize_h, 1.0, 512.0);
+                    ui.add_space(8.0);
                     ui.horizontal(|ui| {
                         if btn(ui, "Apply") {
-                            if self.resize_w != self.width
-                                || self.resize_h != self.height
+                            if self.resize_w as usize != self.width
+                                || self.resize_h as usize != self.height
                             {
-                                self.resize_canvas(self.resize_w, self.resize_h);
+                                self.resize_canvas(self.resize_w as usize, self.resize_h as usize);
                             }
                             self.show_resize = false;
                         }
@@ -1081,12 +1078,22 @@ impl eframe::App for PixeshApp {
                 .frame(egui::Frame::new().fill(PANEL).stroke(Stroke::new(2.0, BORDER)))
                 .show(ctx, |ui| {
                     ui.horizontal(|ui| {
-                        ui.label("File:");
+                        let lw = "File:".len() as f32 * CHAR_W;
+                        let (lr, _) = ui.allocate_exact_size(Vec2::new(lw + 8.0, ROW_H + 4.0), Sense::hover());
+                        ui.painter().text(
+                            lr.min + Vec2::new(4.0, 2.0),
+                            egui::Align2::LEFT_TOP,
+                            "File:",
+                            egui::FontId::proportional(FONT_SZ),
+                            TEXT,
+                        );
                         ui.add(
                             egui::TextEdit::singleline(&mut self.export_name)
-                                .desired_width(200.0),
+                                .desired_width(180.0)
+                                .font(egui::TextStyle::Monospace),
                         );
                     });
+                    ui.add_space(8.0);
                     ui.horizontal(|ui| {
                         if btn(ui, "Save") {
                             self.save_png(&self.export_name);
