@@ -73,7 +73,7 @@ impl PixeshApp {
             last_px_primary: None,
             last_px_secondary: None,
             grid: true,
-            zoom: 15.0,
+            zoom: 46.0,
             pan: Vec2::ZERO,
             tex: None,
             rg_tex: None,
