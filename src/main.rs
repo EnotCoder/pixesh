@@ -52,6 +52,9 @@ struct PixeshApp {
     show_resize: bool,
     resize_w: usize,
     resize_h: usize,
+
+    show_export: bool,
+    export_name: String,
 }
 
 impl PixeshApp {
@@ -83,6 +86,8 @@ impl PixeshApp {
             show_resize: false,
             resize_w: 64,
             resize_h: 64,
+            show_export: false,
+            export_name: "pixesh.png".into(),
         }
     }
 
@@ -417,13 +422,8 @@ impl eframe::App for PixeshApp {
                 self.redo();
             }
             if i.consume_key(egui::Modifiers::CTRL, egui::Key::S) {
-                if let Some(path) = rfd::FileDialog::new()
-                    .add_filter("PNG", &["png"])
-                    .set_file_name("pixesh.png")
-                    .save_file()
-                {
-                    self.save_png(&path.to_string_lossy());
-                }
+                self.export_name = "pixesh.png".into();
+                self.show_export = true;
             }
         });
 
@@ -500,13 +500,8 @@ impl eframe::App for PixeshApp {
                     separator(ui);
 
                     if btn(ui, "Save") {
-                        if let Some(path) = rfd::FileDialog::new()
-                            .add_filter("PNG", &["png"])
-                            .set_file_name("pixesh.png")
-                            .save_file()
-                        {
-                            self.save_png(&path.to_string_lossy());
-                        }
+                        self.export_name = "pixesh.png".into();
+                        self.show_export = true;
                     }
                     if btn(ui, "Load") {
                         if let Some(path) = rfd::FileDialog::new()
@@ -912,6 +907,31 @@ impl eframe::App for PixeshApp {
                         }
                         if btn(ui, "Cancel") {
                             self.show_resize = false;
+                        }
+                    });
+                });
+        }
+
+        // ── export dialog ───────────────────────────────
+        if self.show_export {
+            egui::Window::new("Export PNG")
+                .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+                .frame(egui::Frame::new().fill(PANEL).stroke(Stroke::new(2.0, BORDER)))
+                .show(ctx, |ui| {
+                    ui.horizontal(|ui| {
+                        ui.label("File:");
+                        ui.add(
+                            egui::TextEdit::singleline(&mut self.export_name)
+                                .desired_width(200.0),
+                        );
+                    });
+                    ui.horizontal(|ui| {
+                        if btn(ui, "Save") {
+                            self.save_png(&self.export_name);
+                            self.show_export = false;
+                        }
+                        if btn(ui, "Cancel") {
+                            self.show_export = false;
                         }
                     });
                 });
