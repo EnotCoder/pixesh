@@ -63,6 +63,7 @@ struct PixeshApp {
 
     show_export: bool,
     export_name: String,
+    export_path: String,
 }
 
 impl PixeshApp {
@@ -101,6 +102,7 @@ impl PixeshApp {
             resize_h: 64.0,
             show_export: false,
             export_name: "pixesh.png".into(),
+            export_path: String::new(),
         }
     }
 
@@ -1078,8 +1080,38 @@ impl eframe::App for PixeshApp {
                 .frame(egui::Frame::new().fill(PANEL).stroke(Stroke::new(2.0, BORDER)))
                 .show(ctx, |ui| {
                     ui.horizontal(|ui| {
-                        let lw = "File:".len() as f32 * CHAR_W;
-                        let (lr, _) = ui.allocate_exact_size(Vec2::new(lw + 8.0, ROW_H + 4.0), Sense::hover());
+                        let fw = "Folder:".len() as f32 * CHAR_W;
+                        let (fr, _) = ui.allocate_exact_size(Vec2::new(fw + 8.0, ROW_H + 4.0), Sense::hover());
+                        ui.painter().text(
+                            fr.min + Vec2::new(4.0, 2.0),
+                            egui::Align2::LEFT_TOP,
+                            "Folder:",
+                            egui::FontId::proportional(FONT_SZ),
+                            TEXT,
+                        );
+                        let display = if self.export_path.is_empty() { "." } else { &self.export_path };
+                        let dw = display.len() as f32 * CHAR_W;
+                        let (dr, _) = ui.allocate_exact_size(Vec2::new(dw.min(180.0) + 8.0, ROW_H + 4.0), Sense::hover());
+                        ui.painter().text(
+                            dr.min + Vec2::new(4.0, 2.0),
+                            egui::Align2::LEFT_TOP,
+                            display,
+                            egui::FontId::proportional(FONT_SZ),
+                            TEXT,
+                        );
+                        if btn(ui, "…") {
+                            let home = std::env::var("HOME").unwrap_or_else(|_| "/".into());
+                            if let Some(p) = rfd::FileDialog::new()
+                                .set_directory(&home)
+                                .pick_folder()
+                            {
+                                self.export_path = p.to_string_lossy().into();
+                            }
+                        }
+                    });
+                    ui.horizontal(|ui| {
+                        let fw = "File:".len() as f32 * CHAR_W;
+                        let (lr, _) = ui.allocate_exact_size(Vec2::new(fw + 8.0, ROW_H + 4.0), Sense::hover());
                         ui.painter().text(
                             lr.min + Vec2::new(4.0, 2.0),
                             egui::Align2::LEFT_TOP,
@@ -1096,7 +1128,12 @@ impl eframe::App for PixeshApp {
                     ui.add_space(8.0);
                     ui.horizontal(|ui| {
                         if btn(ui, "Save") {
-                            self.save_png(&self.export_name);
+                            let path = if self.export_path.is_empty() {
+                                self.export_name.clone()
+                            } else {
+                                format!("{}/{}", self.export_path, self.export_name)
+                            };
+                            self.save_png(&path);
                             self.show_export = false;
                         }
                         if btn(ui, "Cancel") {
