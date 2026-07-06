@@ -435,6 +435,23 @@ impl eframe::App for PixeshApp {
             self.pan *= self.zoom / old;
         }
 
+        // arrow pan
+        ctx.input(|i| {
+            let speed = if i.modifiers.shift { 80.0 } else { 20.0 };
+            if i.key_down(egui::Key::ArrowLeft) {
+                self.pan.x += speed;
+            }
+            if i.key_down(egui::Key::ArrowRight) {
+                self.pan.x -= speed;
+            }
+            if i.key_down(egui::Key::ArrowUp) {
+                self.pan.y += speed;
+            }
+            if i.key_down(egui::Key::ArrowDown) {
+                self.pan.y -= speed;
+            }
+        });
+
         // ── toolbar ──────────────────────────────────
         egui::TopBottomPanel::top("tools")
             .frame(egui::Frame::new().fill(PANEL))
