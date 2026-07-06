@@ -820,6 +820,34 @@ impl eframe::App for PixeshApp {
                             );
                         }
                     }
+
+                    // brush cursor
+                    let cursor = resp.interact_pointer_pos()
+                        .or_else(|| resp.hover_pos());
+                    if let Some(pos) = cursor {
+                        if canvas_rect.contains(pos) {
+                            let (px, py) = self.screen_to_pixel(pos, canvas_rect.min);
+                            let b = self.brush_i() as i32;
+                            let half = (b - 1) / 2;
+                            let bx0 = (px - half).max(0) as f32;
+                            let by0 = (py - half).max(0) as f32;
+                            let bx1 = (px - half + b).min(self.width as i32) as f32;
+                            let by1 = (py - half + b).min(self.height as i32) as f32;
+                            let cr = Rect::from_min_size(
+                                Pos2::new(
+                                    canvas_rect.min.x + bx0 * self.zoom,
+                                    canvas_rect.min.y + by0 * self.zoom,
+                                ),
+                                Vec2::new(
+                                    (bx1 - bx0) * self.zoom,
+                                    (by1 - by0) * self.zoom,
+                                ),
+                            );
+                            p.rect_filled(cr, 0.0, Color32::from_black_alpha(60));
+                            p.rect_stroke(cr, 0.0, Stroke::new(1.0, Color32::WHITE.linear_multiply(0.4)), egui::StrokeKind::Inside);
+                        }
+                    }
+
                 }
 
                 // draw LMB
