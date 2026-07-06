@@ -537,7 +537,7 @@ impl eframe::App for PixeshApp {
         // ── layers ───────────────────────────────────
         egui::SidePanel::right("layers")
             .resizable(true)
-            .default_width(180.0)
+            .default_width(280.0)
             .frame(egui::Frame::new().fill(PANEL))
             .show(ctx, |ui| {
                 ui.add_space(4.0);
