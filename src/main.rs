@@ -1087,10 +1087,10 @@ impl eframe::App for PixeshApp {
                             egui::FontId::proportional(FONT_SZ),
                             TEXT,
                         );
-                        ui.add(
+                        ui.add_sized(
+                            Vec2::new(200.0, ROW_H + 4.0),
                             egui::TextEdit::singleline(&mut self.export_name)
-                                .desired_width(180.0)
-                                .font(egui::TextStyle::Monospace),
+                                .font(egui::TextStyle::Body),
                         );
                     });
                     ui.add_space(8.0);
@@ -1144,6 +1144,10 @@ fn main() -> eframe::Result {
             };
             style.spacing.item_spacing = Vec2::new(6.0, 4.0);
             style.spacing.button_padding = Vec2::new(4.0, 2.0);
+            style.text_styles.insert(
+                egui::TextStyle::Body,
+                egui::FontId::proportional(FONT_SZ),
+            );
             cc.egui_ctx.set_style(style);
 
             Ok(Box::new(PixeshApp::new()))
