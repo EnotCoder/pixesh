@@ -749,6 +749,14 @@ impl eframe::App for PixeshApp {
 
                 let (area, resp) = ui.allocate_exact_size(avail, Sense::click_and_drag());
 
+                // clamp pan so canvas never fully leaves the screen
+                let max_px = (canvas_size.x + area.width()) * 0.5;
+                let max_py = (canvas_size.y + area.height()) * 0.5;
+                self.pan = self.pan.clamp(
+                    Vec2::new(-max_px, -max_py),
+                    Vec2::new(max_px, max_py),
+                );
+
                 let canvas_rect = Rect::from_center_size(
                     area.center() + self.pan,
                     canvas_size,
