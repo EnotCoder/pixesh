@@ -47,7 +47,6 @@ struct PixeshApp {
     undo_stack: Vec<Snapshot>,
     redo_stack: Vec<Snapshot>,
 
-    save_path: String,
     show_resize: bool,
     resize_w: usize,
     resize_h: usize,
@@ -73,7 +72,6 @@ impl PixeshApp {
             tex: None,
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
-            save_path: "output.png".into(),
             show_resize: false,
             resize_w: 64,
             resize_h: 64,
@@ -270,7 +268,13 @@ impl eframe::App for PixeshApp {
                 self.redo();
             }
             if i.consume_key(egui::Modifiers::CTRL, egui::Key::S) {
-                self.save_png(&self.save_path);
+                if let Some(path) = rfd::FileDialog::new()
+                    .add_filter("PNG", &["png"])
+                    .set_file_name("pixesh.png")
+                    .save_file()
+                {
+                    self.save_png(&path.to_string_lossy());
+                }
             }
         });
 
@@ -319,13 +323,22 @@ impl eframe::App for PixeshApp {
 
                 ui.separator();
                 if ui.button("Save").clicked() {
-                    self.save_png(&self.save_path);
+                    if let Some(path) = rfd::FileDialog::new()
+                        .add_filter("PNG", &["png"])
+                        .set_file_name("pixesh.png")
+                        .save_file()
+                    {
+                        self.save_png(&path.to_string_lossy());
+                    }
                 }
-                ui.add(egui::TextEdit::singleline(&mut self.save_path)
-                    .desired_width(120.0));
                 if ui.button("Load").clicked() {
-                    let path = self.save_path.clone();
-                    self.load_png(&path);
+                    if let Some(path) = rfd::FileDialog::new()
+                        .add_filter("PNG", &["png"])
+                        .pick_file()
+                    {
+                        let path = path.to_string_lossy().to_string();
+                        self.load_png(&path);
+                    }
                 }
 
                 if ui.button("Resize").clicked() {
