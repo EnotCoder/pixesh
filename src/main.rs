@@ -58,12 +58,12 @@ impl PixeshApp {
         Self {
             layers: vec![Layer {
                 name: "Background".into(),
-                pixels: vec![Color32::WHITE; 64 * 64],
+                pixels: vec![Color32::WHITE; 16 * 16],
                 visible: true,
             }],
             active_layer: 0,
-            width: 64,
-            height: 64,
+            width: 16,
+            height: 16,
             color: Color32::BLACK,
             rgb_r: 0.0,
             rgb_g: 0.0,
@@ -249,6 +249,10 @@ impl PixeshApp {
         }
         self.active_layer = 0;
         self.tex = None;
+    }
+
+    fn max_zoom(&self) -> f32 {
+        (800.0 / self.width.min(self.height) as f32).max(4.0).min(80.0)
     }
 
     fn resize_canvas(&mut self, new_w: usize, new_h: usize) {
@@ -462,7 +466,8 @@ impl eframe::App for PixeshApp {
                     }
 
                     checkbox(ui, "Grid", &mut self.grid);
-                    slider(ui, "Z", &mut self.zoom, 2.0, 40.0);
+                    let max_z = self.max_zoom();
+                    slider(ui, "Z", &mut self.zoom, 2.0, max_z);
 
                     separator(ui);
 
@@ -724,6 +729,8 @@ impl eframe::App for PixeshApp {
                         pixels: flat,
                     };
 
+                    let max_z = self.max_zoom();
+
                     let tex = self.tex.get_or_insert_with(|| {
                         ui.ctx().load_texture(
                             "canvas",
@@ -737,11 +744,9 @@ impl eframe::App for PixeshApp {
                         ui.allocate_exact_size(canvas_size, Sense::click_and_drag());
 
                     // scroll zoom
-                    if resp.hovered() {
-                        let scroll = ctx.input(|i| i.raw_scroll_delta.y);
-                        if scroll != 0.0 {
-                            self.zoom = (self.zoom - scroll * 2.0).clamp(2.0, 40.0);
-                        }
+                    let scroll = ctx.input(|i| i.raw_scroll_delta.y);
+                    if scroll != 0.0 {
+                        self.zoom = (self.zoom - scroll * 0.2).clamp(2.0, max_z);
                     }
 
                     if ui.is_rect_visible(rect) {
