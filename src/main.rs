@@ -42,6 +42,8 @@ struct PixeshApp {
     grid: bool,
     zoom: f32,
     tex: Option<egui::TextureHandle>,
+    rg_tex: Option<egui::TextureHandle>,
+    rg_tex_b: f32,
 
     undo_stack: Vec<Snapshot>,
     redo_stack: Vec<Snapshot>,
@@ -72,6 +74,8 @@ impl PixeshApp {
             grid: true,
             zoom: 10.0,
             tex: None,
+            rg_tex: None,
+            rg_tex_b: -1.0,
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
             show_resize: false,
@@ -265,75 +269,6 @@ impl PixeshApp {
 }
 
 // ── custom widget helpers ────────────────────────────
-
-fn rgb_slider(ui: &mut egui::Ui, label: &str, value: &mut f32, min: f32, max: f32, track_min: Color32, track_max: Color32) -> (Rect, bool) {
-    let track_w = ui.available_size().x - 4.0;
-    let track_h = 10.0;
-    let thumb_w = 10.0;
-    let total_h = ROW_H + track_h + 6.0;
-
-    let mut changed = false;
-    let (rect, resp) =
-        ui.allocate_exact_size(Vec2::new(track_w.max(40.0), total_h), Sense::click_and_drag());
-    let p = ui.painter();
-
-    // label
-    let label_str = format!("{}  {}", label, *value as u8);
-    p.text(
-        Pos2::new(rect.min.x, rect.min.y),
-        egui::Align2::LEFT_TOP,
-        &label_str,
-        egui::FontId::proportional(FONT_SZ),
-        TEXT,
-    );
-
-    // track
-    let ty = rect.min.y + ROW_H + 2.0;
-    let track_rect = Rect::from_min_size(
-        Pos2::new(rect.min.x, ty),
-        Vec2::new(track_w, track_h),
-    );
-    // gradient via horizontal segments
-    let segs = 16;
-    for s in 0..segs {
-        let t0 = s as f32 / segs as f32;
-        let t1 = (s + 1) as f32 / segs as f32;
-        let sx = track_rect.min.x + t0 * track_w;
-        let sw = (t1 - t0) * track_w + 1.0;
-        let c = Color32::from_rgb(
-            (track_min.r() as f32 + (track_max.r() as f32 - track_min.r() as f32) * t1) as u8,
-            (track_min.g() as f32 + (track_max.g() as f32 - track_min.g() as f32) * t1) as u8,
-            (track_min.b() as f32 + (track_max.b() as f32 - track_min.b() as f32) * t1) as u8,
-        );
-        p.rect_filled(Rect::from_min_size(Pos2::new(sx, ty), Vec2::new(sw, track_h)), 0.0, c);
-    }
-    p.rect_stroke(track_rect, 0.0, Stroke::new(1.0, BORDER), egui::StrokeKind::Outside);
-
-    // thumb
-    let t = ((*value - min) / (max - min)).clamp(0.0, 1.0);
-    let thumb_x = track_rect.min.x + t * (track_w - thumb_w);
-    let thumb_rect = Rect::from_min_size(
-        Pos2::new(thumb_x, ty - 2.0),
-        Vec2::new(thumb_w, track_h + 4.0),
-    );
-    let thumb_bg = if resp.dragged() || resp.hovered() {
-        ACCENT
-    } else {
-        Color32::WHITE
-    };
-    p.rect_filled(thumb_rect, 0.0, thumb_bg);
-    p.rect_stroke(thumb_rect, 0.0, Stroke::new(1.0, BORDER), egui::StrokeKind::Outside);
-
-    if resp.dragged_by(egui::PointerButton::Primary) {
-        if let Some(pos) = resp.interact_pointer_pos() {
-            let t2 = ((pos.x - track_rect.min.x) / track_w).clamp(0.0, 1.0);
-            *value = min + t2 * (max - min);
-            changed = true;
-        }
-    }
-
-    (rect, changed)
-}
 
 fn btn(ui: &mut egui::Ui, label: &str) -> bool {
     let label_w = label.len() as f32 * CHAR_W;
@@ -647,7 +582,7 @@ impl eframe::App for PixeshApp {
                     }
                 });
 
-                // ── RGB picker ───────────────────────
+                // ── Adobe-style RGB picker ──────────────
                 ui.add_space(8.0);
                 let hdr = "Color";
                 let hw = hdr.len() as f32 * CHAR_W;
@@ -663,24 +598,110 @@ impl eframe::App for PixeshApp {
                     TEXT,
                 );
 
-                // preview
-                let ps = 40.0;
-                let (pr, _) = ui.allocate_exact_size(Vec2::new(ps, ps), Sense::hover());
-                let pc = Color32::from_rgb(self.rgb_r as u8, self.rgb_g as u8, self.rgb_b as u8);
-                ui.painter().rect_filled(pr, 0.0, pc);
-                ui.painter().rect_stroke(pr, 0.0, Stroke::new(1.0, BORDER), egui::StrokeKind::Outside);
+                // preview + RGB readout
+                ui.horizontal(|ui| {
+                    let ps = 36.0;
+                    let (pr, _) = ui.allocate_exact_size(Vec2::new(ps, ps), Sense::hover());
+                    let pc = Color32::from_rgb(self.rgb_r as u8, self.rgb_g as u8, self.rgb_b as u8);
+                    ui.painter().rect_filled(pr, 0.0, pc);
+                    ui.painter().rect_stroke(pr, 0.0, Stroke::new(1.0, BORDER), egui::StrokeKind::Outside);
 
-                // R slider
-                let (_, rb) = rgb_slider(ui, "R", &mut self.rgb_r, 0.0, 255.0, Color32::from_rgb(80, 0, 0), Color32::from_rgb(255, 0, 0));
-                if rb { self.color = Color32::from_rgb(self.rgb_r as u8, self.rgb_g as u8, self.rgb_b as u8); }
+                    ui.vertical(|ui| {
+                        let mut y = ui.cursor().min.y;
+                        for (ch, &v) in [("R", &self.rgb_r), ("G", &self.rgb_g), ("B", &self.rgb_b)] {
+                            let txt = format!("{} {}", ch, v as u8);
+                            ui.painter().text(
+                                Pos2::new(pr.max.x + 6.0, y),
+                                egui::Align2::LEFT_TOP,
+                                &txt,
+                                egui::FontId::proportional(FONT_SZ),
+                                TEXT,
+                            );
+                            y += ROW_H + 2.0;
+                        }
+                        // consume space
+                        let _ = ui.allocate_exact_size(Vec2::new(80.0, (ROW_H + 2.0) * 3.0), Sense::hover());
+                    });
+                });
 
-                // G slider
-                let (_, gb) = rgb_slider(ui, "G", &mut self.rgb_g, 0.0, 255.0, Color32::from_rgb(0, 80, 0), Color32::from_rgb(0, 255, 0));
-                if gb { self.color = Color32::from_rgb(self.rgb_r as u8, self.rgb_g as u8, self.rgb_b as u8); }
+                // RG field + B strip
+                let avail = ui.available_size();
+                let fsize = (avail.x - 24.0).min(avail.y).min(180.0).max(40.0);
+                let strip_w = 14.0;
+                ui.horizontal(|ui| {
+                    // ── RG 2D field ──
+                    let (rect, resp) = ui.allocate_exact_size(Vec2::splat(fsize), Sense::click_and_drag());
 
-                // B slider
-                let (_, bb) = rgb_slider(ui, "B", &mut self.rgb_b, 0.0, 255.0, Color32::from_rgb(0, 0, 80), Color32::from_rgb(0, 0, 255));
-                if bb { self.color = Color32::from_rgb(self.rgb_r as u8, self.rgb_g as u8, self.rgb_b as u8); }
+                    if self.rg_tex.is_none() || (self.rg_tex_b - self.rgb_b).abs() > 0.5 {
+                        self.rg_tex_b = self.rgb_b;
+                        let ts = 128;
+                        let bb = self.rgb_b as u8;
+                        let mut pix = Vec::with_capacity(ts * ts);
+                        for y in 0..ts {
+                            for x in 0..ts {
+                                let rr = (x as f32 / (ts - 1) as f32 * 255.0) as u8;
+                                let gg = (y as f32 / (ts - 1) as f32 * 255.0) as u8;
+                                pix.push(Color32::from_rgb(rr, gg, bb));
+                            }
+                        }
+                        let img = ColorImage { size: [ts, ts], pixels: pix };
+                        self.rg_tex = Some(ui.ctx().load_texture("rg", img, egui::TextureOptions::LINEAR));
+                    }
+
+                    if let Some(tex) = &self.rg_tex {
+                        let p = ui.painter();
+                        p.image(tex.id(), rect, Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
+                        p.rect_stroke(rect, 0.0, Stroke::new(1.0, BORDER), egui::StrokeKind::Outside);
+
+                        let cx = rect.min.x + (self.rgb_r / 255.0) * rect.width();
+                        let cy = rect.min.y + (self.rgb_g / 255.0) * rect.height();
+                        let cc = if self.rgb_r > 180.0 || self.rgb_g > 180.0 { Color32::BLACK } else { Color32::WHITE };
+                        p.circle_stroke(Pos2::new(cx, cy), 4.0, Stroke::new(1.5, cc));
+                        p.circle_filled(Pos2::new(cx, cy), 2.0, cc);
+                    }
+
+                    let pick = resp.dragged_by(egui::PointerButton::Primary)
+                        || resp.clicked_by(egui::PointerButton::Primary);
+                    if pick {
+                        if let Some(pos) = resp.interact_pointer_pos() {
+                            let rel = pos - rect.min;
+                            self.rgb_r = (rel.x / rect.width() * 255.0).clamp(0.0, 255.0);
+                            self.rgb_g = (rel.y / rect.height() * 255.0).clamp(0.0, 255.0);
+                            self.color = Color32::from_rgb(self.rgb_r as u8, self.rgb_g as u8, self.rgb_b as u8);
+                        }
+                    }
+
+                    // ── B strip ──
+                    let (srect, sresp) = ui.allocate_exact_size(Vec2::new(strip_w, fsize), Sense::click_and_drag());
+
+                    let ts = 64;
+                    let r = self.rgb_r as u8;
+                    let g = self.rgb_g as u8;
+                    let mut spix = Vec::with_capacity(ts);
+                    for y in 0..ts {
+                        let bb = (y as f32 / (ts - 1) as f32 * 255.0) as u8;
+                        spix.push(Color32::from_rgb(r, g, bb));
+                    }
+                    let simg = ColorImage { size: [1, ts], pixels: spix };
+                    let stex = ui.ctx().load_texture("bstrip", simg, egui::TextureOptions::LINEAR);
+                    let sp = ui.painter();
+                    sp.image(stex.id(), srect, Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
+                    sp.rect_stroke(srect, 0.0, Stroke::new(1.0, BORDER), egui::StrokeKind::Outside);
+
+                    let by = srect.min.y + (self.rgb_b / 255.0) * srect.height();
+                    let sc = if self.rgb_b > 180.0 { Color32::BLACK } else { Color32::WHITE };
+                    sp.hline(srect.x_range(), by, Stroke::new(2.0, sc));
+
+                    let spick = sresp.dragged_by(egui::PointerButton::Primary)
+                        || sresp.clicked_by(egui::PointerButton::Primary);
+                    if spick {
+                        if let Some(pos) = sresp.interact_pointer_pos() {
+                            let rel_y = (pos.y - srect.min.y) / srect.height();
+                            self.rgb_b = (rel_y * 255.0).clamp(0.0, 255.0);
+                            self.color = Color32::from_rgb(self.rgb_r as u8, self.rgb_g as u8, self.rgb_b as u8);
+                        }
+                    }
+                });
             });
 
         // ── canvas ───────────────────────────────────
