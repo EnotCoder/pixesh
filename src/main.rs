@@ -1,6 +1,6 @@
 use eframe::egui::{self, Color32, ColorImage, Pos2, Rect, Sense, Stroke, Vec2};
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone, Copy)]
 enum Tool { Brush, Eraser, Fill, Eyedropper }
 
 // ── Theme colours ────────────────────────────────────
@@ -43,6 +43,7 @@ struct PixeshApp {
     rgb_b: f32,
     brush: f32,
     tool: Tool,
+    tool_saved: Option<Tool>,
     last_px_primary: Option<(i32, i32)>,
     last_px_secondary: Option<(i32, i32)>,
 
@@ -84,6 +85,7 @@ impl PixeshApp {
             rgb_b: 0.0,
             brush: 1.0,
             tool: Tool::Brush,
+            tool_saved: None,
             last_px_primary: None,
             last_px_secondary: None,
             grid: true,
@@ -525,6 +527,19 @@ impl eframe::App for PixeshApp {
             }
             if i.key_down(egui::Key::ArrowDown) {
                 self.pan.y -= speed;
+            }
+        });
+
+        // temp eyedropper via Alt/Ctrl
+        ctx.input(|i| {
+            let held = i.modifiers.alt || i.modifiers.ctrl;
+            if held && self.tool_saved.is_none() {
+                self.tool_saved = Some(self.tool);
+                self.tool = Tool::Eyedropper;
+            } else if !held {
+                if let Some(saved) = self.tool_saved.take() {
+                    self.tool = saved;
+                }
             }
         });
 
