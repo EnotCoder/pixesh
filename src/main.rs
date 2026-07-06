@@ -35,6 +35,9 @@ struct PixeshApp {
     height: usize,
 
     color: Color32,
+    hsv_h: f32,
+    hsv_s: f32,
+    hsv_v: f32,
     rgb_r: f32,
     rgb_g: f32,
     rgb_b: f32,
@@ -47,8 +50,8 @@ struct PixeshApp {
     zoom: f32,
     pan: Vec2,
     tex: Option<egui::TextureHandle>,
-    rg_tex: Option<egui::TextureHandle>,
-    rg_tex_b: f32,
+    sv_tex: Option<egui::TextureHandle>,
+    sv_tex_h: f32,
 
     undo_stack: Vec<Snapshot>,
     redo_stack: Vec<Snapshot>,
@@ -73,6 +76,9 @@ impl PixeshApp {
             width: 16,
             height: 16,
             color: Color32::BLACK,
+            hsv_h: 0.0,
+            hsv_s: 0.0,
+            hsv_v: 0.0,
             rgb_r: 0.0,
             rgb_g: 0.0,
             rgb_b: 0.0,
@@ -84,8 +90,8 @@ impl PixeshApp {
             zoom: 46.0,
             pan: Vec2::ZERO,
             tex: None,
-            rg_tex: None,
-            rg_tex_b: -1.0,
+            sv_tex: None,
+            sv_tex_h: -1.0,
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
             show_resize: false,
@@ -302,6 +308,47 @@ impl PixeshApp {
         self.height = new_h;
         self.tex = None;
     }
+}
+
+// ── HSV helpers ──────────────────────────────────────────
+
+fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (u8, u8, u8) {
+    let s = s / 255.0;
+    let v = v / 255.0;
+    let hi = (h / 60.0) as i32 % 6;
+    let f = h / 60.0 - (hi as f32);
+    let p = v * (1.0 - s);
+    let q = v * (1.0 - s * f);
+    let t = v * (1.0 - s * (1.0 - f));
+    let (r, g, b) = match hi {
+        0 => (v, t, p),
+        1 => (q, v, p),
+        2 => (p, v, t),
+        3 => (p, q, v),
+        4 => (t, p, v),
+        _ => (v, p, q),
+    };
+    ((r * 255.0) as u8, (g * 255.0) as u8, (b * 255.0) as u8)
+}
+
+fn rgb_to_hsv(r: u8, g: u8, b: u8) -> (f32, f32, f32) {
+    let rf = r as f32 / 255.0;
+    let gf = g as f32 / 255.0;
+    let bf = b as f32 / 255.0;
+    let mx = rf.max(gf).max(bf);
+    let mn = rf.min(gf).min(bf);
+    let d = mx - mn;
+    let h = if d == 0.0 {
+        0.0
+    } else if mx == rf {
+        60.0 * ((gf - bf) / d % 6.0)
+    } else if mx == gf {
+        60.0 * ((bf - rf) / d + 2.0)
+    } else {
+        60.0 * ((rf - gf) / d + 4.0)
+    };
+    let s = if mx == 0.0 { 0.0 } else { d / mx * 255.0 };
+    (if h < 0.0 { h + 360.0 } else { h }, s, mx * 255.0)
 }
 
 // ── custom widget helpers ────────────────────────────
@@ -644,7 +691,7 @@ impl eframe::App for PixeshApp {
                     }
                 });
 
-                // ── Adobe-style RGB picker ──────────────
+                // ── HSV picker ───────────────────────────
                 ui.add_space(8.0);
                 let hdr = "Color";
                 let hw = hdr.len() as f32 * CHAR_W;
@@ -681,43 +728,44 @@ impl eframe::App for PixeshApp {
                             );
                             y += ROW_H + 2.0;
                         }
-                        // consume space
                         let _ = ui.allocate_exact_size(Vec2::new(80.0, (ROW_H + 2.0) * 3.0), Sense::hover());
                     });
                 });
 
-                // RG field + B strip
+                // SV field + H strip
                 let avail = ui.available_size();
                 let fsize = (avail.x - 24.0).min(avail.y).min(180.0).max(40.0);
                 let strip_w = 14.0;
                 ui.horizontal(|ui| {
-                    // ── RG 2D field ──
+                    // ── SV 2D field ──
                     let (rect, resp) = ui.allocate_exact_size(Vec2::splat(fsize), Sense::click_and_drag());
 
-                    if self.rg_tex.is_none() || (self.rg_tex_b - self.rgb_b).abs() > 0.5 {
-                        self.rg_tex_b = self.rgb_b;
+                    // rebuild texture when H changes
+                    if self.sv_tex.is_none() || (self.sv_tex_h - self.hsv_h).abs() > 0.5 {
+                        self.sv_tex_h = self.hsv_h;
                         let ts = 128;
-                        let bb = self.rgb_b as u8;
+                        let h = self.hsv_h;
                         let mut pix = Vec::with_capacity(ts * ts);
                         for y in 0..ts {
                             for x in 0..ts {
-                                let rr = (x as f32 / (ts - 1) as f32 * 255.0) as u8;
-                                let gg = (y as f32 / (ts - 1) as f32 * 255.0) as u8;
-                                pix.push(Color32::from_rgb(rr, gg, bb));
+                                let s = x as f32 / (ts - 1) as f32 * 255.0;
+                                let v = y as f32 / (ts - 1) as f32 * 255.0;
+                                let (r, g, b) = hsv_to_rgb(h, s, v);
+                                pix.push(Color32::from_rgb(r, g, b));
                             }
                         }
                         let img = ColorImage { size: [ts, ts], pixels: pix };
-                        self.rg_tex = Some(ui.ctx().load_texture("rg", img, egui::TextureOptions::LINEAR));
+                        self.sv_tex = Some(ui.ctx().load_texture("sv", img, egui::TextureOptions::LINEAR));
                     }
 
-                    if let Some(tex) = &self.rg_tex {
+                    if let Some(tex) = &self.sv_tex {
                         let p = ui.painter();
                         p.image(tex.id(), rect, Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
                         p.rect_stroke(rect, 0.0, Stroke::new(1.0, BORDER), egui::StrokeKind::Outside);
 
-                        let cx = rect.min.x + (self.rgb_r / 255.0) * rect.width();
-                        let cy = rect.min.y + (self.rgb_g / 255.0) * rect.height();
-                        let cc = if self.rgb_r > 180.0 || self.rgb_g > 180.0 { Color32::BLACK } else { Color32::WHITE };
+                        let cx = rect.min.x + (self.hsv_s / 255.0) * rect.width();
+                        let cy = rect.min.y + (self.hsv_v / 255.0) * rect.height();
+                        let cc = if self.hsv_v > 180.0 { Color32::BLACK } else { Color32::WHITE };
                         p.circle_stroke(Pos2::new(cx, cy), 4.0, Stroke::new(1.5, cc));
                         p.circle_filled(Pos2::new(cx, cy), 2.0, cc);
                     }
@@ -727,40 +775,46 @@ impl eframe::App for PixeshApp {
                     if pick {
                         if let Some(pos) = resp.interact_pointer_pos() {
                             let rel = pos - rect.min;
-                            self.rgb_r = (rel.x / rect.width() * 255.0).clamp(0.0, 255.0);
-                            self.rgb_g = (rel.y / rect.height() * 255.0).clamp(0.0, 255.0);
-                            self.color = Color32::from_rgb(self.rgb_r as u8, self.rgb_g as u8, self.rgb_b as u8);
+                            self.hsv_s = (rel.x / rect.width() * 255.0).clamp(0.0, 255.0);
+                            self.hsv_v = (rel.y / rect.height() * 255.0).clamp(0.0, 255.0);
+                            let (r, g, b) = hsv_to_rgb(self.hsv_h, self.hsv_s, self.hsv_v);
+                            self.rgb_r = r as f32;
+                            self.rgb_g = g as f32;
+                            self.rgb_b = b as f32;
+                            self.color = Color32::from_rgb(r, g, b);
                         }
                     }
 
-                    // ── B strip ──
+                    // ── H strip ──
                     let (srect, sresp) = ui.allocate_exact_size(Vec2::new(strip_w, fsize), Sense::click_and_drag());
 
                     let ts = 64;
-                    let r = self.rgb_r as u8;
-                    let g = self.rgb_g as u8;
                     let mut spix = Vec::with_capacity(ts);
                     for y in 0..ts {
-                        let bb = (y as f32 / (ts - 1) as f32 * 255.0) as u8;
-                        spix.push(Color32::from_rgb(r, g, bb));
+                        let hh = y as f32 / (ts - 1) as f32 * 360.0;
+                        let (r, g, b) = hsv_to_rgb(hh, 255.0, 255.0);
+                        spix.push(Color32::from_rgb(r, g, b));
                     }
                     let simg = ColorImage { size: [1, ts], pixels: spix };
-                    let stex = ui.ctx().load_texture("bstrip", simg, egui::TextureOptions::LINEAR);
+                    let stex = ui.ctx().load_texture("hstrip", simg, egui::TextureOptions::LINEAR);
                     let sp = ui.painter();
                     sp.image(stex.id(), srect, Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
                     sp.rect_stroke(srect, 0.0, Stroke::new(1.0, BORDER), egui::StrokeKind::Outside);
 
-                    let by = srect.min.y + (self.rgb_b / 255.0) * srect.height();
-                    let sc = if self.rgb_b > 180.0 { Color32::BLACK } else { Color32::WHITE };
-                    sp.hline(srect.x_range(), by, Stroke::new(2.0, sc));
+                    let hy = srect.min.y + (self.hsv_h / 360.0) * srect.height();
+                    sp.hline(srect.x_range(), hy, Stroke::new(2.0, Color32::WHITE));
 
                     let spick = sresp.dragged_by(egui::PointerButton::Primary)
                         || sresp.clicked_by(egui::PointerButton::Primary);
                     if spick {
                         if let Some(pos) = sresp.interact_pointer_pos() {
                             let rel_y = (pos.y - srect.min.y) / srect.height();
-                            self.rgb_b = (rel_y * 255.0).clamp(0.0, 255.0);
-                            self.color = Color32::from_rgb(self.rgb_r as u8, self.rgb_g as u8, self.rgb_b as u8);
+                            self.hsv_h = (rel_y * 360.0).clamp(0.0, 359.99);
+                            let (r, g, b) = hsv_to_rgb(self.hsv_h, self.hsv_s, self.hsv_v);
+                            self.rgb_r = r as f32;
+                            self.rgb_g = g as f32;
+                            self.rgb_b = b as f32;
+                            self.color = Color32::from_rgb(r, g, b);
                         }
                     }
                 });
@@ -896,6 +950,10 @@ impl eframe::App for PixeshApp {
                                     self.rgb_r = c.r() as f32;
                                     self.rgb_g = c.g() as f32;
                                     self.rgb_b = c.b() as f32;
+                                    let (h, s, v) = rgb_to_hsv(c.r(), c.g(), c.b());
+                                    self.hsv_h = h;
+                                    self.hsv_s = s;
+                                    self.hsv_v = v;
                                 }
                             }
                         }
