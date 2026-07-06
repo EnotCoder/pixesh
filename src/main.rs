@@ -1,5 +1,8 @@
 use eframe::egui::{self, Color32, ColorImage, Pos2, Rect, Sense, Stroke, Vec2};
 
+#[derive(PartialEq)]
+enum Tool { Brush, Eraser, Fill, Eyedropper }
+
 // ── Theme colours ────────────────────────────────────
 const BG: Color32 = Color32::from_rgb(24, 24, 32);
 const PANEL: Color32 = Color32::from_rgb(32, 32, 40);
@@ -36,6 +39,7 @@ struct PixeshApp {
     rgb_g: f32,
     rgb_b: f32,
     brush: f32,
+    tool: Tool,
     last_px_primary: Option<(i32, i32)>,
     last_px_secondary: Option<(i32, i32)>,
 
@@ -62,7 +66,7 @@ impl PixeshApp {
         Self {
             layers: vec![Layer {
                 name: "Background".into(),
-                pixels: vec![Color32::WHITE; 16 * 16],
+                pixels: vec![Color32::TRANSPARENT; 16 * 16],
                 visible: true,
             }],
             active_layer: 0,
@@ -73,6 +77,7 @@ impl PixeshApp {
             rgb_g: 0.0,
             rgb_b: 0.0,
             brush: 1.0,
+            tool: Tool::Brush,
             last_px_primary: None,
             last_px_secondary: None,
             grid: true,
@@ -96,7 +101,7 @@ impl PixeshApp {
     }
 
     fn composite(&self) -> Vec<Color32> {
-        let mut out = vec![Color32::WHITE; self.width * self.height];
+        let mut out = vec![Color32::TRANSPARENT; self.width * self.height];
         for layer in &self.layers {
             if !layer.visible {
                 continue;
@@ -110,7 +115,7 @@ impl PixeshApp {
         out
     }
 
-    fn paint_pixel(&mut self, px: i32, py: i32) {
+    fn paint_pixel(&mut self, px: i32, py: i32, color: Color32) {
         let idx = self.active_layer;
         if idx >= self.layers.len() {
             return;
@@ -125,9 +130,32 @@ impl PixeshApp {
                 let x = px + dx - half;
                 let y = py + dy - half;
                 if x >= 0 && x < w && y >= 0 && y < h {
-                    layer.pixels[(y * w + x) as usize] = self.color;
+                    layer.pixels[(y * w + x) as usize] = color;
                 }
             }
+        }
+    }
+
+    fn flood_fill(&mut self, px: i32, py: i32, new: Color32) {
+        let idx = self.active_layer;
+        if idx >= self.layers.len() { return; }
+        let w = self.width as i32;
+        let h = self.height as i32;
+        if px < 0 || px >= w || py < 0 || py >= h { return; }
+        let layer = &self.layers[idx];
+        let target = layer.pixels[(py * w + px) as usize];
+        if target == new { return; }
+        // BFS flood fill
+        let mut stack = vec![(px, py)];
+        let layer = &mut self.layers[idx];
+        while let Some((cx, cy)) = stack.pop() {
+            let i = cy * w + cx;
+            if layer.pixels[i as usize] != target { continue; }
+            layer.pixels[i as usize] = new;
+            if cx > 0     { stack.push((cx - 1, cy)); }
+            if cx + 1 < w { stack.push((cx + 1, cy)); }
+            if cy > 0     { stack.push((cx, cy - 1)); }
+            if cy + 1 < h { stack.push((cx, cy + 1)); }
         }
     }
 
@@ -136,12 +164,12 @@ impl PixeshApp {
         ((r.x / self.zoom) as i32, (r.y / self.zoom) as i32)
     }
 
-    fn draw_line(&mut self, from: (i32, i32), to: (i32, i32)) {
+    fn draw_line(&mut self, from: (i32, i32), to: (i32, i32), color: Color32) {
         let dx = to.0 - from.0;
         let dy = to.1 - from.1;
         let steps = dx.abs().max(dy.abs());
         if steps <= 1 {
-            self.paint_pixel(to.0, to.1);
+            self.paint_pixel(to.0, to.1, color);
             return;
         }
         for i in 0..=steps {
@@ -149,6 +177,7 @@ impl PixeshApp {
             self.paint_pixel(
                 (from.0 as f32 + dx as f32 * t + 0.5) as i32,
                 (from.1 as f32 + dy as f32 * t + 0.5) as i32,
+                color,
             );
         }
     }
@@ -477,14 +506,19 @@ impl eframe::App for PixeshApp {
 
                     slider(ui, "B", &mut self.brush, 1.0, 10.0);
 
+                    separator(ui);
+
+                    if btn(ui, if self.tool == Tool::Brush { ">Brush<" } else { "Brush" }) { self.tool = Tool::Brush; }
+                    if btn(ui, if self.tool == Tool::Eraser { ">Eraser<" } else { "Eraser" }) { self.tool = Tool::Eraser; }
+                    if btn(ui, if self.tool == Tool::Fill { ">Fill<" } else { "Fill" }) { self.tool = Tool::Fill; }
+                    if btn(ui, if self.tool == Tool::Eyedropper { ">Drop<" } else { "Drop" }) { self.tool = Tool::Eyedropper; }
+
+                    separator(ui);
+
                     if btn(ui, "Clear") {
                         self.push_undo();
                         for layer in &mut self.layers {
-                            layer.pixels = if layer.name == "Background" {
-                                vec![Color32::WHITE; self.width * self.height]
-                            } else {
-                                vec![Color32::TRANSPARENT; self.width * self.height]
-                            };
+                            layer.pixels = vec![Color32::TRANSPARENT; self.width * self.height];
                         }
                     }
 
@@ -850,46 +884,71 @@ impl eframe::App for PixeshApp {
 
                 }
 
-                // draw LMB
-                if resp.dragged_by(egui::PointerButton::Primary) {
-                    if let Some(pos) = resp.interact_pointer_pos() {
-                        if canvas_rect.contains(pos) {
-                            let px = self.screen_to_pixel(pos, canvas_rect.min);
-                            if self.last_px_primary.is_none() {
-                                self.push_undo();
-                                self.paint_pixel(px.0, px.1);
-                            } else if let Some(last) = self.last_px_primary {
-                                self.draw_line(last, px);
+                // LMB
+                if self.tool == Tool::Eyedropper {
+                    if resp.clicked_by(egui::PointerButton::Primary) {
+                        if let Some(pos) = resp.interact_pointer_pos() {
+                            if canvas_rect.contains(pos) {
+                                let (px, py) = self.screen_to_pixel(pos, canvas_rect.min);
+                                if px >= 0 && px < self.width as i32 && py >= 0 && py < self.height as i32 {
+                                    let c = self.composite()[(py * self.width as i32 + px) as usize];
+                                    self.color = c;
+                                    self.rgb_r = c.r() as f32;
+                                    self.rgb_g = c.g() as f32;
+                                    self.rgb_b = c.b() as f32;
+                                }
                             }
-                            self.last_px_primary = Some(px);
                         }
                     }
-                }
-                if resp.clicked_by(egui::PointerButton::Primary) {
-                    if let Some(pos) = resp.interact_pointer_pos() {
-                        if canvas_rect.contains(pos) {
-                            self.push_undo();
-                            let px = self.screen_to_pixel(pos, canvas_rect.min);
-                            self.paint_pixel(px.0, px.1);
+                } else if self.tool == Tool::Fill {
+                    if resp.clicked_by(egui::PointerButton::Primary) {
+                        if let Some(pos) = resp.interact_pointer_pos() {
+                            if canvas_rect.contains(pos) {
+                                self.push_undo();
+                                let (px, py) = self.screen_to_pixel(pos, canvas_rect.min);
+                                self.flood_fill(px, py, self.color);
+                            }
+                        }
+                    }
+                } else {
+                    let paint_color = if self.tool == Tool::Eraser { Color32::TRANSPARENT } else { self.color };
+                    if resp.dragged_by(egui::PointerButton::Primary) {
+                        if let Some(pos) = resp.interact_pointer_pos() {
+                            if canvas_rect.contains(pos) {
+                                let px = self.screen_to_pixel(pos, canvas_rect.min);
+                                if self.last_px_primary.is_none() {
+                                    self.push_undo();
+                                    self.paint_pixel(px.0, px.1, paint_color);
+                                } else if let Some(last) = self.last_px_primary {
+                                    self.draw_line(last, px, paint_color);
+                                }
+                                self.last_px_primary = Some(px);
+                            }
+                        }
+                    }
+                    if resp.clicked_by(egui::PointerButton::Primary) {
+                        if let Some(pos) = resp.interact_pointer_pos() {
+                            if canvas_rect.contains(pos) {
+                                self.push_undo();
+                                let px = self.screen_to_pixel(pos, canvas_rect.min);
+                                self.paint_pixel(px.0, px.1, paint_color);
+                            }
                         }
                     }
                 }
 
-                // erase RMB
+                // RMB always erases (transparent)
                 if resp.dragged_by(egui::PointerButton::Secondary) {
                     if let Some(pos) = resp.interact_pointer_pos() {
                         if canvas_rect.contains(pos) {
-                            let old = self.color;
-                            self.color = Color32::WHITE;
                             let px = self.screen_to_pixel(pos, canvas_rect.min);
                             if self.last_px_secondary.is_none() {
                                 self.push_undo();
-                                self.paint_pixel(px.0, px.1);
+                                self.paint_pixel(px.0, px.1, Color32::TRANSPARENT);
                             } else if let Some(last) = self.last_px_secondary {
-                                self.draw_line(last, px);
+                                self.draw_line(last, px, Color32::TRANSPARENT);
                             }
                             self.last_px_secondary = Some(px);
-                            self.color = old;
                         }
                     }
                 }
@@ -897,11 +956,8 @@ impl eframe::App for PixeshApp {
                     if let Some(pos) = resp.interact_pointer_pos() {
                         if canvas_rect.contains(pos) {
                             self.push_undo();
-                            let old = self.color;
-                            self.color = Color32::WHITE;
                             let px = self.screen_to_pixel(pos, canvas_rect.min);
-                            self.paint_pixel(px.0, px.1);
-                            self.color = old;
+                            self.paint_pixel(px.0, px.1, Color32::TRANSPARENT);
                         }
                     }
                 }
