@@ -41,6 +41,7 @@ struct PixeshApp {
 
     grid: bool,
     zoom: f32,
+    pan: Vec2,
     tex: Option<egui::TextureHandle>,
     rg_tex: Option<egui::TextureHandle>,
     rg_tex_b: f32,
@@ -73,6 +74,7 @@ impl PixeshApp {
             last_px_secondary: None,
             grid: true,
             zoom: 10.0,
+            pan: Vec2::ZERO,
             tex: None,
             rg_tex: None,
             rg_tex_b: -1.0,
@@ -251,10 +253,6 @@ impl PixeshApp {
         self.tex = None;
     }
 
-    fn max_zoom(&self) -> f32 {
-        (800.0 / self.width.min(self.height) as f32).max(4.0).min(80.0)
-    }
-
     fn resize_canvas(&mut self, new_w: usize, new_h: usize) {
         self.push_undo();
         for layer in &mut self.layers {
@@ -429,6 +427,14 @@ impl eframe::App for PixeshApp {
             }
         });
 
+        // zoom (anywhere in window)
+        let scroll = ctx.input(|i| i.raw_scroll_delta.y);
+        if scroll != 0.0 {
+            let old = self.zoom;
+            self.zoom = (self.zoom - scroll * 0.2).clamp(1.0, 60.0);
+            self.pan *= self.zoom / old;
+        }
+
         // ── toolbar ──────────────────────────────────
         egui::TopBottomPanel::top("tools")
             .frame(egui::Frame::new().fill(PANEL))
@@ -466,8 +472,13 @@ impl eframe::App for PixeshApp {
                     }
 
                     checkbox(ui, "Grid", &mut self.grid);
-                    let max_z = self.max_zoom();
-                    slider(ui, "Z", &mut self.zoom, 2.0, max_z);
+
+                    // Z slider with inverted display (left=60=pixels, right=1=full canvas)
+                    let display_z = 61.0 - self.zoom;
+                    let mut dz = display_z;
+                    if slider(ui, "Z", &mut dz, 1.0, 60.0) {
+                        self.zoom = (61.0 - dz).clamp(1.0, 60.0);
+                    }
 
                     separator(ui);
 
@@ -719,18 +730,43 @@ impl eframe::App for PixeshApp {
                 );
                 let avail = ui.available_size();
 
-                let top = ((avail.y - canvas_size.y) * 0.5).max(0.0);
-                ui.add_space(top);
+                let (area, resp) = ui.allocate_exact_size(avail, Sense::click_and_drag());
 
-                ui.vertical_centered(|ui| {
+                let canvas_rect = Rect::from_center_size(
+                    area.center() + self.pan,
+                    canvas_size,
+                );
+
+                if ui.is_rect_visible(canvas_rect) {
+                    let p = ui.painter();
+
+                    // checkerboard
+                    let ck_a = Color32::from_gray(200);
+                    let ck_b = Color32::from_gray(180);
+                    if self.zoom > 4.0 {
+                        for y in 0..self.height {
+                            for x in 0..self.width {
+                                let r2 = Rect::from_min_size(
+                                    Pos2::new(
+                                        canvas_rect.min.x + x as f32 * self.zoom,
+                                        canvas_rect.min.y + y as f32 * self.zoom,
+                                    ),
+                                    Vec2::splat(self.zoom),
+                                );
+                                p.rect_filled(
+                                    r2,
+                                    0.0,
+                                    if (x + y) % 2 == 0 { ck_a } else { ck_b },
+                                );
+                            }
+                        }
+                    }
+
                     let flat = self.composite();
                     let img = ColorImage {
                         size: [self.width, self.height],
                         pixels: flat,
                     };
-
-                    let max_z = self.max_zoom();
-
                     let tex = self.tex.get_or_insert_with(|| {
                         ui.ctx().load_texture(
                             "canvas",
@@ -740,70 +776,37 @@ impl eframe::App for PixeshApp {
                     });
                     tex.set(img, egui::TextureOptions::NEAREST);
 
-                    let (rect, resp) =
-                        ui.allocate_exact_size(canvas_size, Sense::click_and_drag());
+                    p.image(
+                        tex.id(),
+                        canvas_rect,
+                        Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)),
+                        Color32::WHITE,
+                    );
 
-                    // scroll zoom
-                    let scroll = ctx.input(|i| i.raw_scroll_delta.y);
-                    if scroll != 0.0 {
-                        self.zoom = (self.zoom - scroll * 0.2).clamp(2.0, max_z);
-                    }
-
-                    if ui.is_rect_visible(rect) {
-                        let p = ui.painter();
-
-                        // checkerboard
-                        let ck_a = Color32::from_gray(200);
-                        let ck_b = Color32::from_gray(180);
-                        if self.zoom > 4.0 {
-                            for y in 0..self.height {
-                                for x in 0..self.width {
-                                    let r2 = Rect::from_min_size(
-                                        Pos2::new(
-                                            rect.min.x + x as f32 * self.zoom,
-                                            rect.min.y + y as f32 * self.zoom,
-                                        ),
-                                        Vec2::splat(self.zoom),
-                                    );
-                                    p.rect_filled(
-                                        r2,
-                                        0.0,
-                                        if (x + y) % 2 == 0 { ck_a } else { ck_b },
-                                    );
-                                }
-                            }
+                    if self.grid {
+                        let gc = Color32::from_black_alpha(40);
+                        for x in 0..=self.width {
+                            p.vline(
+                                canvas_rect.min.x + x as f32 * self.zoom,
+                                canvas_rect.y_range(),
+                                Stroke::new(1.0, gc),
+                            );
                         }
-
-                        p.image(
-                            tex.id(),
-                            rect,
-                            Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)),
-                            Color32::WHITE,
-                        );
-
-                        if self.grid {
-                            let gc = Color32::from_black_alpha(40);
-                            for x in 0..=self.width {
-                                p.vline(
-                                    rect.min.x + x as f32 * self.zoom,
-                                    rect.y_range(),
-                                    Stroke::new(1.0, gc),
-                                );
-                            }
-                            for y in 0..=self.height {
-                                p.hline(
-                                    rect.x_range(),
-                                    rect.min.y + y as f32 * self.zoom,
-                                    Stroke::new(1.0, gc),
-                                );
-                            }
+                        for y in 0..=self.height {
+                            p.hline(
+                                canvas_rect.x_range(),
+                                canvas_rect.min.y + y as f32 * self.zoom,
+                                Stroke::new(1.0, gc),
+                            );
                         }
                     }
+                }
 
-                    // draw LMB
-                    if resp.dragged_by(egui::PointerButton::Primary) {
-                        if let Some(pos) = resp.interact_pointer_pos() {
-                            let px = self.screen_to_pixel(pos, rect.min);
+                // draw LMB
+                if resp.dragged_by(egui::PointerButton::Primary) {
+                    if let Some(pos) = resp.interact_pointer_pos() {
+                        if canvas_rect.contains(pos) {
+                            let px = self.screen_to_pixel(pos, canvas_rect.min);
                             if self.last_px_primary.is_none() {
                                 self.push_undo();
                                 self.paint_pixel(px.0, px.1);
@@ -813,20 +816,24 @@ impl eframe::App for PixeshApp {
                             self.last_px_primary = Some(px);
                         }
                     }
-                    if resp.clicked_by(egui::PointerButton::Primary) {
-                        if let Some(pos) = resp.interact_pointer_pos() {
+                }
+                if resp.clicked_by(egui::PointerButton::Primary) {
+                    if let Some(pos) = resp.interact_pointer_pos() {
+                        if canvas_rect.contains(pos) {
                             self.push_undo();
-                            let px = self.screen_to_pixel(pos, rect.min);
+                            let px = self.screen_to_pixel(pos, canvas_rect.min);
                             self.paint_pixel(px.0, px.1);
                         }
                     }
+                }
 
-                    // erase RMB
-                    if resp.dragged_by(egui::PointerButton::Secondary) {
-                        if let Some(pos) = resp.interact_pointer_pos() {
+                // erase RMB
+                if resp.dragged_by(egui::PointerButton::Secondary) {
+                    if let Some(pos) = resp.interact_pointer_pos() {
+                        if canvas_rect.contains(pos) {
                             let old = self.color;
                             self.color = Color32::WHITE;
-                            let px = self.screen_to_pixel(pos, rect.min);
+                            let px = self.screen_to_pixel(pos, canvas_rect.min);
                             if self.last_px_secondary.is_none() {
                                 self.push_undo();
                                 self.paint_pixel(px.0, px.1);
@@ -837,22 +844,24 @@ impl eframe::App for PixeshApp {
                             self.color = old;
                         }
                     }
-                    if resp.clicked_by(egui::PointerButton::Secondary) {
-                        if let Some(pos) = resp.interact_pointer_pos() {
+                }
+                if resp.clicked_by(egui::PointerButton::Secondary) {
+                    if let Some(pos) = resp.interact_pointer_pos() {
+                        if canvas_rect.contains(pos) {
                             self.push_undo();
                             let old = self.color;
                             self.color = Color32::WHITE;
-                            let px = self.screen_to_pixel(pos, rect.min);
+                            let px = self.screen_to_pixel(pos, canvas_rect.min);
                             self.paint_pixel(px.0, px.1);
                             self.color = old;
                         }
                     }
+                }
 
-                    if resp.drag_stopped() {
-                        self.last_px_primary = None;
-                        self.last_px_secondary = None;
-                    }
-                });
+                if resp.drag_stopped() {
+                    self.last_px_primary = None;
+                    self.last_px_secondary = None;
+                }
             });
 
         // ── resize dialog ────────────────────────────
