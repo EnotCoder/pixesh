@@ -73,7 +73,7 @@ impl PixeshApp {
             last_px_primary: None,
             last_px_secondary: None,
             grid: true,
-            zoom: 10.0,
+            zoom: 15.0,
             pan: Vec2::ZERO,
             tex: None,
             rg_tex: None,
@@ -537,7 +537,7 @@ impl eframe::App for PixeshApp {
         // ── layers ───────────────────────────────────
         egui::SidePanel::right("layers")
             .resizable(true)
-            .default_width(140.0)
+            .default_width(180.0)
             .frame(egui::Frame::new().fill(PANEL))
             .show(ctx, |ui| {
                 ui.add_space(4.0);
