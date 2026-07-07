@@ -11,25 +11,30 @@ impl PixeshApp {
         egui::TopBottomPanel::top("tools")
             .frame(egui::Frame::new().fill(PANEL))
             .show(ctx, |ui| {
-                ui.add_space(4.0);
+                ui.add_space(6.0);
                 ui.horizontal(|ui| {
+                    ui.add_space(6.0);
                     let title = "Pixesh";
                     let title_w = title.len() as f32 * CHAR_W;
                     let (tr, _) = ui.allocate_exact_size(
-                        Vec2::new(title_w + 8.0, ROW_H + 4.0),
+                        Vec2::new(title_w + 12.0, ROW_H + 6.0),
                         Sense::hover(),
                     );
                     ui.painter().text(
-                        tr.min + Vec2::new(4.0, 2.0),
+                        tr.min + Vec2::new(6.0, 3.0),
                         egui::Align2::LEFT_TOP,
                         title,
                         egui::FontId::proportional(FONT_SZ),
                         ACCENT,
                     );
 
+                    ui.add_space(6.0);
                     separator(ui);
+                    ui.add_space(6.0);
                     slider(ui, "B", &mut self.brush, 1.0, 10.0);
+                    ui.add_space(4.0);
                     separator(ui);
+                    ui.add_space(4.0);
 
                     let brush_tex = self.brush_tex.get_or_insert_with(|| {
                         let img = image::load_from_memory(include_bytes!("../../tex/brush.png")).unwrap().into_rgba8();
@@ -99,15 +104,21 @@ impl PixeshApp {
                         self.canvas_dirty = true;
                     }
 
+                    ui.add_space(6.0);
+                    separator(ui);
+                    ui.add_space(6.0);
+
                     checkbox(ui, "Grid", &mut self.grid);
+                    ui.add_space(12.0);
 
                     let display_z = 61.0 - self.zoom;
                     let mut dz = display_z;
                     if slider(ui, "Z", &mut dz, 1.0, 60.0) {
                         self.zoom = (61.0 - dz).clamp(1.0, 60.0);
                     }
+                    ui.add_space(6.0);
                 });
-                ui.add_space(4.0);
+                ui.add_space(6.0);
             });
     }
 }

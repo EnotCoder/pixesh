@@ -49,8 +49,8 @@ fn main() -> eframe::Result {
                 extreme_bg_color: BG,                   // самый тёмный фон
                 ..Default::default()
             };
-            style.spacing.item_spacing = Vec2::new(6.0, 4.0);   // отступы между виджетами
-            style.spacing.button_padding = Vec2::new(4.0, 2.0); // отступы внутри кнопок
+            style.spacing.item_spacing = Vec2::new(10.0, 6.0);   // отступы между виджетами
+            style.spacing.button_padding = Vec2::new(10.0, 6.0); // отступы внутри кнопок
             style.text_styles.insert(
                 egui::TextStyle::Body,                  // текстовый стиль "Body"
                 egui::FontId::proportional(FONT_SZ),    // используем наш размер шрифта
