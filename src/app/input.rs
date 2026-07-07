@@ -19,7 +19,9 @@ impl PixeshApp {
             }
             // Ctrl+S = сохранить (открыть диалог экспорта)
             if i.consume_key(egui::Modifiers::CTRL, egui::Key::S) {
-                self.export_name = "pixesh.png".into();
+                if self.export_name.is_empty() {
+                    self.export_name = "pixesh.png".into();
+                }
                 self.show_export = true;
             }
             // Ctrl+R = изменить размер холста (открыть диалог)
@@ -30,7 +32,9 @@ impl PixeshApp {
             }
             // Ctrl+L = загрузить PNG (открыть диалог выбора файла)
             if i.consume_key(egui::Modifiers::CTRL, egui::Key::L) {
+                let home = std::env::var("HOME").unwrap_or_else(|_| "/".into());
                 if let Some(path) = rfd::FileDialog::new()
+                    .set_directory(&home)
                     .add_filter("PNG", &["png"])
                     .pick_file()
                 {

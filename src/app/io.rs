@@ -69,6 +69,14 @@ impl PixeshApp {
         self.active_layer = 0;
         self.tex = None;
         self.canvas_dirty = true;
+
+        let p = std::path::Path::new(path);
+        if let Some(parent) = p.parent() {
+            self.export_path = parent.to_string_lossy().into();
+        }
+        if let Some(name) = p.file_name() {
+            self.export_name = name.to_string_lossy().into();
+        }
     }
 
     pub(crate) fn resize_canvas(&mut self, new_w: usize, new_h: usize) {
