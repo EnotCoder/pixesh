@@ -53,6 +53,9 @@ struct PixeshApp {
     tex: Option<egui::TextureHandle>,
     brush_tex: Option<egui::TextureHandle>,
     eraser_tex: Option<egui::TextureHandle>,
+    fill_tex: Option<egui::TextureHandle>,
+    drop_tex: Option<egui::TextureHandle>,
+    clear_tex: Option<egui::TextureHandle>,
     sv_tex: Option<egui::TextureHandle>,
     sv_tex_h: f32,
 
@@ -97,6 +100,9 @@ impl PixeshApp {
             tex: None,
             brush_tex: None,
             eraser_tex: None,
+            fill_tex: None,
+            drop_tex: None,
+            clear_tex: None,
             sv_tex: None,
             sv_tex_h: -1.0,
             undo_stack: Vec::new(),
@@ -512,6 +518,11 @@ impl eframe::App for PixeshApp {
                 self.export_name = "pixesh.png".into();
                 self.show_export = true;
             }
+            if i.consume_key(egui::Modifiers::CTRL, egui::Key::R) {
+                self.resize_w = self.width as f32;
+                self.resize_h = self.height as f32;
+                self.show_resize = true;
+            }
             if !i.modifiers.alt && !i.modifiers.ctrl {
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::B) { self.tool = Tool::Brush; }
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::E) { self.tool = Tool::Eraser; }
@@ -602,12 +613,36 @@ impl eframe::App for PixeshApp {
                         ui.ctx().load_texture("eraser_icon", ci, egui::TextureOptions::NEAREST)
                     });
                     if icon_btn(ui, eraser_tex.id(), self.tool == Tool::Eraser) { self.tool = Tool::Eraser; }
-                    if btn(ui, if self.tool == Tool::Fill { ">Fill<" } else { "Fill" }) { self.tool = Tool::Fill; }
-                    if btn(ui, if self.tool == Tool::Eyedropper { ">Drop<" } else { "Drop" }) { self.tool = Tool::Eyedropper; }
+                    let fill_tex = self.fill_tex.get_or_insert_with(|| {
+                        let img = image::load_from_memory(include_bytes!("../tex/fill.png")).unwrap().into_rgba8();
+                        let w = img.width() as usize;
+                        let h = img.height() as usize;
+                        let raw = img.into_raw();
+                        let ci = ColorImage::from_rgba_unmultiplied([w, h], &raw);
+                        ui.ctx().load_texture("fill_icon", ci, egui::TextureOptions::NEAREST)
+                    });
+                    if icon_btn(ui, fill_tex.id(), self.tool == Tool::Fill) { self.tool = Tool::Fill; }
+                    let drop_tex = self.drop_tex.get_or_insert_with(|| {
+                        let img = image::load_from_memory(include_bytes!("../tex/drop.png")).unwrap().into_rgba8();
+                        let w = img.width() as usize;
+                        let h = img.height() as usize;
+                        let raw = img.into_raw();
+                        let ci = ColorImage::from_rgba_unmultiplied([w, h], &raw);
+                        ui.ctx().load_texture("drop_icon", ci, egui::TextureOptions::NEAREST)
+                    });
+                    if icon_btn(ui, drop_tex.id(), self.tool == Tool::Eyedropper) { self.tool = Tool::Eyedropper; }
 
                     separator(ui);
 
-                    if btn(ui, "Clear") {
+                    let clear_tex = self.clear_tex.get_or_insert_with(|| {
+                        let img = image::load_from_memory(include_bytes!("../tex/clear.png")).unwrap().into_rgba8();
+                        let w = img.width() as usize;
+                        let h = img.height() as usize;
+                        let raw = img.into_raw();
+                        let ci = ColorImage::from_rgba_unmultiplied([w, h], &raw);
+                        ui.ctx().load_texture("clear_icon", ci, egui::TextureOptions::NEAREST)
+                    });
+                    if icon_btn(ui, clear_tex.id(), false) {
                         self.push_undo();
                         for layer in &mut self.layers {
                             layer.pixels = vec![Color32::TRANSPARENT; self.width * self.height];
@@ -644,13 +679,6 @@ impl eframe::App for PixeshApp {
                     }
 
                     separator(ui);
-
-                    if btn(ui, "Undo") {
-                        self.undo();
-                    }
-                    if btn(ui, "Redo") {
-                        self.redo();
-                    }
                 });
                 ui.add_space(4.0);
             });
@@ -896,9 +924,8 @@ impl eframe::App for PixeshApp {
                     // checkerboard
                     let ck_a = Color32::from_gray(200);
                     let ck_b = Color32::from_gray(180);
-                    if self.zoom > 4.0 {
-                        for y in 0..self.height {
-                            for x in 0..self.width {
+                    for y in 0..self.height {
+                        for x in 0..self.width {
                                 let r2 = Rect::from_min_size(
                                     Pos2::new(
                                         canvas_rect.min.x + x as f32 * self.zoom,
@@ -913,7 +940,6 @@ impl eframe::App for PixeshApp {
                                 );
                             }
                         }
-                    }
 
                     let flat = self.composite();
                     let img = ColorImage {
@@ -1082,10 +1108,24 @@ impl eframe::App for PixeshApp {
         if self.show_resize {
             egui::Window::new("Resize Canvas")
                 .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+                .resizable(false)
+                .collapsible(false)
                 .frame(egui::Frame::new().fill(PANEL).stroke(Stroke::new(2.0, BORDER)))
                 .show(ctx, |ui| {
-                    slider(ui, "W", &mut self.resize_w, 1.0, 512.0);
-                    slider(ui, "H", &mut self.resize_h, 1.0, 512.0);
+                    ui.style_mut().override_font_id = Some(egui::FontId::proportional(28.0));
+                    ui.add_space(4.0);
+                    ui.horizontal(|ui| {
+                        ui.label("W:");
+                        let mut w = self.resize_w as i32;
+                        ui.add_sized(Vec2::new(100.0, 32.0), egui::DragValue::new(&mut w).range(1..=4096));
+                        self.resize_w = w as f32;
+                    });
+                    ui.horizontal(|ui| {
+                        ui.label("H:");
+                        let mut h = self.resize_h as i32;
+                        ui.add_sized(Vec2::new(100.0, 32.0), egui::DragValue::new(&mut h).range(1..=4096));
+                        self.resize_h = h as f32;
+                    });
                     ui.add_space(8.0);
                     ui.horizontal(|ui| {
                         if btn(ui, "Apply") {
@@ -1107,28 +1147,16 @@ impl eframe::App for PixeshApp {
         if self.show_export {
             egui::Window::new("Export PNG")
                 .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+                .resizable(false)
+                .collapsible(false)
                 .frame(egui::Frame::new().fill(PANEL).stroke(Stroke::new(2.0, BORDER)))
                 .show(ctx, |ui| {
+                    ui.style_mut().override_font_id = Some(egui::FontId::proportional(28.0));
+                    ui.add_space(4.0);
                     ui.horizontal(|ui| {
-                        let fw = "Folder:".len() as f32 * CHAR_W;
-                        let (fr, _) = ui.allocate_exact_size(Vec2::new(fw + 8.0, ROW_H + 4.0), Sense::hover());
-                        ui.painter().text(
-                            fr.min + Vec2::new(4.0, 2.0),
-                            egui::Align2::LEFT_TOP,
-                            "Folder:",
-                            egui::FontId::proportional(FONT_SZ),
-                            TEXT,
-                        );
+                        ui.label("Folder:");
                         let display = if self.export_path.is_empty() { "." } else { &self.export_path };
-                        let dw = display.len() as f32 * CHAR_W;
-                        let (dr, _) = ui.allocate_exact_size(Vec2::new(dw.min(180.0) + 8.0, ROW_H + 4.0), Sense::hover());
-                        ui.painter().text(
-                            dr.min + Vec2::new(4.0, 2.0),
-                            egui::Align2::LEFT_TOP,
-                            display,
-                            egui::FontId::proportional(FONT_SZ),
-                            TEXT,
-                        );
+                        ui.add_sized(Vec2::new(200.0, 32.0), egui::Label::new(display));
                         if btn(ui, "…") {
                             let home = std::env::var("HOME").unwrap_or_else(|_| "/".into());
                             if let Some(p) = rfd::FileDialog::new()
@@ -1140,17 +1168,9 @@ impl eframe::App for PixeshApp {
                         }
                     });
                     ui.horizontal(|ui| {
-                        let fw = "File:".len() as f32 * CHAR_W;
-                        let (lr, _) = ui.allocate_exact_size(Vec2::new(fw + 8.0, ROW_H + 4.0), Sense::hover());
-                        ui.painter().text(
-                            lr.min + Vec2::new(4.0, 2.0),
-                            egui::Align2::LEFT_TOP,
-                            "File:",
-                            egui::FontId::proportional(FONT_SZ),
-                            TEXT,
-                        );
+                        ui.label("File:");
                         ui.add_sized(
-                            Vec2::new(200.0, ROW_H + 4.0),
+                            Vec2::new(200.0, 32.0),
                             egui::TextEdit::singleline(&mut self.export_name)
                                 .font(egui::TextStyle::Body),
                         );
