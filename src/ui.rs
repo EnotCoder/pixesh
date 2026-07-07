@@ -5,14 +5,15 @@ use crate::constants::*;
 // ── btn ──────────────────────────────────────────────
 // кастомная текстовая кнопка: фон подсвечивается при наведении/клике
 pub fn btn(ui: &mut egui::Ui, label: &str) -> bool {
-    // считаем ширину по длине текста
-    let label_w = label.len() as f32 * CHAR_W;
+    let font_id = ui.style().text_styles.get(&egui::TextStyle::Button)
+        .cloned()
+        .unwrap_or(egui::FontId::proportional(FONT_SZ));
+    let font_sz = font_id.size;
+    let label_w = label.len() as f32 * CHAR_W * (font_sz / FONT_SZ);
     let pad = Vec2::new(8.0, 4.0);
-    let size = Vec2::new(label_w + pad.x * 2.0, ROW_H + pad.y * 2.0);
-    // выделяем прямоугольник в UI
+    let size = Vec2::new(label_w + pad.x * 2.0, font_sz + 16.0);
     let (rect, resp) = ui.allocate_exact_size(size, Sense::click());
 
-    // цвет фона зависит от состояния
     let bg = if resp.clicked() {
         ACCENT
     } else if resp.hovered() {
@@ -21,13 +22,11 @@ pub fn btn(ui: &mut egui::Ui, label: &str) -> bool {
         PANEL
     };
     let p = ui.painter();
-    // фон + рамка
     p.rect_filled(rect, 0.0, bg);
-    p.rect_stroke(rect, 0.0, Stroke::new(1.0, BORDER), egui::StrokeKind::Outside);
-    // текст
-    p.text(rect.min + pad, egui::Align2::LEFT_TOP, label, egui::FontId::proportional(FONT_SZ), TEXT);
+    p.rect_stroke(rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
+    p.text(rect.min + pad, egui::Align2::LEFT_TOP, label, font_id, TEXT);
 
-    resp.clicked() // true только один кадр после клика
+    resp.clicked()
 }
 
 // ── icon_btn ─────────────────────────────────────────
