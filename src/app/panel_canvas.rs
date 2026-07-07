@@ -102,6 +102,15 @@ impl PixeshApp {
                     }
                 }
 
+                // Clear stroke tracking when buttons are released
+                // (handles release outside canvas where drag_stopped may not fire)
+                if !ctx.input(|i| i.pointer.primary_down()) {
+                    self.last_px_primary = None;
+                }
+                if !ctx.input(|i| i.pointer.secondary_down()) {
+                    self.last_px_secondary = None;
+                }
+
                 // LMB
                 if self.tool == Tool::Eyedropper {
                     if resp.clicked_by(egui::PointerButton::Primary) {
@@ -151,8 +160,14 @@ impl PixeshApp {
                         if let Some(pos) = resp.interact_pointer_pos() {
                             if canvas_rect.contains(pos) {
                                 let px = self.screen_to_pixel(pos, canvas_rect.min);
-                                self.paint_pixel(px.0, px.1, paint_color);
+                                if let Some(last) = self.last_px_primary {
+                                    self.paint_line(last.0, last.1, px.0, px.1, paint_color);
+                                } else {
+                                    self.paint_pixel(px.0, px.1, paint_color);
+                                }
                                 self.last_px_primary = Some(px);
+                            } else {
+                                self.last_px_primary = None;
                             }
                         }
                     }
@@ -175,8 +190,14 @@ impl PixeshApp {
                             if self.last_px_secondary.is_none() {
                                 self.push_undo();
                             }
-                            self.paint_pixel(px.0, px.1, Color32::TRANSPARENT);
+                            if let Some(last) = self.last_px_secondary {
+                                self.paint_line(last.0, last.1, px.0, px.1, Color32::TRANSPARENT);
+                            } else {
+                                self.paint_pixel(px.0, px.1, Color32::TRANSPARENT);
+                            }
                             self.last_px_secondary = Some(px);
+                        } else {
+                            self.last_px_secondary = None;
                         }
                     }
                 }
