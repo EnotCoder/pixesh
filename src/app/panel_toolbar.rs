@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use eframe::egui::{self, Color32, ColorImage, Sense, Vec2};
 
 use crate::constants::*;
@@ -82,8 +84,9 @@ impl PixeshApp {
                     if icon_btn(ui, clear_tex.id(), false) {
                         self.push_undo();
                         for layer in &mut self.layers {
-                            layer.pixels = vec![Color32::TRANSPARENT; self.width * self.height];
+                            layer.pixels = Arc::new(vec![Color32::TRANSPARENT; self.width * self.height]);
                         }
+                        self.canvas_dirty = true;
                     }
 
                     checkbox(ui, "Grid", &mut self.grid);

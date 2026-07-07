@@ -7,6 +7,8 @@ pub mod panel_dialogs;
 pub mod panel_layers;
 pub mod panel_toolbar;
 
+use std::sync::Arc;
+
 use eframe::egui::{self, Color32, Vec2};
 
 use crate::constants::Tool;
@@ -14,12 +16,12 @@ use crate::constants::Tool;
 // ── Layer / Snapshot ─────────────────────────────────
 pub(crate) struct Layer {
     pub(crate) name: String,
-    pub(crate) pixels: Vec<Color32>,
+    pub(crate) pixels: Arc<Vec<Color32>>,
     pub(crate) visible: bool,
 }
 
 pub(crate) struct Snapshot {
-    pub(crate) layers: Vec<Vec<Color32>>,
+    pub(crate) layers: Vec<Arc<Vec<Color32>>>,
     pub(crate) active: usize,
 }
 
@@ -58,6 +60,8 @@ pub struct PixeshApp {
     pub(crate) undo_stack: Vec<Snapshot>,
     pub(crate) redo_stack: Vec<Snapshot>,
 
+    pub(crate) canvas_dirty: bool,
+
     pub(crate) show_resize: bool,
     pub(crate) resize_w: f32,
     pub(crate) resize_h: f32,
@@ -72,7 +76,7 @@ impl PixeshApp {
         Self {
             layers: vec![Layer {
                 name: "Background".into(),
-                pixels: vec![Color32::TRANSPARENT; 16 * 16],
+                pixels: Arc::new(vec![Color32::TRANSPARENT; 16 * 16]),
                 visible: true,
             }],
             active_layer: 0,
@@ -101,6 +105,7 @@ impl PixeshApp {
             clear_tex: None,
             sv_tex: None,
             sv_tex_h: -1.0,
+            canvas_dirty: true,
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
             show_resize: false,

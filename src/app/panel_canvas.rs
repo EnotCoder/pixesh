@@ -29,48 +29,32 @@ impl PixeshApp {
                 );
 
                 if ui.is_rect_visible(canvas_rect) {
-                    let p = ui.painter();
-
-                    // checkerboard
-                    let ck_a = Color32::from_gray(200);
-                    let ck_b = Color32::from_gray(180);
-                    for y in 0..self.height {
-                        for x in 0..self.width {
-                            let r2 = Rect::from_min_size(
-                                Pos2::new(
-                                    canvas_rect.min.x + x as f32 * self.zoom,
-                                    canvas_rect.min.y + y as f32 * self.zoom,
-                                ),
-                                Vec2::splat(self.zoom),
-                            );
-                            p.rect_filled(
-                                r2,
-                                0.0,
-                                if (x + y) % 2 == 0 { ck_a } else { ck_b },
-                            );
-                        }
+                    if self.canvas_dirty {
+                        let flat = self.composite_display();
+                        let img = ColorImage {
+                            size: [self.width, self.height],
+                            pixels: flat,
+                        };
+                        let tex = self.tex.get_or_insert_with(|| {
+                            ui.ctx().load_texture(
+                                "canvas",
+                                img.clone(),
+                                egui::TextureOptions::NEAREST,
+                            )
+                        });
+                        tex.set(img, egui::TextureOptions::NEAREST);
+                        self.canvas_dirty = false;
                     }
 
-                    let flat = self.composite();
-                    let img = ColorImage {
-                        size: [self.width, self.height],
-                        pixels: flat,
-                    };
-                    let tex = self.tex.get_or_insert_with(|| {
-                        ui.ctx().load_texture(
-                            "canvas",
-                            img.clone(),
-                            egui::TextureOptions::NEAREST,
-                        )
-                    });
-                    tex.set(img, egui::TextureOptions::NEAREST);
-
-                    p.image(
-                        tex.id(),
-                        canvas_rect,
-                        Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)),
-                        Color32::WHITE,
-                    );
+                    let p = ui.painter();
+                    if let Some(tex) = &self.tex {
+                        p.image(
+                            tex.id(),
+                            canvas_rect,
+                            Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)),
+                            Color32::WHITE,
+                        );
+                    }
 
                     if self.grid {
                         let gc = Color32::from_black_alpha(40);

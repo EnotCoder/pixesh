@@ -18,12 +18,13 @@ impl PixeshApp {
                 layers: self.layers.iter().map(|l| l.pixels.clone()).collect(),
                 active: self.active_layer,
             });
-            for (i, p) in state.layers.into_iter().enumerate() {
-                if i < self.layers.len() {
-                    self.layers[i].pixels = p;
+            for (i, layer) in self.layers.iter_mut().enumerate() {
+                if i < state.layers.len() {
+                    layer.pixels = state.layers[i].clone();
                 }
             }
             self.active_layer = state.active;
+            self.canvas_dirty = true;
         }
     }
 
@@ -33,12 +34,13 @@ impl PixeshApp {
                 layers: self.layers.iter().map(|l| l.pixels.clone()).collect(),
                 active: self.active_layer,
             });
-            for (i, p) in state.layers.into_iter().enumerate() {
-                if i < self.layers.len() {
-                    self.layers[i].pixels = p;
+            for (i, layer) in self.layers.iter_mut().enumerate() {
+                if i < state.layers.len() {
+                    layer.pixels = state.layers[i].clone();
                 }
             }
             self.active_layer = state.active;
+            self.canvas_dirty = true;
         }
     }
 }

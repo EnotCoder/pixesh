@@ -58,6 +58,7 @@ impl PixeshApp {
                         ui.interact(cb_rect, egui::Id::new(("lc", i)), Sense::click());
                     if cb_resp.clicked() {
                         self.layers[i].visible = !self.layers[i].visible;
+                        self.canvas_dirty = true;
                     }
 
                     p.text(

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use eframe::egui::Color32;
 
 use super::{Layer, PixeshApp};
@@ -7,21 +9,21 @@ impl PixeshApp {
         self.push_undo();
         self.layers.push(Layer {
             name: format!("Layer {}", self.layers.len()),
-            pixels: vec![Color32::TRANSPARENT; self.width * self.height],
+            pixels: Arc::new(vec![Color32::TRANSPARENT; self.width * self.height]),
             visible: true,
         });
         self.active_layer = self.layers.len() - 1;
+        self.canvas_dirty = true;
     }
 
     pub(crate) fn remove_layer(&mut self, idx: usize) {
-        if self.layers.len() <= 1 {
-            return;
-        }
+        if self.layers.len() <= 1 { return; }
         self.push_undo();
         self.layers.remove(idx);
         if self.active_layer >= self.layers.len() {
             self.active_layer = self.layers.len() - 1;
         }
+        self.canvas_dirty = true;
     }
 
     pub(crate) fn save_png(&self, path: &str) {
@@ -48,15 +50,16 @@ impl PixeshApp {
         let (w, h) = img.dimensions();
         self.push_undo();
         for layer in &mut self.layers {
-            layer.pixels = vec![Color32::TRANSPARENT; (w * h) as usize];
+            layer.pixels = Arc::new(vec![Color32::TRANSPARENT; (w * h) as usize]);
         }
         self.width = w as usize;
         self.height = h as usize;
         let layer = &mut self.layers[0];
+        let pixels = Arc::make_mut(&mut layer.pixels);
         for y in 0..h as usize {
             for x in 0..w as usize {
                 let p = img.get_pixel(x as u32, y as u32);
-                layer.pixels[y * self.width + x] = if p[3] < 128 {
+                pixels[y * self.width + x] = if p[3] < 128 {
                     Color32::TRANSPARENT
                 } else {
                     Color32::from_rgb(p[0], p[1], p[2])
@@ -65,6 +68,7 @@ impl PixeshApp {
         }
         self.active_layer = 0;
         self.tex = None;
+        self.canvas_dirty = true;
     }
 
     pub(crate) fn resize_canvas(&mut self, new_w: usize, new_h: usize) {
@@ -76,10 +80,11 @@ impl PixeshApp {
                     np[y * new_w + x] = layer.pixels[y * self.width + x];
                 }
             }
-            layer.pixels = np;
+            layer.pixels = Arc::new(np);
         }
         self.width = new_w;
         self.height = new_h;
         self.tex = None;
+        self.canvas_dirty = true;
     }
 }
