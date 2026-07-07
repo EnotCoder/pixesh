@@ -6,6 +6,7 @@ pub mod panel_canvas;
 pub mod panel_dialogs;
 pub mod panel_layers;
 pub mod panel_toolbar;
+pub mod tools;
 
 use std::sync::Arc;
 
@@ -56,11 +57,22 @@ pub struct PixeshApp {
     pub(crate) clear_tex: Option<egui::TextureHandle>,
     pub(crate) sv_tex: Option<egui::TextureHandle>,
     pub(crate) sv_tex_h: f32,
+    pub(crate) select_tex: Option<egui::TextureHandle>,
 
     pub(crate) undo_stack: Vec<Snapshot>,
     pub(crate) redo_stack: Vec<Snapshot>,
 
     pub(crate) canvas_dirty: bool,
+
+    pub(crate) sel: Option<(i32, i32, i32, i32)>,
+    pub(crate) sel_start: Option<(i32, i32)>,
+    pub(crate) sel_end: Option<(i32, i32)>,
+    pub(crate) sel_move_origin: Option<(i32, i32)>,
+    pub(crate) sel_move_current: Option<(i32, i32)>,
+    pub(crate) sel_buffer: Option<Vec<Color32>>,
+    pub(crate) sel_buf_w: usize,
+    pub(crate) sel_buf_h: usize,
+    pub(crate) sel_tex: Option<egui::TextureHandle>,
 
     pub(crate) show_resize: bool,
     pub(crate) resize_w: f32,
@@ -105,7 +117,17 @@ impl PixeshApp {
             clear_tex: None,
             sv_tex: None,
             sv_tex_h: -1.0,
+            select_tex: None,
             canvas_dirty: true,
+            sel: None,
+            sel_start: None,
+            sel_end: None,
+            sel_move_origin: None,
+            sel_move_current: None,
+            sel_buffer: None,
+            sel_buf_w: 0,
+            sel_buf_h: 0,
+            sel_tex: None,
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
             show_resize: false,

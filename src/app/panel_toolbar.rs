@@ -71,6 +71,16 @@ impl PixeshApp {
                     });
                     if icon_btn(ui, drop_tex.id(), self.tool == Tool::Eyedropper) { self.tool = Tool::Eyedropper; }
 
+                    let select_tex = self.select_tex.get_or_insert_with(|| {
+                        let img = image::load_from_memory(include_bytes!("../../tex/select.png")).unwrap().into_rgba8();
+                        let w = img.width() as usize;
+                        let h = img.height() as usize;
+                        let raw = img.into_raw();
+                        let ci = ColorImage::from_rgba_unmultiplied([w, h], &raw);
+                        ui.ctx().load_texture("select_icon", ci, egui::TextureOptions::NEAREST)
+                    });
+                    if icon_btn(ui, select_tex.id(), self.tool == Tool::Select) { self.tool = Tool::Select; }
+
                     separator(ui);
 
                     let clear_tex = self.clear_tex.get_or_insert_with(|| {

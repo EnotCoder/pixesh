@@ -2,7 +2,7 @@ use eframe::egui::Color32;
 
 // какие инструменты есть
 #[derive(PartialEq, Clone, Copy)]
-pub enum Tool { Brush, Eraser, Fill, Eyedropper }
+pub enum Tool { Brush, Eraser, Fill, Eyedropper, Select }
 
 // ── цвета темы ──
 pub const BG: Color32 = Color32::from_rgb(24, 24, 32);          // самый тёмный (фон холста)
