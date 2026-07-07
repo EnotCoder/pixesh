@@ -992,14 +992,25 @@ impl eframe::App for PixeshApp {
                     }
                 } else {
                     let paint_color = if self.tool == Tool::Eraser { Color32::TRANSPARENT } else { self.color };
+                    // paint on initial press (before drag threshold)
+                    if self.last_px_primary.is_none() {
+                        let pressed = ctx.input(|i| i.pointer.primary_down());
+                        if pressed {
+                            if let Some(pos) = resp.interact_pointer_pos() {
+                                if canvas_rect.contains(pos) {
+                                    let px = self.screen_to_pixel(pos, canvas_rect.min);
+                                    self.push_undo();
+                                    self.paint_pixel(px.0, px.1, paint_color);
+                                    self.last_px_primary = Some(px);
+                                }
+                            }
+                        }
+                    }
                     if resp.dragged_by(egui::PointerButton::Primary) {
                         if let Some(pos) = resp.interact_pointer_pos() {
                             if canvas_rect.contains(pos) {
                                 let px = self.screen_to_pixel(pos, canvas_rect.min);
-                                if self.last_px_primary.is_none() {
-                                    self.push_undo();
-                                    self.paint_pixel(px.0, px.1, paint_color);
-                                } else if let Some(last) = self.last_px_primary {
+                                if let Some(last) = self.last_px_primary {
                                     self.draw_line(last, px, paint_color);
                                 }
                                 self.last_px_primary = Some(px);
@@ -1007,11 +1018,13 @@ impl eframe::App for PixeshApp {
                         }
                     }
                     if resp.clicked_by(egui::PointerButton::Primary) {
-                        if let Some(pos) = resp.interact_pointer_pos() {
-                            if canvas_rect.contains(pos) {
-                                self.push_undo();
-                                let px = self.screen_to_pixel(pos, canvas_rect.min);
-                                self.paint_pixel(px.0, px.1, paint_color);
+                        if self.last_px_primary.is_none() {
+                            if let Some(pos) = resp.interact_pointer_pos() {
+                                if canvas_rect.contains(pos) {
+                                    self.push_undo();
+                                    let px = self.screen_to_pixel(pos, canvas_rect.min);
+                                    self.paint_pixel(px.0, px.1, paint_color);
+                                }
                             }
                         }
                     }
