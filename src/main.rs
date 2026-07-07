@@ -51,6 +51,8 @@ struct PixeshApp {
     zoom: f32,
     pan: Vec2,
     tex: Option<egui::TextureHandle>,
+    brush_tex: Option<egui::TextureHandle>,
+    eraser_tex: Option<egui::TextureHandle>,
     sv_tex: Option<egui::TextureHandle>,
     sv_tex_h: f32,
 
@@ -93,6 +95,8 @@ impl PixeshApp {
             zoom: 46.0,
             pan: Vec2::ZERO,
             tex: None,
+            brush_tex: None,
+            eraser_tex: None,
             sv_tex: None,
             sv_tex_h: -1.0,
             undo_stack: Vec::new(),
@@ -360,6 +364,27 @@ fn btn(ui: &mut egui::Ui, label: &str) -> bool {
     resp.clicked()
 }
 
+fn icon_btn(ui: &mut egui::Ui, tex_id: egui::TextureId, active: bool) -> bool {
+    let size = Vec2::splat(ROW_H + 8.0);
+    let (rect, resp) = ui.allocate_exact_size(size, Sense::click());
+
+    let bg = if active {
+        ACCENT
+    } else if resp.hovered() {
+        HOVER
+    } else {
+        PANEL
+    };
+    let p = ui.painter();
+    p.rect_filled(rect, 0.0, bg);
+    p.rect_stroke(rect, 0.0, Stroke::new(1.0, BORDER), egui::StrokeKind::Outside);
+
+    let img_rect = rect;
+    p.image(tex_id, img_rect, Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
+
+    resp.clicked()
+}
+
 fn checkbox(ui: &mut egui::Ui, label: &str, checked: &mut bool) {
     let cbs = 16.0;
     let total_h = ROW_H.max(cbs) + 4.0;
@@ -559,8 +584,24 @@ impl eframe::App for PixeshApp {
 
                     separator(ui);
 
-                    if btn(ui, if self.tool == Tool::Brush { ">Brush<" } else { "Brush" }) { self.tool = Tool::Brush; }
-                    if btn(ui, if self.tool == Tool::Eraser { ">Eraser<" } else { "Eraser" }) { self.tool = Tool::Eraser; }
+                    let brush_tex = self.brush_tex.get_or_insert_with(|| {
+                        let img = image::load_from_memory(include_bytes!("../tex/brush.png")).unwrap().into_rgba8();
+                        let w = img.width() as usize;
+                        let h = img.height() as usize;
+                        let raw = img.into_raw();
+                        let ci = ColorImage::from_rgba_unmultiplied([w, h], &raw);
+                        ui.ctx().load_texture("brush_icon", ci, egui::TextureOptions::NEAREST)
+                    });
+                    if icon_btn(ui, brush_tex.id(), self.tool == Tool::Brush) { self.tool = Tool::Brush; }
+                    let eraser_tex = self.eraser_tex.get_or_insert_with(|| {
+                        let img = image::load_from_memory(include_bytes!("../tex/eraser.png")).unwrap().into_rgba8();
+                        let w = img.width() as usize;
+                        let h = img.height() as usize;
+                        let raw = img.into_raw();
+                        let ci = ColorImage::from_rgba_unmultiplied([w, h], &raw);
+                        ui.ctx().load_texture("eraser_icon", ci, egui::TextureOptions::NEAREST)
+                    });
+                    if icon_btn(ui, eraser_tex.id(), self.tool == Tool::Eraser) { self.tool = Tool::Eraser; }
                     if btn(ui, if self.tool == Tool::Fill { ">Fill<" } else { "Fill" }) { self.tool = Tool::Fill; }
                     if btn(ui, if self.tool == Tool::Eyedropper { ">Drop<" } else { "Drop" }) { self.tool = Tool::Eyedropper; }
 
