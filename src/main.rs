@@ -174,24 +174,6 @@ impl PixeshApp {
         ((r.x / self.zoom) as i32, (r.y / self.zoom) as i32)
     }
 
-    fn draw_line(&mut self, from: (i32, i32), to: (i32, i32), color: Color32) {
-        let dx = to.0 - from.0;
-        let dy = to.1 - from.1;
-        let steps = dx.abs().max(dy.abs());
-        if steps <= 1 {
-            self.paint_pixel(to.0, to.1, color);
-            return;
-        }
-        for i in 0..=steps {
-            let t = i as f32 / steps as f32;
-            self.paint_pixel(
-                (from.0 as f32 + dx as f32 * t + 0.5) as i32,
-                (from.1 as f32 + dy as f32 * t + 0.5) as i32,
-                color,
-            );
-        }
-    }
-
     fn push_undo(&mut self) {
         self.undo_stack.push(Snapshot {
             layers: self.layers.iter().map(|l| l.pixels.clone()).collect(),
@@ -1010,21 +992,17 @@ impl eframe::App for PixeshApp {
                         if let Some(pos) = resp.interact_pointer_pos() {
                             if canvas_rect.contains(pos) {
                                 let px = self.screen_to_pixel(pos, canvas_rect.min);
-                                if let Some(last) = self.last_px_primary {
-                                    self.draw_line(last, px, paint_color);
-                                }
+                                self.paint_pixel(px.0, px.1, paint_color);
                                 self.last_px_primary = Some(px);
                             }
                         }
                     }
                     if resp.clicked_by(egui::PointerButton::Primary) {
-                        if self.last_px_primary.is_none() {
-                            if let Some(pos) = resp.interact_pointer_pos() {
-                                if canvas_rect.contains(pos) {
-                                    self.push_undo();
-                                    let px = self.screen_to_pixel(pos, canvas_rect.min);
-                                    self.paint_pixel(px.0, px.1, paint_color);
-                                }
+                        if let Some(pos) = resp.interact_pointer_pos() {
+                            if canvas_rect.contains(pos) {
+                                self.push_undo();
+                                let px = self.screen_to_pixel(pos, canvas_rect.min);
+                                self.paint_pixel(px.0, px.1, paint_color);
                             }
                         }
                     }
@@ -1037,10 +1015,8 @@ impl eframe::App for PixeshApp {
                             let px = self.screen_to_pixel(pos, canvas_rect.min);
                             if self.last_px_secondary.is_none() {
                                 self.push_undo();
-                                self.paint_pixel(px.0, px.1, Color32::TRANSPARENT);
-                            } else if let Some(last) = self.last_px_secondary {
-                                self.draw_line(last, px, Color32::TRANSPARENT);
                             }
+                            self.paint_pixel(px.0, px.1, Color32::TRANSPARENT);
                             self.last_px_secondary = Some(px);
                         }
                     }
