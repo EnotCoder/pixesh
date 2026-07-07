@@ -1,5 +1,6 @@
 pub mod canvas;
 pub mod history;
+pub mod input;
 pub mod io;
 
 use eframe::egui::{self, Color32, ColorImage, Pos2, Rect, Sense, Stroke, Vec2};
@@ -87,7 +88,7 @@ impl PixeshApp {
             tool_saved: None,
             last_px_primary: None,
             last_px_secondary: None,
-            grid: true,
+            grid: false,
             zoom: 46.0,
             pan: Vec2::ZERO,
             tex: None,
@@ -113,67 +114,7 @@ impl PixeshApp {
 // ── eframe::App ──────────────────────────────────────
 impl eframe::App for PixeshApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        // keyboard
-        ctx.input_mut(|i| {
-            if i.consume_key(egui::Modifiers::CTRL, egui::Key::Z) {
-                self.undo();
-            }
-            if i.consume_key(egui::Modifiers::CTRL, egui::Key::Y) {
-                self.redo();
-            }
-            if i.consume_key(egui::Modifiers::CTRL, egui::Key::S) {
-                self.export_name = "pixesh.png".into();
-                self.show_export = true;
-            }
-            if i.consume_key(egui::Modifiers::CTRL, egui::Key::R) {
-                self.resize_w = self.width as f32;
-                self.resize_h = self.height as f32;
-                self.show_resize = true;
-            }
-            if !i.modifiers.alt && !i.modifiers.ctrl {
-                if i.consume_key(egui::Modifiers::NONE, egui::Key::B) { self.tool = Tool::Brush; }
-                if i.consume_key(egui::Modifiers::NONE, egui::Key::E) { self.tool = Tool::Eraser; }
-                if i.consume_key(egui::Modifiers::NONE, egui::Key::F) { self.tool = Tool::Fill; }
-            }
-        });
-
-        // zoom (anywhere in window)
-        let scroll = ctx.input(|i| i.raw_scroll_delta.y);
-        if scroll != 0.0 {
-            let old = self.zoom;
-            self.zoom = (self.zoom - scroll * 0.2).clamp(1.0, 60.0);
-            self.pan *= self.zoom / old;
-        }
-
-        // arrow pan
-        ctx.input(|i| {
-            let speed = if i.modifiers.shift { 80.0 } else { 20.0 };
-            if i.key_down(egui::Key::ArrowLeft) {
-                self.pan.x += speed;
-            }
-            if i.key_down(egui::Key::ArrowRight) {
-                self.pan.x -= speed;
-            }
-            if i.key_down(egui::Key::ArrowUp) {
-                self.pan.y += speed;
-            }
-            if i.key_down(egui::Key::ArrowDown) {
-                self.pan.y -= speed;
-            }
-        });
-
-        // temp eyedropper via Alt/Ctrl
-        ctx.input(|i| {
-            let held = i.modifiers.alt || i.modifiers.ctrl;
-            if held && self.tool_saved.is_none() {
-                self.tool_saved = Some(self.tool);
-                self.tool = Tool::Eyedropper;
-            } else if !held {
-                if let Some(saved) = self.tool_saved.take() {
-                    self.tool = saved;
-                }
-            }
-        });
+        self.handle_input(ctx);
 
         // ── toolbar ──────────────────────────────────
         egui::TopBottomPanel::top("tools")
@@ -263,27 +204,6 @@ impl eframe::App for PixeshApp {
                         self.zoom = (61.0 - dz).clamp(1.0, 60.0);
                     }
 
-                    separator(ui);
-
-                    if btn(ui, "Save") {
-                        self.export_name = "pixesh.png".into();
-                        self.show_export = true;
-                    }
-                    if btn(ui, "Load") {
-                        if let Some(path) = rfd::FileDialog::new()
-                            .add_filter("PNG", &["png"])
-                            .pick_file()
-                        {
-                            self.load_png(&path.to_string_lossy());
-                        }
-                    }
-                    if btn(ui, "Resize") {
-                        self.resize_w = self.width as f32;
-                        self.resize_h = self.height as f32;
-                        self.show_resize = true;
-                    }
-
-                    separator(ui);
                 });
                 ui.add_space(4.0);
             });
