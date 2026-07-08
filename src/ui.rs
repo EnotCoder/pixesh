@@ -29,7 +29,7 @@ pub fn btn_min_w(ui: &mut egui::Ui, label: &str, min_w: f32) -> bool {
     let p = ui.painter();
     p.rect_filled(rect, 4.0, bg);
     p.rect_stroke(rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
-    p.text(rect.min + pad, egui::Align2::LEFT_TOP, label, font_id, TEXT);
+    p.text(rect.center(), egui::Align2::CENTER_CENTER, label, font_id, TEXT);
 
     resp.clicked()
 }
