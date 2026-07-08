@@ -5,13 +5,18 @@ use crate::constants::*;
 // ── btn ──────────────────────────────────────────────
 // кастомная текстовая кнопка: фон подсвечивается при наведении/клике
 pub fn btn(ui: &mut egui::Ui, label: &str) -> bool {
+    btn_min_w(ui, label, 0.0)
+}
+
+pub fn btn_min_w(ui: &mut egui::Ui, label: &str, min_w: f32) -> bool {
     let font_id = ui.style().text_styles.get(&egui::TextStyle::Button)
         .cloned()
         .unwrap_or(egui::FontId::proportional(FONT_SZ));
     let font_sz = font_id.size;
     let label_w = label.len() as f32 * CHAR_W * (font_sz / FONT_SZ);
     let pad = Vec2::new(14.0, 8.0);
-    let size = Vec2::new(label_w + pad.x * 2.0, font_sz + pad.y * 2.0);
+    let w = label_w + pad.x * 2.0;
+    let size = Vec2::new(w.max(min_w), font_sz + pad.y * 2.0);
     let (rect, resp) = ui.allocate_exact_size(size, Sense::click());
 
     let bg = if resp.clicked() {

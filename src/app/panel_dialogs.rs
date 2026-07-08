@@ -49,7 +49,7 @@ impl PixeshApp {
                     }
 
                     ui.horizontal(|ui| {
-                        if btn(ui, "Apply") {
+                        if btn_min_w(ui, "Apply", 140.0) {
                             if self.resize_w as usize != self.width
                                 || self.resize_h as usize != self.height
                             {
@@ -57,7 +57,7 @@ impl PixeshApp {
                             }
                             self.show_resize = false;
                         }
-                        if btn(ui, "Cancel") {
+                        if btn_min_w(ui, "Cancel", 140.0) {
                             self.show_resize = false;
                         }
                     });
@@ -116,7 +116,7 @@ impl PixeshApp {
                     }
 
                     ui.horizontal(|ui| {
-                        if btn(ui, "Save") {
+                        if btn_min_w(ui, "Save", 140.0) {
                             let path = if self.export_path.is_empty() {
                                 self.export_name.clone()
                             } else {
@@ -125,7 +125,7 @@ impl PixeshApp {
                             self.save_png(&path);
                             self.show_export = false;
                         }
-                        if btn(ui, "Cancel") {
+                        if btn_min_w(ui, "Cancel", 140.0) {
                             self.show_export = false;
                         }
                     });
