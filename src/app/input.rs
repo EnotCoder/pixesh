@@ -82,14 +82,16 @@ impl PixeshApp {
             }
         }
 
-        // ── панорама стрелками ──
-        ctx.input(|i| {
-            let speed = if i.modifiers.shift { 80.0 } else { 20.0 };
-            if i.key_down(egui::Key::ArrowLeft)  { self.pan.x += speed; }
-            if i.key_down(egui::Key::ArrowRight) { self.pan.x -= speed; }
-            if i.key_down(egui::Key::ArrowUp)    { self.pan.y += speed; }
-            if i.key_down(egui::Key::ArrowDown)  { self.pan.y -= speed; }
-        });
+        // ── панорама стрелками (блокируется если открыт диалог) ──
+        if !self.show_resize && !self.show_export && !self.show_brush {
+            ctx.input(|i| {
+                let speed = if i.modifiers.shift { 80.0 } else { 20.0 };
+                if i.key_down(egui::Key::ArrowLeft)  { self.pan.x += speed; }
+                if i.key_down(egui::Key::ArrowRight) { self.pan.x -= speed; }
+                if i.key_down(egui::Key::ArrowUp)    { self.pan.y += speed; }
+                if i.key_down(egui::Key::ArrowDown)  { self.pan.y -= speed; }
+            });
+        }
 
         // ── временная пипетка ──
         ctx.input(|i| {
