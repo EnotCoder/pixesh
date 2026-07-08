@@ -13,8 +13,8 @@ impl PixeshApp {
             if i.consume_key(egui::Modifiers::CTRL, egui::Key::Z) {
                 self.undo();
             }
-            // Ctrl+Y = повтор
-            if i.consume_key(egui::Modifiers::CTRL, egui::Key::Y) {
+            // Ctrl+Shift+Z = повтор
+            if i.consume_key(egui::Modifiers::CTRL | egui::Modifiers::SHIFT, egui::Key::Z) {
                 self.redo();
             }
             // Ctrl+S = сохранить (открыть диалог экспорта)

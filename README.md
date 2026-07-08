@@ -29,7 +29,7 @@ A minimal pixel art editor built with Rust and egui.
 | `Delete` | Clear selection |
 | `Escape` | Deselect / close dialogs |
 | `Ctrl+Z` | Undo |
-| `Ctrl+Y` | Redo |
+| `Ctrl+Shift+Z` | Redo |
 | `Ctrl+S` | Export PNG |
 | `Ctrl+L` | Load PNG |
 | `Ctrl+R` | Resize canvas |
