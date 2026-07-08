@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use eframe::egui::{self, Color32, ColorImage, Sense, Vec2};
+use eframe::egui::{self, Color32, ColorImage, Pos2, Rect, Sense, Vec2};
 
 use crate::constants::*;
 use crate::ui::*;
@@ -16,20 +16,18 @@ impl PixeshApp {
                 ui.horizontal(|ui| {
                     ui.add_space(6.0);
 
-                    // ── заголовок ──
-                    let title = "Pixesh";
-                    let title_w = title.len() as f32 * CHAR_W;
-                    let (tr, _) = ui.allocate_exact_size(
-                        Vec2::new(title_w + 12.0, ROW_H + 6.0),
-                        Sense::hover(),
-                    );
-                    ui.painter().text(
-                        tr.min + Vec2::new(6.0, 3.0),
-                        egui::Align2::LEFT_TOP,
-                        title,
-                        egui::FontId::proportional(FONT_SZ),
-                        ACCENT,
-                    );
+                    // ── логотип ──
+                    let logo_tex = self.logo_tex.get_or_insert_with(|| {
+                        let img = image::load_from_memory(include_bytes!("../../logo.png")).unwrap().into_rgba8();
+                        let w = img.width() as usize;
+                        let h = img.height() as usize;
+                        let raw = img.into_raw();
+                        let ci = ColorImage::from_rgba_unmultiplied([w, h], &raw);
+                        ui.ctx().load_texture("logo", ci, egui::TextureOptions::NEAREST)
+                    });
+                    let logo_sz = Vec2::splat((ROW_H + 6.0) * 1.5);
+                    let (lr, _) = ui.allocate_exact_size(logo_sz, Sense::hover());
+                    ui.painter().image(logo_tex.id(), lr.translate(Vec2::new(0.0, 4.0)), Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
 
                     // ── размер кисти ──
                     ui.add_space(6.0);

@@ -16,16 +16,16 @@ impl PixeshApp {
 
                 // ── заголовок "Layers" ──
                 let header = "Layers";
-                let hdr_w = header.len() as f32 * CHAR_W;
+                let hdr_w = header.len() as f32 * CHAR_W * 1.5;
                 let (hdr, _) = ui.allocate_exact_size(
-                    Vec2::new(hdr_w + 12.0, ROW_H + 8.0),
+                    Vec2::new(hdr_w + 12.0, ROW_H * 1.5 + 8.0),
                     Sense::hover(),
                 );
                 ui.painter().text(
                     hdr.min + Vec2::new(PANEL_PAD, 4.0),
                     egui::Align2::LEFT_TOP,
                     header,
-                    egui::FontId::proportional(FONT_SZ),
+                    egui::FontId::proportional(FONT_SZ * 1.5),
                     TEXT,
                 );
 
@@ -38,7 +38,7 @@ impl PixeshApp {
                     let is_active = self.active_layer == i;
                     let cb = self.layers[i].visible;
 
-                    let row_h = ROW_H + 12.0;
+                    let row_h = ROW_H * 1.5 + 16.0;
                     let (rect, resp) =
                         ui.allocate_exact_size(Vec2::new(ui.available_size().x, row_h), Sense::click());
 
@@ -68,10 +68,10 @@ impl PixeshApp {
 
                     // имя слоя
                     p.text(
-                        Pos2::new(cb_rect.max.x + 8.0, rect.min.y + 6.0),
+                        Pos2::new(cb_rect.max.x + 8.0, rect.min.y + 8.0),
                         egui::Align2::LEFT_TOP,
                         &name,
-                        egui::FontId::proportional(FONT_SZ),
+                        egui::FontId::proportional(FONT_SZ * 1.5),
                         TEXT,
                     );
 
@@ -108,16 +108,16 @@ impl PixeshApp {
                 // ── HSV picker ───────────────────────────
                 ui.add_space(12.0);
                 let hdr = "Color";
-                let hw = hdr.len() as f32 * CHAR_W;
+                let hw = hdr.len() as f32 * CHAR_W * 1.5;
                 let (hr, _) = ui.allocate_exact_size(
-                    Vec2::new(hw + 12.0, ROW_H + 8.0),
+                    Vec2::new(hw + 12.0, ROW_H * 1.5 + 8.0),
                     Sense::hover(),
                 );
                 ui.painter().text(
                     hr.min + Vec2::new(PANEL_PAD, 4.0),
                     egui::Align2::LEFT_TOP,
                     hdr,
-                    egui::FontId::proportional(FONT_SZ),
+                    egui::FontId::proportional(FONT_SZ * 1.5),
                     TEXT,
                 );
 

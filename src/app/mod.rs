@@ -62,6 +62,7 @@ pub struct PixeshApp {
     pub(crate) fill_tex: Option<egui::TextureHandle>,
     pub(crate) drop_tex: Option<egui::TextureHandle>,
     pub(crate) clear_tex: Option<egui::TextureHandle>,
+    pub(crate) logo_tex: Option<egui::TextureHandle>,       // иконка логотипа (logo.png)
     pub(crate) sv_tex: Option<egui::TextureHandle>,       // текстура SV-поля
     pub(crate) sv_tex_h: f32,
     pub(crate) select_tex: Option<egui::TextureHandle>,
@@ -126,6 +127,7 @@ impl PixeshApp {
             fill_tex: None,
             drop_tex: None,
             clear_tex: None,
+            logo_tex: None,
             sv_tex: None,
             sv_tex_h: -1.0,
             select_tex: None,
