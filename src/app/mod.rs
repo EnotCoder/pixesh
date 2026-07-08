@@ -1,12 +1,13 @@
-pub mod canvas;
-pub mod history;
-pub mod input;
-pub mod io;
-pub mod panel_canvas;
-pub mod panel_dialogs;
-pub mod panel_layers;
-pub mod panel_toolbar;
-pub mod tools;
+// модули панелей и подсистем
+pub mod canvas;          // рисование: композит, кисть, линия, заливка
+pub mod history;         // undo / redo (снапшоты пикселей)
+pub mod input;           // клавиатура, зум, панорама, пипетка
+pub mod io;              // save/load PNG, добавление/удаление слоёв, resize
+pub mod panel_canvas;    // отрисовка холста и диспатч инструментов
+pub mod panel_dialogs;   // окна: Resize Canvas, Export PNG
+pub mod panel_layers;    // боковая панель: слои, HSV-пикер
+pub mod panel_toolbar;   // верхняя панель: инструменты, слайдеры, галки
+pub mod tools;           // обработчики инструментов (кисть, ластик, заливка, пипетка, выделение)
 
 use std::sync::Arc;
 
@@ -15,24 +16,29 @@ use eframe::egui::{self, Color32, Vec2};
 use crate::constants::Tool;
 
 // ── Layer / Snapshot ─────────────────────────────────
+// слой: имя, пиксели (Arc для COW), видимость
 pub(crate) struct Layer {
     pub(crate) name: String,
     pub(crate) pixels: Arc<Vec<Color32>>,
     pub(crate) visible: bool,
 }
 
+// снапшот состояния для undo/redo (пиксели всех слоёв + активный слой)
 pub(crate) struct Snapshot {
     pub(crate) layers: Vec<Arc<Vec<Color32>>>,
     pub(crate) active: usize,
 }
 
 // ── App ──────────────────────────────────────────────
+// главная структура приложения — содержит всё состояние
 pub struct PixeshApp {
+    // ── слои / холст ──
     pub(crate) layers: Vec<Layer>,
     pub(crate) active_layer: usize,
     pub(crate) width: usize,
     pub(crate) height: usize,
 
+    // ── цвет / кисть / инструмент ──
     pub(crate) color: Color32,
     pub(crate) hsv_h: f32,
     pub(crate) hsv_s: f32,
@@ -40,40 +46,45 @@ pub struct PixeshApp {
     pub(crate) rgb_r: f32,
     pub(crate) rgb_g: f32,
     pub(crate) rgb_b: f32,
-    pub(crate) brush: f32,
+    pub(crate) brush: f32,            // размер кисти (1..10)
     pub(crate) tool: Tool,
-    pub(crate) tool_saved: Option<Tool>,
-    pub(crate) last_px_primary: Option<(i32, i32)>,
-    pub(crate) last_px_secondary: Option<(i32, i32)>,
+    pub(crate) tool_saved: Option<Tool>,          // для временного переключения (пипетка)
+    pub(crate) last_px_primary: Option<(i32, i32)>,   // прошлый пиксель для линии (ЛКМ)
+    pub(crate) last_px_secondary: Option<(i32, i32)>, // прошлый пиксель для линии (ПКМ)
 
+    // ── отображение ──
     pub(crate) grid: bool,
     pub(crate) zoom: f32,
     pub(crate) pan: Vec2,
-    pub(crate) tex: Option<egui::TextureHandle>,
+    pub(crate) tex: Option<egui::TextureHandle>,          // текстура холста
     pub(crate) brush_tex: Option<egui::TextureHandle>,
     pub(crate) eraser_tex: Option<egui::TextureHandle>,
     pub(crate) fill_tex: Option<egui::TextureHandle>,
     pub(crate) drop_tex: Option<egui::TextureHandle>,
     pub(crate) clear_tex: Option<egui::TextureHandle>,
-    pub(crate) sv_tex: Option<egui::TextureHandle>,
+    pub(crate) sv_tex: Option<egui::TextureHandle>,       // текстура SV-поля
     pub(crate) sv_tex_h: f32,
     pub(crate) select_tex: Option<egui::TextureHandle>,
 
+    // ── undo / redo ──
     pub(crate) undo_stack: Vec<Snapshot>,
     pub(crate) redo_stack: Vec<Snapshot>,
 
+    // ── флаг перерисовки текстуры холста ──
     pub(crate) canvas_dirty: bool,
 
-    pub(crate) sel: Option<(i32, i32, i32, i32)>,
-    pub(crate) sel_start: Option<(i32, i32)>,
-    pub(crate) sel_end: Option<(i32, i32)>,
-    pub(crate) sel_move_origin: Option<(i32, i32)>,
-    pub(crate) sel_move_current: Option<(i32, i32)>,
-    pub(crate) sel_buffer: Option<Vec<Color32>>,
+    // ── выделение (Select tool) ──
+    pub(crate) sel: Option<(i32, i32, i32, i32)>,           // финальный прямоугольник (x0,y0,x1,y1)
+    pub(crate) sel_start: Option<(i32, i32)>,               // начало рисования выделения
+    pub(crate) sel_end: Option<(i32, i32)>,                 // текущий конец выделения
+    pub(crate) sel_move_origin: Option<(i32, i32)>,         // пиксель, за который схватили
+    pub(crate) sel_move_current: Option<(i32, i32)>,        // текущая позиция при перемещении
+    pub(crate) sel_buffer: Option<Vec<Color32>>,            // скопированные пиксели выделения
     pub(crate) sel_buf_w: usize,
     pub(crate) sel_buf_h: usize,
     pub(crate) sel_tex: Option<egui::TextureHandle>,
 
+    // ── диалоги ──
     pub(crate) show_resize: bool,
     pub(crate) resize_w: f32,
     pub(crate) resize_h: f32,
@@ -141,6 +152,7 @@ impl PixeshApp {
 }
 
 // ── eframe::App ──────────────────────────────────────
+// точка входа для eframe — каждый кадр вызывает update()
 impl eframe::App for PixeshApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.handle_input(ctx);

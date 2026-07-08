@@ -5,14 +5,17 @@ use eframe::egui::{Color32, Pos2};
 use super::PixeshApp;
 
 impl PixeshApp {
+    // округлённый размер кисти (из f32 -> usize)
     pub(crate) fn brush_i(&self) -> usize {
         self.brush.round() as usize
     }
 
+    // доступ к пикселям слоя через Arc::make_mut (COW для undo)
     pub(crate) fn pixels_mut(&mut self, layer_idx: usize) -> &mut Vec<Color32> {
         Arc::make_mut(&mut self.layers[layer_idx].pixels)
     }
 
+    // композит всех видимых слоёв поверх друг друга
     pub(crate) fn composite(&self) -> Vec<Color32> {
         let mut out = vec![Color32::TRANSPARENT; self.width * self.height];
         for layer in &self.layers {
@@ -26,6 +29,7 @@ impl PixeshApp {
         out
     }
 
+    // композит с шахматным фоном для прозрачных пикселей (отображение)
     pub(crate) fn composite_display(&self) -> Vec<Color32> {
         let ck_a = Color32::from_gray(200);
         let ck_b = Color32::from_gray(180);
@@ -51,6 +55,7 @@ impl PixeshApp {
         out
     }
 
+    // поставить пиксель кистью (квадрат brush_i x brush_i)
     pub(crate) fn paint_pixel(&mut self, px: i32, py: i32, color: Color32) {
         let idx = self.active_layer;
         if idx >= self.layers.len() { return; }
@@ -71,6 +76,7 @@ impl PixeshApp {
         self.canvas_dirty = true;
     }
 
+    // линия по Брезенхему — ставит пиксели от (x0,y0) до (x1,y1)
     pub(crate) fn paint_line(&mut self, x0: i32, y0: i32, x1: i32, y1: i32, color: Color32) {
         let dx = (x1 - x0).abs();
         let dy = -(y1 - y0).abs();
@@ -88,6 +94,7 @@ impl PixeshApp {
         }
     }
 
+    // заливка (flood fill) — заменяет все смежные пиксели одного цвета
     pub(crate) fn flood_fill(&mut self, px: i32, py: i32, new: Color32) {
         let idx = self.active_layer;
         if idx >= self.layers.len() { return; }
@@ -110,6 +117,7 @@ impl PixeshApp {
         self.canvas_dirty = true;
     }
 
+    // конвертировать экранные координаты в пиксельные с учётом zoom
     pub(crate) fn screen_to_pixel(&self, pos: Pos2, origin: Pos2) -> (i32, i32) {
         let r = pos - origin;
         ((r.x / self.zoom) as i32, (r.y / self.zoom) as i32)

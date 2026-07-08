@@ -5,6 +5,7 @@ use super::PixeshApp;
 
 impl PixeshApp {
     // ── Eyedropper ──────────────────────────────────────
+    // взять цвет пикселя под курсором и установить как текущий
     pub(crate) fn handle_eyedropper(&mut self, px: i32, py: i32) {
         let w = self.width as i32;
         let h = self.height as i32;
@@ -22,18 +23,21 @@ impl PixeshApp {
     }
 
     // ── Fill ────────────────────────────────────────────
+    // залить область текущим цветом (flood fill)
     pub(crate) fn handle_fill(&mut self, px: i32, py: i32) {
         self.push_undo();
         self.flood_fill(px, py, self.color);
     }
 
     // ── Brush / Eraser ─────────────────────────────────
+    // начало рисования кистью — сохранить undo, поставить пиксель
     pub(crate) fn handle_brush_press(&mut self, px: i32, py: i32, color: Color32) {
         self.push_undo();
         self.paint_pixel(px, py, color);
         self.last_px_primary = Some((px, py));
     }
 
+    // движение кисти — рисовать линию от предыдущего пикселя до текущего
     pub(crate) fn handle_brush_drag(&mut self, px: i32, py: i32, color: Color32) {
         if let Some(last) = self.last_px_primary {
             self.paint_line(last.0, last.1, px, py, color);
@@ -43,12 +47,15 @@ impl PixeshApp {
         self.last_px_primary = Some((px, py));
     }
 
+    // клик кистью — поставить пиксель с сохранением undo
     pub(crate) fn handle_brush_click(&mut self, px: i32, py: i32, color: Color32) {
         self.push_undo();
         self.paint_pixel(px, py, color);
     }
 
     // ── Selection ──────────────────────────────────────
+    // начало работы с выделением: если клик внутри существующего — начать перемещение
+    // иначе — начать рисовать новый прямоугольник выделения
     pub(crate) fn handle_select_press(&mut self, px: i32, py: i32) {
         if let Some((x0, y0, x1, y1)) = self.sel {
             if px >= x0 && px <= x1 && py >= y0 && py <= y1 {
@@ -77,6 +84,7 @@ impl PixeshApp {
         self.clear_move_state();
     }
 
+    // движение мыши при активном выделении: обновить прямоугольник или позицию перемещения
     pub(crate) fn handle_select_drag(&mut self, px: i32, py: i32) {
         if self.sel_move_origin.is_some() {
             self.sel_move_current = Some((px, py));
@@ -87,6 +95,7 @@ impl PixeshApp {
         }
     }
 
+    // отпускание мыши: завершить перемещение или финализировать прямоугольник выделения
     pub(crate) fn handle_select_release(&mut self) {
         // завершение мува
         if self.sel_move_origin.is_some() {
@@ -104,11 +113,13 @@ impl PixeshApp {
 
                     if let Some(buf) = self.sel_buffer.take() {
                         let pixels = self.pixels_mut(self.active_layer);
+                        // стереть старое положение
                         for yy in y0..=y1 {
                             for xx in x0..=x1 {
                                 pixels[(yy * cw + xx) as usize] = Color32::TRANSPARENT;
                             }
                         }
+                        // вставить в новое
                         for yy in 0..h {
                             for xx in 0..w {
                                 let src = buf[(yy * w + xx) as usize];
@@ -144,6 +155,7 @@ impl PixeshApp {
         self.sel_end = None;
     }
 
+    // сбросить всё состояние перемещения выделения
     pub(crate) fn clear_move_state(&mut self) {
         self.sel_move_origin = None;
         self.sel_move_current = None;
@@ -151,6 +163,7 @@ impl PixeshApp {
         self.sel_tex = None;
     }
 
+    // удалить пиксели внутри выделения и сбросить его
     pub(crate) fn delete_selection(&mut self) {
         if let Some((x0, y0, x1, y1)) = self.sel {
             self.push_undo();
@@ -167,6 +180,7 @@ impl PixeshApp {
         }
     }
 
+    // снять выделение без удаления пикселей
     pub(crate) fn deselect(&mut self) {
         self.sel = None;
         self.sel_start = None;

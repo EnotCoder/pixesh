@@ -7,6 +7,7 @@ use crate::ui::*;
 use super::PixeshApp;
 
 impl PixeshApp {
+    // верхняя панель инструментов: логотип, слайдер brush, иконки инструментов, grid, zoom
     pub(crate) fn ui_toolbar(&mut self, ctx: &egui::Context) {
         egui::TopBottomPanel::top("tools")
             .frame(egui::Frame::new().fill(PANEL))
@@ -14,6 +15,8 @@ impl PixeshApp {
                 ui.add_space(6.0);
                 ui.horizontal(|ui| {
                     ui.add_space(6.0);
+
+                    // ── заголовок ──
                     let title = "Pixesh";
                     let title_w = title.len() as f32 * CHAR_W;
                     let (tr, _) = ui.allocate_exact_size(
@@ -28,6 +31,7 @@ impl PixeshApp {
                         ACCENT,
                     );
 
+                    // ── размер кисти ──
                     ui.add_space(6.0);
                     separator(ui);
                     ui.add_space(6.0);
@@ -36,6 +40,7 @@ impl PixeshApp {
                     separator(ui);
                     ui.add_space(4.0);
 
+                    // ── иконки инструментов ──
                     let brush_tex = self.brush_tex.get_or_insert_with(|| {
                         let img = image::load_from_memory(include_bytes!("../../tex/brush.png")).unwrap().into_rgba8();
                         let w = img.width() as usize;
@@ -86,6 +91,7 @@ impl PixeshApp {
                     });
                     if icon_btn(ui, select_tex.id(), self.tool == Tool::Select) { self.tool = Tool::Select; }
 
+                    // ── очистка ──
                     separator(ui);
 
                     let clear_tex = self.clear_tex.get_or_insert_with(|| {
@@ -104,6 +110,7 @@ impl PixeshApp {
                         self.canvas_dirty = true;
                     }
 
+                    // ── сетка + зум ──
                     ui.add_space(6.0);
                     separator(ui);
                     ui.add_space(6.0);

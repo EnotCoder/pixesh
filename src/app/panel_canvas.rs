@@ -3,6 +3,7 @@ use eframe::egui::{self, Color32, ColorImage, Pos2, Rect, Sense, Stroke, Vec2};
 use crate::constants::*;
 use super::PixeshApp;
 
+// перевести клик мыши в пиксельные координаты на холсте
 fn click_pixel(resp: &egui::Response, canvas_rect: &Rect, zoom: f32) -> Option<(i32, i32)> {
     let pos = resp.interact_pointer_pos()?;
     if !canvas_rect.contains(pos) { return None; }
@@ -11,6 +12,7 @@ fn click_pixel(resp: &egui::Response, canvas_rect: &Rect, zoom: f32) -> Option<(
 }
 
 impl PixeshApp {
+    // отрисовка центральной области — холст + сетка + курсор + обработка инструментов
     pub(crate) fn ui_canvas(&mut self, ctx: &egui::Context) {
         egui::CentralPanel::default()
             .frame(egui::Frame::new().fill(BG))
@@ -23,6 +25,7 @@ impl PixeshApp {
                 let (area, resp) = ui.allocate_exact_size(avail, Sense::click_and_drag());
                 let zoom = self.zoom;
 
+                // ограничение панорамы чтобы не улететь за края
                 let max_px = (canvas_size.x + area.width()) * 0.5;
                 let max_py = (canvas_size.y + area.height()) * 0.5;
                 self.pan = self.pan.clamp(
@@ -30,15 +33,18 @@ impl PixeshApp {
                     Vec2::new(max_px, max_py),
                 );
 
+                // прямоугольник холста с учётом панорамы
                 let canvas_rect = Rect::from_center_size(
                     area.center() + self.pan,
                     canvas_size,
                 );
 
                 if ui.is_rect_visible(canvas_rect) {
+                    // перестроить текстуру если холст изменился или двигается выделение
                     if self.canvas_dirty || self.sel_move_current.is_some() {
                         let mut flat = self.composite_display();
 
+                        // наложение перемещаемого выделения поверх композита
                         if let (Some(buf), Some(origin), Some(current)) =
                             (self.sel_buffer.as_ref(), self.sel_move_origin, self.sel_move_current)
                         {
@@ -73,6 +79,7 @@ impl PixeshApp {
                         }
                     }
 
+                    // рендер текстуры холста
                     let p = ui.painter();
                     if let Some(tex) = &self.tex {
                         p.image(
@@ -83,6 +90,7 @@ impl PixeshApp {
                         );
                     }
 
+                    // ── выделение (бегущая пунктирная рамка) ──
                     let sel_rect = self.sel.or_else(|| {
                         if let (Some(s), Some(e)) = (self.sel_start, self.sel_end) {
                             Some((
@@ -126,6 +134,7 @@ impl PixeshApp {
                         }
                     }
 
+                    // ── сетка пикселей (если включена) ──
                     if self.grid {
                         let gc = Color32::from_black_alpha(40);
                         for x in 0..=self.width {
@@ -144,6 +153,7 @@ impl PixeshApp {
                         }
                     }
 
+                    // ── курсор-превью кисти ──
                     let cursor = resp.interact_pointer_pos()
                         .or_else(|| resp.hover_pos());
                     if let Some(pos) = cursor {
@@ -166,6 +176,7 @@ impl PixeshApp {
                 }
 
                 // ── Tool dispatch ─────────────────────
+                // сброс last_px если кнопка не зажата
                 if !ctx.input(|i| i.pointer.primary_down()) {
                     self.last_px_primary = None;
                 }
@@ -229,6 +240,7 @@ impl PixeshApp {
                     }
                 }
 
+                // ── ластик по ПКМ ──
                 if resp.dragged_by(egui::PointerButton::Secondary) {
                     if let Some(p) = cp(&resp) {
                         if self.last_px_secondary.is_none() { self.push_undo(); }

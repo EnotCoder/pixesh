@@ -5,7 +5,9 @@ use crate::ui::*;
 use super::PixeshApp;
 
 impl PixeshApp {
+    // модальные окна: Resize Canvas и Export PNG
     pub(crate) fn ui_dialogs(&mut self, ctx: &egui::Context) {
+        // ── диалог изменения размера холста ──
         if self.show_resize {
             egui::Window::new("Resize Canvas")
                 .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
@@ -51,6 +53,7 @@ impl PixeshApp {
                 });
         }
 
+        // ── диалог экспорта в PNG ──
         if self.show_export {
             egui::Window::new("Export PNG")
                 .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])

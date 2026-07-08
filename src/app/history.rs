@@ -1,6 +1,7 @@
 use super::{PixeshApp, Snapshot};
 
 impl PixeshApp {
+    // сохранить текущее состояние в undo-стек (снапшот пикселей всех слоёв)
     pub(crate) fn push_undo(&mut self) {
         self.undo_stack.push(Snapshot {
             layers: self.layers.iter().map(|l| l.pixels.clone()).collect(),
@@ -12,6 +13,7 @@ impl PixeshApp {
         }
     }
 
+    // отменить последнее действие — восстановить снапшот из undo-стека
     pub(crate) fn undo(&mut self) {
         if let Some(state) = self.undo_stack.pop() {
             self.redo_stack.push(Snapshot {
@@ -28,6 +30,7 @@ impl PixeshApp {
         }
     }
 
+    // повторить отменённое действие — восстановить снапшот из redo-стека
     pub(crate) fn redo(&mut self) {
         if let Some(state) = self.redo_stack.pop() {
             self.undo_stack.push(Snapshot {
