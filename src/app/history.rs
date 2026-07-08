@@ -6,6 +6,8 @@ impl PixeshApp {
         self.undo_stack.push(Snapshot {
             layers: self.layers.iter().map(|l| l.pixels.clone()).collect(),
             active: self.active_layer,
+            width: self.width,
+            height: self.height,
         });
         self.redo_stack.clear();
         if self.undo_stack.len() > 50 {
@@ -19,13 +21,18 @@ impl PixeshApp {
             self.redo_stack.push(Snapshot {
                 layers: self.layers.iter().map(|l| l.pixels.clone()).collect(),
                 active: self.active_layer,
+                width: self.width,
+                height: self.height,
             });
+            self.width = state.width;
+            self.height = state.height;
             for (i, layer) in self.layers.iter_mut().enumerate() {
                 if i < state.layers.len() {
                     layer.pixels = state.layers[i].clone();
                 }
             }
-            self.active_layer = state.active;
+            self.active_layer = state.active.min(self.layers.len().saturating_sub(1));
+            self.tex = None;
             self.canvas_dirty = true;
         }
     }
@@ -36,13 +43,18 @@ impl PixeshApp {
             self.undo_stack.push(Snapshot {
                 layers: self.layers.iter().map(|l| l.pixels.clone()).collect(),
                 active: self.active_layer,
+                width: self.width,
+                height: self.height,
             });
+            self.width = state.width;
+            self.height = state.height;
             for (i, layer) in self.layers.iter_mut().enumerate() {
                 if i < state.layers.len() {
                     layer.pixels = state.layers[i].clone();
                 }
             }
-            self.active_layer = state.active;
+            self.active_layer = state.active.min(self.layers.len().saturating_sub(1));
+            self.tex = None;
             self.canvas_dirty = true;
         }
     }

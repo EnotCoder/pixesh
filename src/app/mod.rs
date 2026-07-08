@@ -23,10 +23,12 @@ pub(crate) struct Layer {
     pub(crate) visible: bool,
 }
 
-// снапшот состояния для undo/redo (пиксели всех слоёв + активный слой)
+// снапшот состояния для undo/redo (пиксели всех слоёв + активный слой + размер холста)
 pub(crate) struct Snapshot {
     pub(crate) layers: Vec<Arc<Vec<Color32>>>,
     pub(crate) active: usize,
+    pub(crate) width: usize,
+    pub(crate) height: usize,
 }
 
 // ── App ──────────────────────────────────────────────
