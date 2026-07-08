@@ -24,17 +24,19 @@ impl PixeshApp {
                         egui::FontId::proportional(28.0),
                     );
                     ui.add_space(8.0);
-                    ui.horizontal(|ui| {
-                        ui.label("W:");
-                        let mut w = self.resize_w as i32;
-                        ui.add_sized(Vec2::new(120.0, 44.0), egui::DragValue::new(&mut w).range(1..=4096));
-                        self.resize_w = w as f32;
-                    });
-                    ui.horizontal(|ui| {
-                        ui.label("H:");
-                        let mut h = self.resize_h as i32;
-                        ui.add_sized(Vec2::new(120.0, 44.0), egui::DragValue::new(&mut h).range(1..=4096));
-                        self.resize_h = h as f32;
+                    ui.vertical_centered(|ui| {
+                        ui.horizontal(|ui| {
+                            ui.label("W:");
+                            let mut w = self.resize_w as i32;
+                            ui.add_sized(Vec2::new(120.0, 44.0), egui::DragValue::new(&mut w).range(1..=4096));
+                            self.resize_w = w as f32;
+                        });
+                        ui.horizontal(|ui| {
+                            ui.label("H:");
+                            let mut h = self.resize_h as i32;
+                            ui.add_sized(Vec2::new(120.0, 44.0), egui::DragValue::new(&mut h).range(1..=4096));
+                            self.resize_h = h as f32;
+                        });
                     });
                     ui.add_space(12.0);
 
