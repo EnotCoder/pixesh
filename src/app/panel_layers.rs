@@ -153,13 +153,23 @@ impl PixeshApp {
 
                 // ── слайдер альфы ──
                 ui.add_space(4.0);
-                ui.horizontal(|ui| {
-                    ui.add_space(PANEL_PAD);
-                    ui.style_mut().override_font_id = Some(egui::FontId::proportional(28.0));
-                    ui.add_sized(
-                        Vec2::new(ui.available_width(), 48.0),
-                        egui::Slider::new(&mut self.rgb_a, 0.0..=255.0).text("a"),
+                ui.scope(|ui| {
+                    ui.style_mut().text_styles.insert(
+                        egui::TextStyle::Body,
+                        egui::FontId::proportional(28.0),
                     );
+                    ui.style_mut().override_font_id = Some(egui::FontId::proportional(28.0));
+                    ui.horizontal(|ui| {
+                        ui.add_space(PANEL_PAD);
+                        ui.add(egui::Label::new("a"));
+                        ui.add_sized(
+                            Vec2::new(ui.available_width() - 70.0, 48.0),
+                            egui::Slider::new(&mut self.rgb_a, 0.0..=255.0).show_value(false),
+                        );
+                        ui.add(egui::Label::new(
+                            egui::RichText::new(format!("{}", self.rgb_a as u8)).size(28.0).color(TEXT),
+                        ));
+                    });
                 });
                 self.color = Color32::from_rgba_unmultiplied(self.rgb_r as u8, self.rgb_g as u8, self.rgb_b as u8, self.rgb_a as u8);
 
