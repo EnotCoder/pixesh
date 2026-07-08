@@ -117,6 +117,23 @@ impl PixeshApp {
         self.canvas_dirty = true;
     }
 
+    // зеркальное отражение по горизонтали (активный слой)
+    pub(crate) fn mirror_horizontal(&mut self) {
+        let idx = self.active_layer;
+        if idx >= self.layers.len() { return; }
+        let w = self.width;
+        let h = self.height;
+        let pixels = self.pixels_mut(idx);
+        for y in 0..h {
+            for x in 0..w / 2 {
+                let a = y * w + x;
+                let b = y * w + (w - 1 - x);
+                pixels.swap(a, b);
+            }
+        }
+        self.canvas_dirty = true;
+    }
+
     // конвертировать экранные координаты в пиксельные с учётом zoom
     pub(crate) fn screen_to_pixel(&self, pos: Pos2, origin: Pos2) -> (i32, i32) {
         let r = pos - origin;

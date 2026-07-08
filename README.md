@@ -14,6 +14,7 @@ A minimal pixel art editor built with Rust and egui.
 - **Export PNG** — Save your artwork
 - **Grid overlay** — Toggle pixel grid
 - **Zoom & pan** — Scroll to zoom, arrows to pan
+- **Mirror horizontally** — Flip the active layer with Ctrl+F
 - **Undo / Redo** — Ctrl+Z / Ctrl+Y (up to 50 steps)
 
 ## Controls
@@ -31,6 +32,7 @@ A minimal pixel art editor built with Rust and egui.
 | `Ctrl+Y` | Redo |
 | `Ctrl+S` | Export PNG |
 | `Ctrl+L` | Load PNG |
+| `Ctrl+F` | Mirror horizontally |
 | `Ctrl+R` | Resize canvas |
 | `Scroll` | Zoom |
 | `Shift+Scroll` | Brush size |
@@ -53,7 +55,7 @@ Run with:
 - `src/main.rs` — Entry point, font & style setup
 - `src/app/` — Core application logic
   - `mod.rs` — App state (layers, color, tools, undo, selection)
-  - `canvas.rs` — Compositing, pixel painting, Bresenham lines, flood fill
+  - `canvas.rs` — Compositing, pixel painting, Bresenham lines, flood fill, mirror
   - `history.rs` — Undo/redo with snapshots
   - `input.rs` — Keyboard shortcuts, zoom, pan
   - `io.rs` — Save/load PNG, layer management, canvas resize
