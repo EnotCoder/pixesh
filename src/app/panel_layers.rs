@@ -129,14 +129,14 @@ impl PixeshApp {
                     let ps = 72.0;
                     let (pr, _) = ui.allocate_exact_size(Vec2::new(ps, ps), Sense::hover());
                     let pv = pr.translate(Vec2::new(0.0, -4.0));
-                    let pc = Color32::from_rgb(self.rgb_r as u8, self.rgb_g as u8, self.rgb_b as u8);
+                    let pc = Color32::from_rgba_unmultiplied(self.rgb_r as u8, self.rgb_g as u8, self.rgb_b as u8, self.rgb_a as u8);
                     ui.painter().rect_filled(pv, 4.0, pc);
                     ui.painter().rect_stroke(pv, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
 
                     ui.add_space(PANEL_PAD);
                     ui.vertical(|ui| {
                         let mut y = ui.cursor().min.y;
-                        for (ch, &v) in [("R", &self.rgb_r), ("G", &self.rgb_g), ("B", &self.rgb_b)] {
+                        for (ch, &v) in [("R", &self.rgb_r), ("G", &self.rgb_g), ("B", &self.rgb_b), ("A", &self.rgb_a)] {
                             let txt = format!("{} {}", ch, v as u8);
                             ui.painter().text(
                                 Pos2::new(pr.max.x + 10.0, y),
@@ -147,9 +147,17 @@ impl PixeshApp {
                             );
                             y += ROW_H + 4.0;
                         }
-                        let _ = ui.allocate_exact_size(Vec2::new(80.0, (ROW_H + 4.0) * 3.0), Sense::hover());
+                        let _ = ui.allocate_exact_size(Vec2::new(80.0, (ROW_H + 4.0) * 4.0), Sense::hover());
                     });
                 });
+
+                // ── слайдер прозрачности ──
+                ui.add_space(4.0);
+                ui.horizontal(|ui| {
+                    ui.add_space(PANEL_PAD);
+                    ui.add(egui::Slider::new(&mut self.rgb_a, 0.0..=255.0).text("Alpha"));
+                });
+                self.color = Color32::from_rgba_unmultiplied(self.rgb_r as u8, self.rgb_g as u8, self.rgb_b as u8, self.rgb_a as u8);
 
                 // SV field + H strip
                 let avail = ui.available_size();
@@ -203,7 +211,7 @@ impl PixeshApp {
                             self.rgb_r = r as f32;
                             self.rgb_g = g as f32;
                             self.rgb_b = b as f32;
-                            self.color = Color32::from_rgb(r, g, b);
+                            self.color = Color32::from_rgba_unmultiplied(r, g, b, self.rgb_a as u8);
                         }
                     }
 
@@ -237,7 +245,7 @@ impl PixeshApp {
                             self.rgb_r = r as f32;
                             self.rgb_g = g as f32;
                             self.rgb_b = b as f32;
-                            self.color = Color32::from_rgb(r, g, b);
+                            self.color = Color32::from_rgba_unmultiplied(r, g, b, self.rgb_a as u8);
                         }
                     }
                 });

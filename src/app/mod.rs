@@ -48,6 +48,7 @@ pub struct PixeshApp {
     pub(crate) rgb_r: f32,
     pub(crate) rgb_g: f32,
     pub(crate) rgb_b: f32,
+    pub(crate) rgb_a: f32,
     pub(crate) brush: f32,            // размер кисти (1..10)
     pub(crate) tool: Tool,
     pub(crate) tool_saved: Option<Tool>,          // для временного переключения (пипетка)
@@ -119,6 +120,7 @@ impl PixeshApp {
             rgb_r: 0.0,
             rgb_g: 0.0,
             rgb_b: 0.0,
+            rgb_a: 255.0,
             brush: 1.0,
             tool: Tool::Brush,
             tool_saved: None,

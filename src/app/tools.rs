@@ -15,6 +15,7 @@ impl PixeshApp {
             self.rgb_r = c.r() as f32;
             self.rgb_g = c.g() as f32;
             self.rgb_b = c.b() as f32;
+            self.rgb_a = c.a() as f32;
             let (h_, s, v) = rgb_to_hsv(c.r(), c.g(), c.b());
             self.hsv_h = h_;
             self.hsv_s = s;
