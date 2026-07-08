@@ -67,7 +67,3 @@ Run with:
 - `src/ui.rs` — Custom widgets (button, icon button, checkbox, slider)
 - `tex/` — Tool icons
 - `screenshots/` — Screenshots
-
-## License
-
-MIT
