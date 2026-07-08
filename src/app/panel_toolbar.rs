@@ -109,7 +109,35 @@ impl PixeshApp {
                     ui.add_space(6.0);
 
                     checkbox(ui, "Grid", &mut self.grid);
-                    ui.add_space(12.0);
+                    ui.add_space(6.0);
+
+                    let mh_tex = self.mirror_h_tex.get_or_insert_with(|| {
+                        let img = image::load_from_memory(include_bytes!("../../tex/mirror_h.png")).unwrap().into_rgba8();
+                        let w = img.width() as usize;
+                        let h = img.height() as usize;
+                        let raw = img.into_raw();
+                        let ci = ColorImage::from_rgba_unmultiplied([w, h], &raw);
+                        ui.ctx().load_texture("mirror_h", ci, egui::TextureOptions::NEAREST)
+                    });
+                    if icon_btn(ui, mh_tex.id(), false) {
+                        self.push_undo();
+                        self.mirror_horizontal();
+                    }
+
+                    let mv_tex = self.mirror_v_tex.get_or_insert_with(|| {
+                        let img = image::load_from_memory(include_bytes!("../../tex/mirror_v.png")).unwrap().into_rgba8();
+                        let w = img.width() as usize;
+                        let h = img.height() as usize;
+                        let raw = img.into_raw();
+                        let ci = ColorImage::from_rgba_unmultiplied([w, h], &raw);
+                        ui.ctx().load_texture("mirror_v", ci, egui::TextureOptions::NEAREST)
+                    });
+                    if icon_btn(ui, mv_tex.id(), false) {
+                        self.push_undo();
+                        self.mirror_vertical();
+                    }
+
+                    ui.add_space(6.0);
 
                     let display_z = 61.0 - self.zoom;
                     let mut dz = display_z;

@@ -9,11 +9,6 @@ impl PixeshApp {
     pub(crate) fn handle_input(&mut self, ctx: &egui::Context) {
         // ── хоткеи ──
         ctx.input_mut(|i| {
-            // Ctrl+F = зеркало по горизонтали
-            if i.consume_key(egui::Modifiers::CTRL, egui::Key::F) {
-                self.push_undo();
-                self.mirror_horizontal();
-            }
             // Ctrl+Z = отмена
             if i.consume_key(egui::Modifiers::CTRL, egui::Key::Z) {
                 self.undo();
