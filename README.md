@@ -23,7 +23,7 @@ A minimal pixel art editor built with Rust and egui.
 |-----|--------|
 | `B` | Fill |
 | `E` | Eraser |
-| `G` | Brush |
+| `P` | Brush |
 | `R` | Select |
 | `F` | Brush size dialog |
 | `Delete` | Clear selection |

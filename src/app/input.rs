@@ -45,7 +45,7 @@ impl PixeshApp {
             if !i.modifiers.alt && !i.modifiers.ctrl {
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::B) { self.tool = Tool::Fill; }
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::E) { self.tool = Tool::Eraser; }
-                if i.consume_key(egui::Modifiers::NONE, egui::Key::G) { self.tool = Tool::Brush; }
+                if i.consume_key(egui::Modifiers::NONE, egui::Key::P) { self.tool = Tool::Brush; }
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::R) { self.tool = Tool::Select; }
                 // F = открыть диалог размера кисти
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::F) {
