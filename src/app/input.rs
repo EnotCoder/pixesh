@@ -57,6 +57,10 @@ impl PixeshApp {
                         self.show_brush = true;
                     }
                 }
+                // G = переключить сетку
+                if i.consume_key(egui::Modifiers::NONE, egui::Key::G) {
+                    self.grid = !self.grid;
+                }
             }
             // Delete = удалить выделение
             if i.consume_key(egui::Modifiers::NONE, egui::Key::Delete) {
