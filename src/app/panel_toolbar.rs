@@ -29,12 +29,7 @@ impl PixeshApp {
                     let (lr, _) = ui.allocate_exact_size(logo_sz, Sense::hover());
                     ui.painter().image(logo_tex.id(), lr.translate(Vec2::new(0.0, 4.0)), Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
 
-                    // ── размер кисти ──
-                    ui.add_space(6.0);
-                    separator(ui);
-                    ui.add_space(6.0);
-                    slider(ui, "B", &mut self.brush, 1.0, 10.0);
-                    ui.add_space(4.0);
+                    // ── разделитель ──
                     separator(ui);
                     ui.add_space(4.0);
 

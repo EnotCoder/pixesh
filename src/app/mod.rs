@@ -93,6 +93,8 @@ pub struct PixeshApp {
     pub(crate) show_export: bool,
     pub(crate) export_name: String,
     pub(crate) export_path: String,
+
+    pub(crate) show_brush: bool,           // диалог размера кисти
 }
 
 impl PixeshApp {
@@ -149,6 +151,7 @@ impl PixeshApp {
             show_export: false,
             export_name: "pixesh.png".into(),
             export_path: String::new(),
+            show_brush: false,
         }
     }
 }

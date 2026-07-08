@@ -45,8 +45,12 @@ impl PixeshApp {
             if !i.modifiers.alt && !i.modifiers.ctrl {
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::B) { self.tool = Tool::Brush; }
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::E) { self.tool = Tool::Eraser; }
-                if i.consume_key(egui::Modifiers::NONE, egui::Key::F) { self.tool = Tool::Fill; }
+                if i.consume_key(egui::Modifiers::NONE, egui::Key::G) { self.tool = Tool::Fill; }
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::R) { self.tool = Tool::Select; }
+                // F = открыть диалог размера кисти
+                if i.consume_key(egui::Modifiers::NONE, egui::Key::F) {
+                    self.show_brush = true;
+                }
             }
             // Delete = удалить выделение
             if i.consume_key(egui::Modifiers::NONE, egui::Key::Delete) {
@@ -59,16 +63,23 @@ impl PixeshApp {
                 } else {
                     self.show_resize = false;
                     self.show_export = false;
+                    self.show_brush = false;
                 }
             }
         });
 
-        // ── зум колесом мыши ──
+        // ── зум колесом мыши / размер кисти (Shift) ──
         let scroll = ctx.input(|i| i.raw_scroll_delta.y);
         if scroll != 0.0 {
-            let old = self.zoom;
-            self.zoom = (self.zoom - scroll * 0.2).clamp(1.0, 60.0);
-            self.pan *= self.zoom / old;
+            if self.show_brush || ctx.input(|i| i.modifiers.shift) {
+                // диалог открыт или Shift = размер кисти (без зума)
+                let max = self.width.max(self.height) as f32;
+                self.brush = (self.brush + scroll.signum()).clamp(1.0, max);
+            } else {
+                let old = self.zoom;
+                self.zoom = (self.zoom - scroll * 0.2).clamp(1.0, 60.0);
+                self.pan *= self.zoom / old;
+            }
         }
 
         // ── панорама стрелками ──
