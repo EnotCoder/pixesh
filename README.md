@@ -26,6 +26,7 @@ A minimal pixel art editor built with Rust and egui.
 | `P` | Brush |
 | `R` | Select |
 | `F` | Brush size dialog |
+| `G` | Toggle grid |
 | `Delete` | Clear selection |
 | `Escape` | Deselect / close dialogs |
 | `Ctrl+Z` | Undo |
