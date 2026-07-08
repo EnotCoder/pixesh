@@ -19,16 +19,20 @@ impl PixeshApp {
             }
             // Ctrl+S = сохранить (открыть диалог экспорта)
             if i.consume_key(egui::Modifiers::CTRL, egui::Key::S) {
-                if self.export_name.is_empty() {
-                    self.export_name = "pixesh.png".into();
+                if !self.dialog_open() {
+                    if self.export_name.is_empty() {
+                        self.export_name = "pixesh.png".into();
+                    }
+                    self.show_export = true;
                 }
-                self.show_export = true;
             }
             // Ctrl+R = изменить размер холста (открыть диалог)
             if i.consume_key(egui::Modifiers::CTRL, egui::Key::R) {
-                self.resize_w = self.width as f32;
-                self.resize_h = self.height as f32;
-                self.show_resize = true;
+                if !self.dialog_open() {
+                    self.resize_w = self.width as f32;
+                    self.resize_h = self.height as f32;
+                    self.show_resize = true;
+                }
             }
             // Ctrl+L = загрузить PNG (открыть диалог выбора файла)
             if i.consume_key(egui::Modifiers::CTRL, egui::Key::L) {
@@ -49,7 +53,9 @@ impl PixeshApp {
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::R) { self.tool = Tool::Select; }
                 // F = открыть диалог размера кисти
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::F) {
-                    self.show_brush = true;
+                    if !self.dialog_open() {
+                        self.show_brush = true;
+                    }
                 }
             }
             // Delete = удалить выделение

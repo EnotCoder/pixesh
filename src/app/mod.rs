@@ -162,6 +162,12 @@ impl PixeshApp {
     }
 }
 
+impl PixeshApp {
+    pub(crate) fn dialog_open(&self) -> bool {
+        self.show_resize || self.show_export || self.show_brush
+    }
+}
+
 // ── eframe::App ──────────────────────────────────────
 // точка входа для eframe — каждый кадр вызывает update()
 impl eframe::App for PixeshApp {
