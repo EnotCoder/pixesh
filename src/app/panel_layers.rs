@@ -2,7 +2,6 @@ use eframe::egui::{self, Color32, ColorImage, Pos2, Rect, Sense, Stroke, Vec2};
 
 use crate::color::*;
 use crate::constants::*;
-use crate::ui::*;
 use super::PixeshApp;
 
 impl PixeshApp {
@@ -84,14 +83,26 @@ impl PixeshApp {
                 // ── кнопки + / - слой ──
                 ui.add_space(PANEL_PAD);
                 ui.horizontal(|ui| {
+                    let sz = FONT_SZ * 2.5 + 8.0;
                     ui.add_space(PANEL_PAD);
-                    if btn(ui, "+ Layer") {
-                        self.add_layer();
-                    }
+
+                    // кнопка "+"
+                    let (r_plus, resp_plus) = ui.allocate_exact_size(Vec2::splat(sz), Sense::click());
+                    let bg = if resp_plus.clicked() { ACCENT } else if resp_plus.hovered() { HOVER } else { PANEL };
+                    ui.painter().rect_filled(r_plus, 6.0, bg);
+                    ui.painter().rect_stroke(r_plus, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
+                    ui.painter().text(r_plus.center(), egui::Align2::CENTER_CENTER, "+", egui::FontId::proportional(FONT_SZ * 2.5), TEXT);
+                    if resp_plus.clicked() { self.add_layer(); }
+
                     ui.add_space(6.0);
-                    if btn(ui, "- Layer") {
-                        self.remove_layer(self.active_layer);
-                    }
+
+                    // кнопка "-"
+                    let (r_minus, resp_minus) = ui.allocate_exact_size(Vec2::splat(sz), Sense::click());
+                    let bg = if resp_minus.clicked() { ACCENT } else if resp_minus.hovered() { HOVER } else { PANEL };
+                    ui.painter().rect_filled(r_minus, 6.0, bg);
+                    ui.painter().rect_stroke(r_minus, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
+                    ui.painter().text(r_minus.center(), egui::Align2::CENTER_CENTER, "-", egui::FontId::proportional(FONT_SZ * 2.5), TEXT);
+                    if resp_minus.clicked() { self.remove_layer(self.active_layer); }
                 });
 
                 // ── HSV picker ───────────────────────────
@@ -115,11 +126,12 @@ impl PixeshApp {
                 // preview + RGB readout
                 ui.horizontal(|ui| {
                     ui.add_space(PANEL_PAD);
-                    let ps = 48.0;
+                    let ps = 72.0;
                     let (pr, _) = ui.allocate_exact_size(Vec2::new(ps, ps), Sense::hover());
+                    let pv = pr.translate(Vec2::new(0.0, -4.0));
                     let pc = Color32::from_rgb(self.rgb_r as u8, self.rgb_g as u8, self.rgb_b as u8);
-                    ui.painter().rect_filled(pr, 4.0, pc);
-                    ui.painter().rect_stroke(pr, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
+                    ui.painter().rect_filled(pv, 4.0, pc);
+                    ui.painter().rect_stroke(pv, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
 
                     ui.add_space(PANEL_PAD);
                     ui.vertical(|ui| {
