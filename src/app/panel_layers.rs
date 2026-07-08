@@ -151,23 +151,15 @@ impl PixeshApp {
                     });
                 });
 
-                // ── поле ввода альфы ──
+                // ── слайдер альфы ──
                 ui.add_space(4.0);
                 ui.horizontal(|ui| {
                     ui.add_space(PANEL_PAD);
-                    ui.style_mut().override_font_id = Some(egui::FontId::proportional(FONT_SZ));
-                    ui.label(egui::RichText::new("A:").color(TEXT));
-                    let mut buf = format!("{}", self.rgb_a as u8);
-                    let resp = ui.add_sized(
-                        Vec2::new(100.0, 48.0),
-                        egui::TextEdit::singleline(&mut buf)
-                            .desired_width(f32::INFINITY),
+                    ui.style_mut().override_font_id = Some(egui::FontId::proportional(28.0));
+                    ui.add_sized(
+                        Vec2::new(ui.available_width(), 48.0),
+                        egui::Slider::new(&mut self.rgb_a, 0.0..=255.0).text("a"),
                     );
-                    if resp.changed() || resp.lost_focus() {
-                        if let Ok(v) = buf.parse::<f32>() {
-                            self.rgb_a = v.clamp(0.0, 255.0);
-                        }
-                    }
                 });
                 self.color = Color32::from_rgba_unmultiplied(self.rgb_r as u8, self.rgb_g as u8, self.rgb_b as u8, self.rgb_a as u8);
 
