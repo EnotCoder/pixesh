@@ -80,6 +80,16 @@ impl PixeshApp {
                     self.rgb_b = b as f32;
                     self.color = egui::Color32::from_rgba_unmultiplied(r, g, b, self.rgb_a as u8);
                 }
+                // A = прозрачнее на 5
+                if i.consume_key(egui::Modifiers::NONE, egui::Key::A) {
+                    self.rgb_a = (self.rgb_a - 5.0).clamp(0.0, 255.0);
+                    self.color = egui::Color32::from_rgba_unmultiplied(self.rgb_r as u8, self.rgb_g as u8, self.rgb_b as u8, self.rgb_a as u8);
+                }
+                // D = непрозрачнее на 5
+                if i.consume_key(egui::Modifiers::NONE, egui::Key::D) {
+                    self.rgb_a = (self.rgb_a + 5.0).clamp(0.0, 255.0);
+                    self.color = egui::Color32::from_rgba_unmultiplied(self.rgb_r as u8, self.rgb_g as u8, self.rgb_b as u8, self.rgb_a as u8);
+                }
             }
             // Delete = удалить выделение
             if i.consume_key(egui::Modifiers::NONE, egui::Key::Delete) {

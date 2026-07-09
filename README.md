@@ -27,6 +27,10 @@ A minimal pixel art editor built with Rust and egui.
 | `R` | Select |
 | `F` | Brush size dialog |
 | `G` | Toggle grid |
+| `W` | Darken color |
+| `S` | Brighten color |
+| `A` | Less opaque |
+| `D` | More opaque |
 | `Delete` | Clear selection |
 | `Escape` | Deselect / close dialogs |
 | `Ctrl+Z` | Undo |
