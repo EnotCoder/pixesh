@@ -217,10 +217,11 @@ impl PixeshApp {
                     let p = ui.painter();
                     p.rect_filled(rect, 0.0, PANEL);
                     p.rect_stroke(rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
+                    let inner = rect.shrink2(Vec2::splat(6.0));
                     let mut child_ui = ui.new_child(
                         egui::UiBuilder::new()
                             .layout(egui::Layout::top_down(egui::Align::Center))
-                            .max_rect(rect)
+                            .max_rect(inner)
                     );
                     child_ui.style_mut().text_styles.insert(
                         egui::TextStyle::Body,
@@ -230,7 +231,8 @@ impl PixeshApp {
                         egui::TextStyle::Button,
                         egui::FontId::proportional(28.0),
                     );
-                    child_ui.add_space(8.0);
+                    // ── отступ сверху ──
+                    child_ui.add_space(6.0);
                     child_ui.vertical_centered(|ui| {
                         ui.label(egui::RichText::new("Panels").size(32.0).color(TEXT));
                     });
