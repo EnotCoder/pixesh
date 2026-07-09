@@ -69,7 +69,7 @@ pub fn checkbox(ui: &mut egui::Ui, label: &str, checked: &mut bool) {
     let (rect, _) = ui.allocate_exact_size(Vec2::new(total_w, total_h), Sense::click());
 
     let cb_rect = Rect::from_min_size(
-        Pos2::new(rect.min.x + 4.0, rect.center().y - cbs * 0.5),
+        Pos2::new(rect.max.x - cbs - 4.0, rect.center().y - cbs * 0.5),
         Vec2::splat(cbs),
     );
     let p = ui.painter();
@@ -87,8 +87,8 @@ pub fn checkbox(ui: &mut egui::Ui, label: &str, checked: &mut bool) {
     }
 
     let label_rect = Rect::from_min_max(
-        Pos2::new(cb_rect.max.x + 6.0, rect.min.y),
-        Pos2::new(rect.max.x, rect.max.y),
+        Pos2::new(rect.min.x, rect.min.y),
+        Pos2::new(cb_rect.min.x - 6.0, rect.max.y),
     );
     let lresp = ui.interact(label_rect, egui::Id::new(format!("{}_l", label)), Sense::click());
     if lresp.clicked() {
@@ -96,7 +96,7 @@ pub fn checkbox(ui: &mut egui::Ui, label: &str, checked: &mut bool) {
     }
 
     p.text(
-        Pos2::new(cb_rect.max.x + 8.0, rect.center().y - ROW_H * 0.5),
+        Pos2::new(rect.min.x + 4.0, rect.center().y - ROW_H * 0.5),
         egui::Align2::LEFT_TOP,
         label,
         egui::FontId::proportional(FONT_SZ),
@@ -114,7 +114,7 @@ pub fn checkbox_w(ui: &mut egui::Ui, label: &str, checked: &mut bool, w: f32) {
     let (rect, _) = ui.allocate_exact_size(Vec2::new(total_w, total_h), Sense::click());
 
     let cb_rect = Rect::from_min_size(
-        Pos2::new(rect.min.x + 4.0, rect.center().y - cbs * 0.5),
+        Pos2::new(rect.max.x - cbs - 4.0, rect.center().y - cbs * 0.5),
         Vec2::splat(cbs),
     );
     let p = ui.painter();
@@ -132,8 +132,8 @@ pub fn checkbox_w(ui: &mut egui::Ui, label: &str, checked: &mut bool, w: f32) {
     }
 
     let label_rect = Rect::from_min_max(
-        Pos2::new(cb_rect.max.x + 6.0, rect.min.y),
-        Pos2::new(rect.max.x, rect.max.y),
+        Pos2::new(rect.min.x, rect.min.y),
+        Pos2::new(cb_rect.min.x - 6.0, rect.max.y),
     );
     let lresp = ui.interact(label_rect, egui::Id::new(format!("{}_l", label)), Sense::click());
     if lresp.clicked() {
@@ -141,7 +141,7 @@ pub fn checkbox_w(ui: &mut egui::Ui, label: &str, checked: &mut bool, w: f32) {
     }
 
     p.text(
-        Pos2::new(cb_rect.max.x + 8.0, rect.center().y - ROW_H * 0.5),
+        Pos2::new(rect.min.x + 4.0, rect.center().y - ROW_H * 0.5),
         egui::Align2::LEFT_TOP,
         label,
         egui::FontId::proportional(FONT_SZ),
