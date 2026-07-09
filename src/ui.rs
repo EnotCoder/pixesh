@@ -104,11 +104,11 @@ pub fn checkbox(ui: &mut egui::Ui, label: &str, checked: &mut bool) {
     );
 }
 
-/// чекбокс с фиксированной шириной `w`
-pub fn checkbox_w(ui: &mut egui::Ui, label: &str, checked: &mut bool, w: f32) {
-    let cbs = 18.0;
-    let total_h = (ROW_H + 8.0).max(cbs + 8.0);
-    let label_w = label.len() as f32 * CHAR_W;
+/// чекбокс с фиксированной шириной `w` и размером шрифта `font_sz`
+pub fn checkbox_w(ui: &mut egui::Ui, label: &str, checked: &mut bool, w: f32, font_sz: f32) {
+    let cbs = (18.0 * font_sz / FONT_SZ).max(18.0);
+    let total_h = (font_sz + 12.0).max(cbs + 8.0);
+    let label_w = label.len() as f32 * CHAR_W * (font_sz / FONT_SZ);
     let total_w = w.max(cbs + 12.0 + label_w);
 
     let (rect, _) = ui.allocate_exact_size(Vec2::new(total_w, total_h), Sense::click());
@@ -141,10 +141,10 @@ pub fn checkbox_w(ui: &mut egui::Ui, label: &str, checked: &mut bool, w: f32) {
     }
 
     p.text(
-        Pos2::new(rect.min.x + 4.0, rect.center().y - ROW_H * 0.5),
+        Pos2::new(rect.min.x + 4.0, rect.center().y - font_sz * 0.5),
         egui::Align2::LEFT_TOP,
         label,
-        egui::FontId::proportional(FONT_SZ),
+        egui::FontId::proportional(font_sz),
         TEXT,
     );
 }
