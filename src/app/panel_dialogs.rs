@@ -235,10 +235,39 @@ impl PixeshApp {
                         ui.label(egui::RichText::new("Panels").size(32.0).color(TEXT));
                     });
                     child_ui.add_space(20.0);
-                    child_ui.vertical_centered(|ui| {
-                        checkbox_w(ui, "Toolbar", &mut self.show_top_panel, 180.0, FONT_SZ * 2.0);
-                        ui.add_space(8.0);
-                        checkbox_w(ui, "Layers", &mut self.show_right_panel, 180.0, FONT_SZ * 2.0);
+                    child_ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                        egui::Grid::new("panel_grid")
+                            .spacing([20.0, 12.0])
+                            .show(ui, |ui| {
+                                let cbs = 24.0;
+                                let sz = FONT_SZ * 2.0;
+                                ui.label(egui::RichText::new("Toolbar").size(sz).color(TEXT));
+                                let (rect, _) = ui.allocate_exact_size(Vec2::splat(cbs), egui::Sense::click());
+                                let p = ui.painter();
+                                p.rect_filled(rect, 3.0, PANEL);
+                                p.rect_stroke(rect, 0.0, egui::Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
+                                if self.show_top_panel {
+                                    let inner = rect.shrink(4.0);
+                                    p.rect_filled(inner, 2.0, ACCENT);
+                                }
+                                if ui.interact(rect, egui::Id::new("cb_top"), egui::Sense::click()).clicked() {
+                                    self.show_top_panel = !self.show_top_panel;
+                                }
+                                ui.end_row();
+                                ui.label(egui::RichText::new("Layers").size(sz).color(TEXT));
+                                let (rect, _) = ui.allocate_exact_size(Vec2::splat(cbs), egui::Sense::click());
+                                let p = ui.painter();
+                                p.rect_filled(rect, 3.0, PANEL);
+                                p.rect_stroke(rect, 0.0, egui::Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
+                                if self.show_right_panel {
+                                    let inner = rect.shrink(4.0);
+                                    p.rect_filled(inner, 2.0, ACCENT);
+                                }
+                                if ui.interact(rect, egui::Id::new("cb_right"), egui::Sense::click()).clicked() {
+                                    self.show_right_panel = !self.show_right_panel;
+                                }
+                                ui.end_row();
+                            });
                     });
                     let enter = ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Enter));
                     let escape = ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Escape));
