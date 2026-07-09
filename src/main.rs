@@ -21,7 +21,8 @@ fn main() -> eframe::Result {
         eframe::NativeOptions {
             viewport: egui::ViewportBuilder::default()
                 .with_inner_size([960.0, 700.0])   // начальный размер окна
-                .with_min_inner_size([400.0, 300.0]), // минимальный размер
+                .with_min_inner_size([400.0, 300.0]) // минимальный размер
+                .with_maximized(true),
             ..Default::default()
         },
         // замыкание, которое вызывается один раз при старте
