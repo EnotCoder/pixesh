@@ -166,9 +166,12 @@ impl PixeshApp {
                             Vec2::new(ui.available_width() - 70.0, 48.0),
                             egui::Slider::new(&mut self.rgb_a, 0.0..=255.0).show_value(false),
                         );
-                        ui.add(egui::Label::new(
-                            egui::RichText::new(format!("{}", self.rgb_a as u8)).size(28.0).color(TEXT),
-                        ));
+                        ui.add_sized(
+                            Vec2::new(60.0, 48.0),
+                            egui::DragValue::new(&mut self.rgb_a)
+                                .range(0..=255)
+                                .speed(1.0),
+                        );
                     });
                 });
                 self.color = Color32::from_rgba_unmultiplied(self.rgb_r as u8, self.rgb_g as u8, self.rgb_b as u8, self.rgb_a as u8);
