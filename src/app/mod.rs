@@ -100,6 +100,11 @@ pub struct PixeshApp {
     pub(crate) export_path: String,
 
     pub(crate) show_brush: bool,           // диалог размера кисти
+
+    // ── видимость панелей ──
+    pub(crate) show_panels: bool,          // диалог управления панелями
+    pub(crate) show_top_panel: bool,
+    pub(crate) show_right_panel: bool,
 }
 
 impl PixeshApp {
@@ -160,13 +165,16 @@ impl PixeshApp {
             export_name: "pixesh.png".into(),
             export_path: String::new(),
             show_brush: false,
+            show_panels: false,
+            show_top_panel: true,
+            show_right_panel: true,
         }
     }
 }
 
 impl PixeshApp {
     pub(crate) fn dialog_open(&self) -> bool {
-        self.show_resize || self.show_export || self.show_brush
+        self.show_resize || self.show_export || self.show_brush || self.show_panels
     }
 }
 
@@ -175,8 +183,8 @@ impl PixeshApp {
 impl eframe::App for PixeshApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.handle_input(ctx);
-        self.ui_toolbar(ctx);
-        self.ui_layers(ctx);
+        if self.show_top_panel { self.ui_toolbar(ctx); }
+        if self.show_right_panel { self.ui_layers(ctx); }
         self.ui_canvas(ctx);
         self.ui_dialogs(ctx);
     }

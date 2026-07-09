@@ -35,6 +35,12 @@ impl PixeshApp {
                     self.show_resize = true;
                 }
             }
+            // Ctrl+W = управление панелями
+            if i.consume_key(egui::Modifiers::CTRL, egui::Key::W) {
+                if !self.dialog_open() {
+                    self.show_panels = !self.show_panels;
+                }
+            }
             // Ctrl+L = загрузить PNG (открыть диалог выбора файла)
             if i.consume_key(egui::Modifiers::CTRL, egui::Key::L) {
                 let home = std::env::var("HOME").unwrap_or_else(|_| "/".into());
