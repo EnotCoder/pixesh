@@ -236,9 +236,9 @@ impl PixeshApp {
                     });
                     child_ui.add_space(20.0);
                     child_ui.vertical_centered(|ui| {
-                        ui.checkbox(&mut self.show_top_panel, "Toolbar");
+                        checkbox_w(ui, "Toolbar", &mut self.show_top_panel, 180.0);
                         ui.add_space(8.0);
-                        ui.checkbox(&mut self.show_right_panel, "Layers");
+                        checkbox_w(ui, "Layers", &mut self.show_right_panel, 180.0);
                     });
                     let enter = ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Enter));
                     let escape = ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Escape));
