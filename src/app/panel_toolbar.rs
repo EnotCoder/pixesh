@@ -139,11 +139,31 @@ impl PixeshApp {
 
                     ui.add_space(6.0);
 
-                    let display_z = 61.0 - self.zoom;
-                    let mut dz = display_z;
-                    if slider(ui, "Z", &mut dz, 1.0, 60.0) {
+                    ui.scope(|ui| {
+                        ui.style_mut().text_styles.insert(
+                            egui::TextStyle::Body,
+                            egui::FontId::proportional(20.0),
+                        );
+                        ui.style_mut().text_styles.insert(
+                            egui::TextStyle::Button,
+                            egui::FontId::proportional(20.0),
+                        );
+                        let mut dz = 61.0 - self.zoom;
+                        ui.horizontal(|ui| {
+                            ui.add(egui::Label::new(egui::RichText::new("Z").size(20.0)));
+                            ui.add_sized(
+                                Vec2::new(80.0, 32.0),
+                                egui::Slider::new(&mut dz, 1.0..=60.0).show_value(false),
+                            );
+                            ui.add_sized(
+                                Vec2::new(40.0, 32.0),
+                                egui::DragValue::new(&mut dz)
+                                    .range(1.0..=60.0)
+                                    .speed(1.0),
+                            );
+                        });
                         self.zoom = (61.0 - dz).clamp(1.0, 60.0);
-                    }
+                    });
                     ui.add_space(6.0);
                 });
                 ui.add_space(6.0);

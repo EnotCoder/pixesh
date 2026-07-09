@@ -104,62 +104,6 @@ pub fn checkbox(ui: &mut egui::Ui, label: &str, checked: &mut bool) {
     );
 }
 
-// ── slider ───────────────────────────────────────────
-// кастомный ползунок: трек + бегунок + числовое значение
-pub fn slider(ui: &mut egui::Ui, label: &str, value: &mut f32, min: f32, max: f32) -> bool {
-    let track_w = 100.0;
-    let thumb_w = 14.0;
-    let label_w = (label.len() as f32 * CHAR_W) + 60.0;
-    let total_w = track_w + 12.0 + label_w;
-    let total_h = ROW_H + 16.0;
-
-    let mut changed = false;
-    let (rect, resp) =
-        ui.allocate_exact_size(Vec2::new(total_w, total_h), Sense::click_and_drag());
-    let p = ui.painter();
-
-    let label_str = format!("{}{}", label, *value as i32);
-    p.text(
-        Pos2::new(rect.max.x - label_w, rect.center().y - ROW_H * 0.5),
-        egui::Align2::LEFT_TOP,
-        &label_str,
-        egui::FontId::proportional(FONT_SZ),
-        TEXT,
-    );
-
-    let ty = rect.center().y - 5.0;
-    let track_rect = Rect::from_min_size(
-        Pos2::new(rect.min.x, ty),
-        Vec2::new(track_w, 10.0),
-    );
-    p.rect_filled(track_rect, 3.0, Color32::from_gray(30));
-    p.rect_stroke(track_rect, 0.0, Stroke::new(1.0, BORDER), egui::StrokeKind::Outside);
-
-    let t = ((*value - min) / (max - min)).clamp(0.0, 1.0);
-    let thumb_x = track_rect.min.x + t * (track_w - thumb_w);
-    let thumb_rect = Rect::from_min_size(
-        Pos2::new(thumb_x, rect.center().y - 9.0),
-        Vec2::new(thumb_w, 18.0),
-    );
-    let thumb_bg = if resp.dragged() || resp.hovered() {
-        ACCENT
-    } else {
-        PANEL_LIGHT
-    };
-    p.rect_filled(thumb_rect, 3.0, thumb_bg);
-    p.rect_stroke(thumb_rect, 0.0, Stroke::new(1.0, BORDER), egui::StrokeKind::Outside);
-
-    if resp.dragged_by(egui::PointerButton::Primary) {
-        if let Some(pos) = resp.interact_pointer_pos() {
-            let t2 = ((pos.x - track_rect.min.x) / track_w).clamp(0.0, 1.0);
-            *value = min + t2 * (max - min);
-            changed = true;
-        }
-    }
-
-    changed
-}
-
 // ── separator ────────────────────────────────────────
 // вертикальная разделительная линия
 pub fn separator(ui: &mut egui::Ui) {
