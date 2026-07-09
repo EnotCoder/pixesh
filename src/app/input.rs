@@ -109,6 +109,7 @@ impl PixeshApp {
                     self.show_resize = false;
                     self.show_export = false;
                     self.show_brush = false;
+                    self.show_panels = false;
                 }
             }
         });
@@ -128,7 +129,7 @@ impl PixeshApp {
         }
 
         // ── панорама стрелками (блокируется если открыт диалог) ──
-        if !self.show_resize && !self.show_export && !self.show_brush {
+        if !self.dialog_open() {
             ctx.input(|i| {
                 let speed = if i.modifiers.shift { 80.0 } else { 20.0 };
                 if i.key_down(egui::Key::ArrowLeft)  { self.pan.x += speed; }
