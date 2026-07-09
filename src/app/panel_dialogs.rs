@@ -237,9 +237,7 @@ impl PixeshApp {
                     child_ui.add_space(20.0);
                     child_ui.vertical_centered(|ui| {
                         ui.checkbox(&mut self.show_top_panel, "Toolbar");
-                    });
-                    child_ui.add_space(8.0);
-                    child_ui.vertical_centered(|ui| {
+                        ui.add_space(8.0);
                         ui.checkbox(&mut self.show_right_panel, "Layers");
                     });
                     let enter = ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Enter));
