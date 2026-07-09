@@ -150,7 +150,7 @@ impl PixeshApp {
                         );
                         let mut dz = 61.0 - self.zoom;
                         ui.horizontal(|ui| {
-                            ui.add(egui::Label::new(egui::RichText::new("Z").size(20.0)));
+                            ui.add(egui::Label::new(egui::RichText::new("Zoom").size(20.0)));
                             ui.add_sized(
                                 Vec2::new(80.0, 32.0),
                                 egui::Slider::new(&mut dz, 1.0..=60.0).show_value(false),
