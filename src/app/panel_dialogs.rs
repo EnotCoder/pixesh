@@ -306,8 +306,17 @@ impl PixeshApp {
                         self.show_panels = false;
                     }
                     child_ui.add_space(child_ui.available_height() - 44.0);
-                    let w = child_ui.available_width();
-                    if btn_min_w(&mut child_ui, "OK", w) {
+                    let w = rect.width();
+                    let btn_y = rect.max.y - 44.0;
+                    let btn_rect = Rect::from_min_size(
+                        Pos2::new(rect.min.x, btn_y),
+                        Vec2::new(w, 40.0),
+                    );
+                    let p = child_ui.painter();
+                    p.rect_filled(btn_rect, 4.0, PANEL);
+                    p.rect_stroke(btn_rect, 0.0, egui::Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
+                    p.text(btn_rect.center(), egui::Align2::CENTER_CENTER, "OK", egui::FontId::proportional(FONT_SZ), TEXT);
+                    if ui.interact(btn_rect, egui::Id::new("btn_ok"), egui::Sense::click()).clicked() {
                         self.show_panels = false;
                     }
                 });
