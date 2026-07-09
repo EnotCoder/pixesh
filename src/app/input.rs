@@ -1,5 +1,6 @@
 use eframe::egui;
 
+use crate::color::*;
 use crate::constants::Tool;
 use super::PixeshApp;
 
@@ -60,6 +61,24 @@ impl PixeshApp {
                 // G = переключить сетку
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::G) {
                     self.grid = !self.grid;
+                }
+                // W = темнее на 5
+                if i.consume_key(egui::Modifiers::NONE, egui::Key::W) {
+                    self.hsv_v = (self.hsv_v - 5.0).clamp(0.0, 255.0);
+                    let (r, g, b) = hsv_to_rgb(self.hsv_h, self.hsv_s, self.hsv_v);
+                    self.rgb_r = r as f32;
+                    self.rgb_g = g as f32;
+                    self.rgb_b = b as f32;
+                    self.color = egui::Color32::from_rgba_unmultiplied(r, g, b, self.rgb_a as u8);
+                }
+                // S = ярче на 5
+                if i.consume_key(egui::Modifiers::NONE, egui::Key::S) {
+                    self.hsv_v = (self.hsv_v + 5.0).clamp(0.0, 255.0);
+                    let (r, g, b) = hsv_to_rgb(self.hsv_h, self.hsv_s, self.hsv_v);
+                    self.rgb_r = r as f32;
+                    self.rgb_g = g as f32;
+                    self.rgb_b = b as f32;
+                    self.color = egui::Color32::from_rgba_unmultiplied(r, g, b, self.rgb_a as u8);
                 }
             }
             // Delete = удалить выделение
