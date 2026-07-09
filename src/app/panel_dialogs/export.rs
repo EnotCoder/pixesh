@@ -35,11 +35,22 @@ impl PixeshApp {
                 child_ui.add_space(20.0);
                 child_ui.horizontal(|ui| {
                     ui.add_space(10.0);
-                    ui.label("Folder:");
-                    let display = if self.export_path.is_empty() { "." } else { &self.export_path };
-                    ui.add_sized(Vec2::new(220.0, 44.0), egui::Label::new(display));
+                    let home = std::env::var("HOME").unwrap_or_else(|_| "/".into());
+                    let display = if self.export_path.is_empty() || self.export_path == home {
+                        "home".into()
+                    } else {
+                        std::path::Path::new(&self.export_path)
+                            .file_name()
+                            .map(|n| n.to_string_lossy().into_owned())
+                            .unwrap_or_else(|| self.export_path.clone())
+                    };
+                    let display = if display.chars().count() > 14 {
+                        format!("{}...", display.chars().take(14).collect::<String>())
+                    } else {
+                        display
+                    };
+                    ui.add_sized(Vec2::new(80.0, 44.0), egui::Label::new(egui::RichText::new("Folder:").size(28.0).color(TEXT)));
                     if btn(ui, "…") {
-                        let home = std::env::var("HOME").unwrap_or_else(|_| "/".into());
                         if let Some(p) = rfd::FileDialog::new()
                             .set_directory(&home)
                             .pick_folder()
@@ -47,11 +58,12 @@ impl PixeshApp {
                             self.export_path = p.to_string_lossy().into();
                         }
                     }
+                    ui.add_sized(Vec2::new(220.0, 44.0), egui::Label::new(display));
                 });
                 child_ui.add_space(12.0);
                 child_ui.horizontal(|ui| {
                     ui.add_space(10.0);
-                    ui.label("File:");
+                    ui.add_sized(Vec2::new(80.0, 44.0), egui::Label::new(egui::RichText::new("File:").size(28.0).color(TEXT)));
                     ui.add_sized(
                         Vec2::new(220.0, 44.0),
                         egui::TextEdit::singleline(&mut self.export_name),
@@ -68,10 +80,9 @@ impl PixeshApp {
                     self.show_export = false;
                 }
                 child_ui.add_space(child_ui.available_height() - 44.0);
-                let spacing = child_ui.style().spacing.item_spacing.x;
-                let half_w = (child_ui.available_width() - spacing) / 2.0;
                 child_ui.horizontal(|ui| {
-                    if btn_min_w(ui, "Save", half_w) {
+                    ui.add_space(10.0);
+                    if btn(ui, "Save") {
                         let path = if self.export_path.is_empty() {
                             self.export_name.clone()
                         } else {
@@ -80,7 +91,7 @@ impl PixeshApp {
                         self.save_png(&path);
                         self.show_export = false;
                     }
-                    if btn_min_w(ui, "Cancel", half_w) {
+                    if btn(ui, "Cancel") {
                         self.show_export = false;
                     }
                 });
