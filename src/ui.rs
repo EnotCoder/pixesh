@@ -2,12 +2,6 @@ use eframe::egui::{self, Color32, Pos2, Rect, Sense, Stroke, Vec2};
 
 use crate::constants::*;
 
-// ── btn ──────────────────────────────────────────────
-// кастомная текстовая кнопка: фон подсвечивается при наведении/клике
-pub fn btn(ui: &mut egui::Ui, label: &str) -> bool {
-    btn_min_w(ui, label, 0.0)
-}
-
 pub fn btn_min_w(ui: &mut egui::Ui, label: &str, min_w: f32) -> bool {
     let font_id = ui.style().text_styles.get(&egui::TextStyle::Button)
         .cloned()

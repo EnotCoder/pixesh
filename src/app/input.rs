@@ -101,16 +101,20 @@ impl PixeshApp {
             if i.consume_key(egui::Modifiers::NONE, egui::Key::Delete) {
                 self.delete_selection();
             }
-            // Escape = закрыть диалоги / сбросить выделение
+            // Escape = сначала закрыть диалоги, потом снять выделение
             if i.consume_key(egui::Modifiers::NONE, egui::Key::Escape) {
-                if self.sel.is_some() {
-                    self.deselect();
-                } else {
+                if self.dialog_open() {
                     self.show_resize = false;
                     self.show_export = false;
                     self.show_brush = false;
                     self.show_panels = false;
+                } else {
+                    self.deselect();
                 }
+            }
+            // Ctrl+D = снять выделение
+            if i.consume_key(egui::Modifiers::CTRL, egui::Key::D) {
+                self.deselect();
             }
         });
 

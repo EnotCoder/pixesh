@@ -63,12 +63,17 @@ impl PixeshApp {
         let h = self.height as i32;
         let b = self.brush_i() as i32;
         let half = (b - 1) / 2;
+        let sel = self.sel;
         let pixels = self.pixels_mut(idx);
         for dy in 0..b {
             for dx in 0..b {
                 let x = px + dx - half;
                 let y = py + dy - half;
-                if x >= 0 && x < w && y >= 0 && y < h {
+                let in_sel = match sel {
+                    Some((x0, y0, x1, y1)) => x >= x0 && x <= x1 && y >= y0 && y <= y1,
+                    None => true,
+                };
+                if x >= 0 && x < w && y >= 0 && y < h && in_sel {
                     pixels[(y * w + x) as usize] = color;
                 }
             }
@@ -94,19 +99,30 @@ impl PixeshApp {
         }
     }
 
-    // заливка (flood fill) — заменяет все смежные пиксели одного цвета
+    // заливка (flood fill) — заменяет все смежные пиксели одного цвета (внутри выделения)
     pub(crate) fn flood_fill(&mut self, px: i32, py: i32, new: Color32) {
         let idx = self.active_layer;
         if idx >= self.layers.len() { return; }
         let w = self.width as i32;
         let h = self.height as i32;
         if px < 0 || px >= w || py < 0 || py >= h { return; }
+        let sel = self.sel;
+        let in_sel = match sel {
+            Some((x0, y0, x1, y1)) => px >= x0 && px <= x1 && py >= y0 && py <= y1,
+            None => true,
+        };
+        if !in_sel { return; }
         let target = self.layers[idx].pixels[(py * w + px) as usize];
         if target == new { return; }
         let pixels = self.pixels_mut(idx);
         let mut stack = vec![(px, py)];
         while let Some((cx, cy)) = stack.pop() {
             let i = cy * w + cx;
+            let in_s = match sel {
+                Some((x0, y0, x1, y1)) => cx >= x0 && cx <= x1 && cy >= y0 && cy <= y1,
+                None => true,
+            };
+            if !in_s { continue; }
             if pixels[i as usize] != target { continue; }
             pixels[i as usize] = new;
             if cx > 0     { stack.push((cx - 1, cy)); }

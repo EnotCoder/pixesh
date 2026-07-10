@@ -176,6 +176,14 @@ impl PixeshApp {
                 }
 
                 // ── Tool dispatch ─────────────────────
+                if self.dialog_open() {
+                    if resp.drag_stopped() {
+                        self.last_px_primary = None;
+                        self.last_px_secondary = None;
+                    }
+                    return;
+                }
+
                 // сброс last_px если кнопка не зажата
                 if !ctx.input(|i| i.pointer.primary_down()) {
                     self.last_px_primary = None;
