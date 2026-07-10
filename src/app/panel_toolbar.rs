@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use eframe::egui::{self, Color32, ColorImage, Pos2, Rect, Sense, Vec2};
+use eframe::egui::{self, Color32, ColorImage, Pos2, Rect, Sense, Stroke, Vec2};
 
 use crate::constants::*;
 use crate::ui::*;
@@ -108,7 +108,37 @@ impl PixeshApp {
                     separator(ui);
                     ui.add_space(6.0);
 
-                    checkbox(ui, "Grid", &mut self.grid);
+                    // Grid: текст над чекбоксом
+                    let cbs = 18.0;
+                    let total_h = (ROW_H + 8.0).max(cbs + 8.0);
+                    let grid_w = (cbs + 12.0).max("Grid".len() as f32 * CHAR_W);
+                    let (grid_rect, grid_resp) = ui.allocate_exact_size(Vec2::new(grid_w, total_h + 14.0), Sense::click());
+                    let p = ui.painter();
+                    let text_center_x = grid_rect.center().x;
+                    let text_y = grid_rect.min.y + 2.0;
+                    p.text(
+                        Pos2::new(text_center_x, text_y),
+                        egui::Align2::CENTER_TOP,
+                        "Grid",
+                        egui::FontId::proportional(FONT_SZ),
+                        TEXT,
+                    );
+                    let cb_rect = Rect::from_min_size(
+                        Pos2::new(grid_rect.center().x - cbs * 0.5, text_y + FONT_SZ + 0.0),
+                        Vec2::splat(cbs),
+                    );
+                    p.rect_filled(cb_rect, 3.0, PANEL);
+                    p.rect_stroke(cb_rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
+                    if self.grid {
+                        p.rect_filled(cb_rect.shrink(4.0), 2.0, ACCENT);
+                    }
+                    let cb_resp = ui.interact(cb_rect, egui::Id::new("grid_cb"), Sense::click());
+                    if cb_resp.clicked() {
+                        self.grid = !self.grid;
+                    }
+                    if grid_resp.clicked() && !cb_resp.clicked() {
+                        self.grid = !self.grid;
+                    }
                     ui.add_space(6.0);
 
                     let mh_tex = self.mirror_h_tex.get_or_insert_with(|| {
@@ -144,25 +174,9 @@ impl PixeshApp {
                             egui::TextStyle::Body,
                             egui::FontId::proportional(20.0),
                         );
-                        ui.style_mut().text_styles.insert(
-                            egui::TextStyle::Button,
-                            egui::FontId::proportional(20.0),
-                        );
-                        let mut dz = 61.0 - self.zoom;
-                        ui.horizontal(|ui| {
-                            ui.add(egui::Label::new(egui::RichText::new("Zoom").size(20.0)));
-                            ui.add_sized(
-                                Vec2::new(80.0, 32.0),
-                                egui::Slider::new(&mut dz, 1.0..=60.0).show_value(false),
-                            );
-                            ui.add_sized(
-                                Vec2::new(40.0, 32.0),
-                                egui::DragValue::new(&mut dz)
-                                    .range(1.0..=60.0)
-                                    .speed(1.0),
-                            );
-                        });
-                        self.zoom = (61.0 - dz).clamp(1.0, 60.0);
+                        ui.add(egui::Label::new(
+                            egui::RichText::new(format!("Zoom: {:.2}", self.zoom)).size(20.0).color(TEXT),
+                        ));
                     });
                     ui.add_space(6.0);
                 });

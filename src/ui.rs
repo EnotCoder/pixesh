@@ -52,52 +52,6 @@ pub fn icon_btn(ui: &mut egui::Ui, tex_id: egui::TextureId, active: bool) -> boo
     resp.clicked()
 }
 
-// ── checkbox ─────────────────────────────────────────
-// кастомный чекбокс: квадратик + текст
-pub fn checkbox(ui: &mut egui::Ui, label: &str, checked: &mut bool) {
-    let cbs = 18.0;
-    let total_h = (ROW_H + 8.0).max(cbs + 8.0);
-    let label_w = label.len() as f32 * CHAR_W;
-    let total_w = cbs + 12.0 + label_w;
-
-    let (rect, _) = ui.allocate_exact_size(Vec2::new(total_w, total_h), Sense::click());
-
-    let cb_rect = Rect::from_min_size(
-        Pos2::new(rect.max.x - cbs - 4.0, rect.center().y - cbs * 0.5),
-        Vec2::splat(cbs),
-    );
-    let p = ui.painter();
-    p.rect_filled(cb_rect, 3.0, PANEL);
-    p.rect_stroke(cb_rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
-
-    if *checked {
-        let inner = cb_rect.shrink(4.0);
-        p.rect_filled(inner, 2.0, ACCENT);
-    }
-
-    let cb_resp = ui.interact(cb_rect, egui::Id::new(label), Sense::click());
-    if cb_resp.clicked() {
-        *checked = !*checked;
-    }
-
-    let label_rect = Rect::from_min_max(
-        Pos2::new(rect.min.x, rect.min.y),
-        Pos2::new(cb_rect.min.x - 6.0, rect.max.y),
-    );
-    let lresp = ui.interact(label_rect, egui::Id::new(format!("{}_l", label)), Sense::click());
-    if lresp.clicked() {
-        *checked = !*checked;
-    }
-
-    p.text(
-        Pos2::new(rect.min.x + 4.0, rect.center().y - ROW_H * 0.5),
-        egui::Align2::LEFT_TOP,
-        label,
-        egui::FontId::proportional(FONT_SZ),
-        TEXT,
-    );
-}
-
 // ── separator ────────────────────────────────────────
 // вертикальная разделительная линия
 pub fn separator(ui: &mut egui::Ui) {
