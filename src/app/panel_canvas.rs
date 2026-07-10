@@ -108,29 +108,27 @@ impl PixeshApp {
                             Pos2::new(canvas_rect.min.x + x0 as f32 * zoom, canvas_rect.min.y + y0 as f32 * zoom),
                             Vec2::new((x1 - x0 + 1) as f32 * zoom, (y1 - y0 + 1) as f32 * zoom),
                         );
-                        let sel_color = Color32::from_rgb(255, 255, 255);
-                        let steps = 4;
+                        let white = Color32::from_rgb(255, 255, 255);
+                        let black = Color32::from_rgb(0, 0, 0);
+                        let segments = 8;
                         let phase = ctx.input(|i| i.time) as f32 * 3.0;
-                        for i in 0..steps {
-                            let t = i as f32 / steps as f32;
-                            let t2 = (i + 1) as f32 / steps as f32;
-                            if (i as f32 + phase) % 2.0 < 1.0 { continue; }
-                            p.line_segment([
-                                Pos2::new(r.min.x + r.width() * t, r.min.y),
-                                Pos2::new(r.min.x + r.width() * t2, r.min.y),
-                            ], Stroke::new(1.5, sel_color));
-                            p.line_segment([
-                                Pos2::new(r.min.x + r.width() * t, r.max.y),
-                                Pos2::new(r.min.x + r.width() * t2, r.max.y),
-                            ], Stroke::new(1.5, sel_color));
-                            p.line_segment([
-                                Pos2::new(r.min.x, r.min.y + r.height() * t),
-                                Pos2::new(r.min.x, r.min.y + r.height() * t2),
-                            ], Stroke::new(1.5, sel_color));
-                            p.line_segment([
-                                Pos2::new(r.max.x, r.min.y + r.height() * t),
-                                Pos2::new(r.max.x, r.min.y + r.height() * t2),
-                            ], Stroke::new(1.5, sel_color));
+                        // верхняя и нижняя стороны
+                        for i in 0..segments {
+                            let t0 = i as f32 / segments as f32;
+                            let t1 = (i + 1) as f32 / segments as f32;
+                            let c = if ((i as f32 + phase) % 2.0) < 1.0 { white } else { black };
+                            let s = Stroke::new(3.0, c);
+                            p.line_segment([Pos2::new(r.min.x + r.width() * t0, r.min.y), Pos2::new(r.min.x + r.width() * t1, r.min.y)], s);
+                            p.line_segment([Pos2::new(r.min.x + r.width() * t0, r.max.y), Pos2::new(r.min.x + r.width() * t1, r.max.y)], s);
+                        }
+                        // левая и правая стороны
+                        for i in 0..segments {
+                            let t0 = i as f32 / segments as f32;
+                            let t1 = (i + 1) as f32 / segments as f32;
+                            let c = if (((i as f32 + phase) % 2.0) < 1.0) ^ true { white } else { black };
+                            let s = Stroke::new(3.0, c);
+                            p.line_segment([Pos2::new(r.min.x, r.min.y + r.height() * t0), Pos2::new(r.min.x, r.min.y + r.height() * t1)], s);
+                            p.line_segment([Pos2::new(r.max.x, r.min.y + r.height() * t0), Pos2::new(r.max.x, r.min.y + r.height() * t1)], s);
                         }
                     }
 
