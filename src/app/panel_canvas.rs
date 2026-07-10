@@ -42,7 +42,7 @@ impl PixeshApp {
                 if ui.is_rect_visible(canvas_rect) {
                     // перестроить текстуру если холст изменился или двигается выделение
                     if self.canvas_dirty || self.sel_move_current.is_some() {
-                        let mut flat = self.composite_display();
+                        self.composite_display();
 
                         // наложение перемещаемого выделения поверх композита
                         if let (Some(buf), Some(origin), Some(current)) =
@@ -60,8 +60,8 @@ impl PixeshApp {
                                         let src = buf[(yy * w + xx) as usize];
                                         if src != Color32::TRANSPARENT {
                                             let idx = ((ny0 + yy) * self.width as i32 + nx0 + xx) as usize;
-                                            if idx < flat.len() {
-                                                flat[idx] = src;
+                                            if idx < self.display_buf.len() {
+                                                self.display_buf[idx] = src;
                                             }
                                         }
                                     }
@@ -69,7 +69,7 @@ impl PixeshApp {
                             }
                         }
 
-                        let img = ColorImage { size: [self.width, self.height], pixels: flat };
+                        let img = ColorImage { size: [self.width, self.height], pixels: self.display_buf.clone() };
                         let tex = self.tex.get_or_insert_with(|| {
                             ui.ctx().load_texture("canvas", img.clone(), egui::TextureOptions::NEAREST)
                         });

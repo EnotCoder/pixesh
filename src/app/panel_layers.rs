@@ -236,15 +236,18 @@ impl PixeshApp {
                     // ── H strip (вертикальный) ──
                     let (srect, sresp) = ui.allocate_exact_size(Vec2::new(strip_w, fsize), Sense::click_and_drag());
 
-                    let ts = 64;
-                    let mut spix = Vec::with_capacity(ts);
-                    for y in 0..ts {
-                        let hh = y as f32 / (ts - 1) as f32 * 360.0;
-                        let (r, g, b) = hsv_to_rgb(hh, 255.0, 255.0);
-                        spix.push(Color32::from_rgb(r, g, b));
+                    if self.h_tex.is_none() {
+                        let ts = 64;
+                        let mut spix = Vec::with_capacity(ts);
+                        for y in 0..ts {
+                            let hh = y as f32 / (ts - 1) as f32 * 360.0;
+                            let (r, g, b) = hsv_to_rgb(hh, 255.0, 255.0);
+                            spix.push(Color32::from_rgb(r, g, b));
+                        }
+                        let simg = ColorImage { size: [1, ts], pixels: spix };
+                        self.h_tex = Some(ui.ctx().load_texture("hstrip", simg, egui::TextureOptions::LINEAR));
                     }
-                    let simg = ColorImage { size: [1, ts], pixels: spix };
-                    let stex = ui.ctx().load_texture("hstrip", simg, egui::TextureOptions::LINEAR);
+                    let stex = self.h_tex.as_ref().unwrap();
                     let sp = ui.painter();
                     sp.image(stex.id(), srect, Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
                     sp.rect_stroke(srect, 0.0, Stroke::new(1.0, BORDER), egui::StrokeKind::Outside);

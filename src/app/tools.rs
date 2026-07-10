@@ -9,18 +9,26 @@ impl PixeshApp {
     pub(crate) fn handle_eyedropper(&mut self, px: i32, py: i32) {
         let w = self.width as i32;
         let h = self.height as i32;
-        if px >= 0 && px < w && py >= 0 && py < h {
-            let c = self.composite()[(py * w + px) as usize];
-            self.color = c;
-            self.rgb_r = c.r() as f32;
-            self.rgb_g = c.g() as f32;
-            self.rgb_b = c.b() as f32;
-            self.rgb_a = c.a() as f32;
-            let (h_, s, v) = rgb_to_hsv(c.r(), c.g(), c.b());
-            self.hsv_h = h_;
-            self.hsv_s = s;
-            self.hsv_v = v;
+        if px < 0 || px >= w || py < 0 || py >= h { return; }
+        let idx = (py * w + px) as usize;
+        let mut c = Color32::TRANSPARENT;
+        for layer in &self.layers {
+            if !layer.visible { continue; }
+            let p = layer.pixels[idx];
+            if p != Color32::TRANSPARENT {
+                c = p;
+                break;
+            }
         }
+        self.color = c;
+        self.rgb_r = c.r() as f32;
+        self.rgb_g = c.g() as f32;
+        self.rgb_b = c.b() as f32;
+        self.rgb_a = c.a() as f32;
+        let (h_, s, v) = rgb_to_hsv(c.r(), c.g(), c.b());
+        self.hsv_h = h_;
+        self.hsv_s = s;
+        self.hsv_v = v;
     }
 
     // ── Fill ────────────────────────────────────────────

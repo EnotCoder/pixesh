@@ -30,10 +30,12 @@ impl PixeshApp {
     }
 
     // композит с шахматным фоном для прозрачных пикселей (отображение)
-    pub(crate) fn composite_display(&self) -> Vec<Color32> {
+    pub(crate) fn composite_display(&mut self) -> &Vec<Color32> {
         let ck_a = Color32::from_gray(200);
         let ck_b = Color32::from_gray(180);
-        let mut out = Vec::with_capacity(self.width * self.height);
+        let n = self.width * self.height;
+        self.display_buf.clear();
+        self.display_buf.reserve(n);
         for y in 0..self.height {
             for x in 0..self.width {
                 let idx = y * self.width + x;
@@ -49,10 +51,10 @@ impl PixeshApp {
                 if c == Color32::TRANSPARENT {
                     c = if (x + y) % 2 == 0 { ck_a } else { ck_b };
                 }
-                out.push(c);
+                self.display_buf.push(c);
             }
         }
-        out
+        &self.display_buf
     }
 
     // поставить пиксель кистью (квадрат brush_i x brush_i)
@@ -83,20 +85,41 @@ impl PixeshApp {
 
     // линия по Брезенхему — ставит пиксели от (x0,y0) до (x1,y1)
     pub(crate) fn paint_line(&mut self, x0: i32, y0: i32, x1: i32, y1: i32, color: Color32) {
+        let idx = self.active_layer;
+        if idx >= self.layers.len() { return; }
+        let w = self.width as i32;
+        let h = self.height as i32;
+        let b = self.brush_i() as i32;
+        let half = (b - 1) / 2;
+        let sel = self.sel;
+        let pixels = self.pixels_mut(idx);
         let dx = (x1 - x0).abs();
         let dy = -(y1 - y0).abs();
         let sx = if x0 < x1 { 1 } else { -1 };
         let sy = if y0 < y1 { 1 } else { -1 };
         let mut err = dx + dy;
-        let mut x = x0;
-        let mut y = y0;
+        let mut cx = x0;
+        let mut cy = y0;
         loop {
-            self.paint_pixel(x, y, color);
-            if x == x1 && y == y1 { break; }
+            for dy2 in 0..b {
+                for dx2 in 0..b {
+                    let x = cx + dx2 - half;
+                    let y = cy + dy2 - half;
+                    let in_sel = match sel {
+                        Some((x0s, y0s, x1s, y1s)) => x >= x0s && x <= x1s && y >= y0s && y <= y1s,
+                        None => true,
+                    };
+                    if x >= 0 && x < w && y >= 0 && y < h && in_sel {
+                        pixels[(y * w + x) as usize] = color;
+                    }
+                }
+            }
+            if cx == x1 && cy == y1 { break; }
             let e2 = 2 * err;
-            if e2 >= dy { err += dy; x += sx; }
-            if e2 <= dx { err += dx; y += sy; }
+            if e2 >= dy { err += dy; cx += sx; }
+            if e2 <= dx { err += dx; cy += sy; }
         }
+        self.canvas_dirty = true;
     }
 
     // заливка (flood fill) — заменяет все смежные пиксели одного цвета (внутри выделения)

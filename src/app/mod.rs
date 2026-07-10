@@ -69,6 +69,7 @@ pub struct PixeshApp {
     pub(crate) sv_tex: Option<egui::TextureHandle>,       // текстура SV-поля
     pub(crate) sv_tex_h: f32,
     pub(crate) select_tex: Option<egui::TextureHandle>,
+    pub(crate) h_tex: Option<egui::TextureHandle>,          // H-strip текстура (кэш)
     pub(crate) mirror_h_tex: Option<egui::TextureHandle>,
     pub(crate) mirror_v_tex: Option<egui::TextureHandle>,
 
@@ -78,6 +79,7 @@ pub struct PixeshApp {
 
     // ── флаг перерисовки текстуры холста ──
     pub(crate) canvas_dirty: bool,
+    pub(crate) display_buf: Vec<Color32>,       // переиспользуемый буфер для composite_display
 
     // ── выделение (Select tool) ──
     pub(crate) sel: Option<(i32, i32, i32, i32)>,           // финальный прямоугольник (x0,y0,x1,y1)
@@ -144,9 +146,11 @@ impl PixeshApp {
             sv_tex: None,
             sv_tex_h: -1.0,
             select_tex: None,
+            h_tex: None,
             mirror_h_tex: None,
             mirror_v_tex: None,
             canvas_dirty: true,
+            display_buf: Vec::new(),
             sel: None,
             sel_start: None,
             sel_end: None,
