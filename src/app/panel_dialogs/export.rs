@@ -33,17 +33,7 @@ impl PixeshApp {
                 let body_font = egui::FontId::proportional(28.0);
                 let title_font = egui::FontId::proportional(32.0);
 
-                // ── text edit ──
-                let file_edit_x = rect.min.x + pad + 80.0;
-                let file_edit_w = rect.max.x - pad - file_edit_x;
-                let file_row_y = rect.min.y + 56.0 + 60.0;
-                let file_edit_rect = egui::Rect::from_min_size(
-                    egui::pos2(file_edit_x, file_row_y),
-                    Vec2::new(file_edit_w, btn_h),
-                );
-                ui.put(file_edit_rect, egui::TextEdit::singleline(&mut self.export_name).desired_width(file_edit_w));
-
-                // ── painting pass ──
+                // ── paint background + labels first ──
                 {
                     let p = ui.painter();
                     p.rect_filled(rect, 0.0, PANEL);
@@ -71,6 +61,7 @@ impl PixeshApp {
                     );
 
                     // file label
+                    let file_row_y = rect.min.y + 56.0 + 60.0;
                     p.text(
                         egui::pos2(rect.min.x + pad, file_row_y + 8.0),
                         egui::Align2::LEFT_TOP,
@@ -80,7 +71,17 @@ impl PixeshApp {
                     );
                 }
 
-                // ── interactive buttons (need ui mut borrow) ──
+                // ── text edit (after painting, so it's on top) ──
+                let file_edit_x = rect.min.x + pad + 80.0;
+                let file_edit_w = rect.max.x - pad - file_edit_x;
+                let file_row_y = rect.min.y + 56.0 + 60.0;
+                let file_edit_rect = egui::Rect::from_min_size(
+                    egui::pos2(file_edit_x, file_row_y),
+                    Vec2::new(file_edit_w, btn_h),
+                );
+                ui.put(file_edit_rect, egui::TextEdit::singleline(&mut self.export_name).desired_width(file_edit_w));
+
+                // ── interactive buttons ──
                 let dot_btn_rect = egui::Rect::from_min_size(
                     egui::pos2(rect.max.x - pad - btn_h, rect.min.y + 56.0),
                     Vec2::splat(btn_h),
@@ -106,7 +107,7 @@ impl PixeshApp {
                 let save_resp = ui.interact(save_rect, egui::Id::new("export_save"), egui::Sense::click());
                 let cancel_resp = ui.interact(cancel_rect, egui::Id::new("export_cancel"), egui::Sense::click());
 
-                // ── paint buttons ──
+                // ── paint buttons on top ──
                 {
                     let p = ui.painter();
 
@@ -132,11 +133,8 @@ impl PixeshApp {
                 // ── actions ──
                 let enter = ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Enter));
                 if enter || save_resp.clicked() {
-                    let path = if self.export_path.is_empty() {
-                        self.export_name.clone()
-                    } else {
-                        format!("{}/{}", self.export_path, self.export_name)
-                    };
+                    let dir = if self.export_path.is_empty() { home.clone() } else { self.export_path.clone() };
+                    let path = format!("{}/{}", dir, self.export_name);
                     self.save_png(&path);
                     self.show_export = false;
                 }
