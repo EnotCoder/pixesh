@@ -41,6 +41,12 @@ impl PixeshApp {
                     self.show_panels = !self.show_panels;
                 }
             }
+            // Ctrl+H = настройки
+            if i.consume_key(egui::Modifiers::CTRL, egui::Key::H) {
+                if !self.dialog_open() {
+                    self.show_settings = !self.show_settings;
+                }
+            }
             // Ctrl+L = загрузить PNG (открыть диалог выбора файла)
             if i.consume_key(egui::Modifiers::CTRL, egui::Key::L) {
                 let home = std::env::var("HOME").unwrap_or_else(|_| "/".into());
@@ -108,6 +114,7 @@ impl PixeshApp {
                     self.show_export = false;
                     self.show_brush = false;
                     self.show_panels = false;
+                    self.show_settings = false;
                 } else {
                     self.deselect();
                 }
@@ -127,7 +134,7 @@ impl PixeshApp {
                 self.brush = (self.brush + scroll.signum()).clamp(1.0, max);
             } else {
                 let old = self.zoom;
-                self.zoom = (self.zoom - scroll * 0.2).clamp(1.0, 60.0);
+                self.zoom = (self.zoom - scroll * self.zoom_speed).clamp(1.0, 60.0);
                 self.pan *= self.zoom / old;
             }
         }
@@ -135,7 +142,7 @@ impl PixeshApp {
         // ── панорама стрелками (блокируется если открыт диалог) ──
         if !self.dialog_open() {
             ctx.input(|i| {
-                let speed = if i.modifiers.shift { 80.0 } else { 20.0 };
+                let speed = if i.modifiers.shift { self.arrow_speed * 4.0 } else { self.arrow_speed };
                 if i.key_down(egui::Key::ArrowLeft)  { self.pan.x += speed; }
                 if i.key_down(egui::Key::ArrowRight) { self.pan.x -= speed; }
                 if i.key_down(egui::Key::ArrowUp)    { self.pan.y += speed; }

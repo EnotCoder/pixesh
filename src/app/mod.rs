@@ -4,7 +4,7 @@ pub mod history;         // undo / redo (снапшоты пикселей)
 pub mod input;           // клавиатура, зум, панорама, пипетка
 pub mod io;              // save/load PNG, добавление/удаление слоёв, resize
 pub mod panel_canvas;    // отрисовка холста и диспатч инструментов
-pub mod panel_dialogs;   // окна: Resize Canvas, Export PNG
+pub mod panel_dialogs;   // окна: Resize Canvas, Export PNG, Settings
 pub mod panel_layers;    // боковая панель: слои, HSV-пикер
 pub mod panel_toolbar;   // верхняя панель: инструменты, слайдеры, галки
 pub mod tools;           // обработчики инструментов (кисть, ластик, заливка, пипетка, выделение)
@@ -105,8 +105,13 @@ pub struct PixeshApp {
 
     // ── видимость панелей ──
     pub(crate) show_panels: bool,          // диалог управления панелями
+    pub(crate) show_settings: bool,        // диалог настроек
     pub(crate) show_top_panel: bool,
     pub(crate) show_right_panel: bool,
+
+    // ── настройки ──
+    pub(crate) arrow_speed: f32,           // скорость панорамы стрелками
+    pub(crate) zoom_speed: f32,            // скорость зума колесом
 }
 
 impl PixeshApp {
@@ -170,15 +175,18 @@ impl PixeshApp {
             export_path: String::new(),
             show_brush: false,
             show_panels: false,
+            show_settings: false,
             show_top_panel: true,
             show_right_panel: true,
+            arrow_speed: 20.0,
+            zoom_speed: 0.2,
         }
     }
 }
 
 impl PixeshApp {
     pub(crate) fn dialog_open(&self) -> bool {
-        self.show_resize || self.show_export || self.show_brush || self.show_panels
+        self.show_resize || self.show_export || self.show_brush || self.show_panels || self.show_settings
     }
 }
 
