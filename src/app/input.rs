@@ -47,6 +47,12 @@ impl PixeshApp {
                     self.show_settings = !self.show_settings;
                 }
             }
+            // Ctrl+F = диалог размера кисти
+            if i.consume_key(egui::Modifiers::CTRL, egui::Key::F) {
+                if !self.dialog_open() {
+                    self.show_brush = true;
+                }
+            }
             // Ctrl+L = загрузить PNG (открыть диалог выбора файла)
             if i.consume_key(egui::Modifiers::CTRL, egui::Key::L) {
                 let home = std::env::var("HOME").unwrap_or_else(|_| "/".into());
@@ -64,12 +70,6 @@ impl PixeshApp {
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::E) { self.tool = Tool::Eraser; }
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::P) { self.tool = Tool::Brush; }
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::R) { self.tool = Tool::Select; }
-                // F = открыть диалог размера кисти
-                if i.consume_key(egui::Modifiers::NONE, egui::Key::F) {
-                    if !self.dialog_open() {
-                        self.show_brush = true;
-                    }
-                }
                 // G = переключить сетку
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::G) {
                     self.grid = !self.grid;
