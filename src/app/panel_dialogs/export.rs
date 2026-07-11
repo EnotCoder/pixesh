@@ -113,19 +113,19 @@ impl PixeshApp {
 
                     // dot button
                     let dot_bg = if dot_resp.clicked() { ACCENT } else if dot_resp.hovered() { HOVER } else { PANEL };
-                    p.rect_filled(dot_btn_rect, 4.0, dot_bg);
+                    p.rect_filled(dot_btn_rect, 0.0, dot_bg);
                     p.rect_stroke(dot_btn_rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
                     p.text(dot_btn_rect.center(), egui::Align2::CENTER_CENTER, "…", body_font.clone(), TEXT);
 
                     // save
                     let save_bg = if save_resp.clicked() { ACCENT } else if save_resp.hovered() { HOVER } else { PANEL };
-                    p.rect_filled(save_rect, 4.0, save_bg);
+                    p.rect_filled(save_rect, 0.0, save_bg);
                     p.rect_stroke(save_rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
                     p.text(save_rect.center(), egui::Align2::CENTER_CENTER, "Save", body_font.clone(), TEXT);
 
                     // cancel
                     let cancel_bg = if cancel_resp.clicked() { ACCENT } else if cancel_resp.hovered() { HOVER } else { PANEL };
-                    p.rect_filled(cancel_rect, 4.0, cancel_bg);
+                    p.rect_filled(cancel_rect, 0.0, cancel_bg);
                     p.rect_stroke(cancel_rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
                     p.text(cancel_rect.center(), egui::Align2::CENTER_CENTER, "Cancel", body_font.clone(), TEXT);
                 }

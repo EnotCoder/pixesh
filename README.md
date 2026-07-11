@@ -25,7 +25,7 @@ A minimal pixel art editor built with Rust and egui.
 | `E` | Eraser |
 | `P` | Brush |
 | `R` | Select |
-| `F` | Brush size dialog |
+| `Ctrl+B` | Brush size dialog |
 | `G` | Toggle grid |
 | `W` | Darken color |
 | `S` | Brighten color |
@@ -38,6 +38,9 @@ A minimal pixel art editor built with Rust and egui.
 | `Ctrl+S` | Export PNG |
 | `Ctrl+L` | Load PNG |
 | `Ctrl+R` | Resize canvas |
+| `Ctrl+H` | Settings dialog |
+| `Ctrl+W` | Panels dialog |
+| `Ctrl+D` | Deselect |
 | `Scroll` | Zoom |
 | `Shift+Scroll` | Brush size |
 | `Right-click + drag` | Eraser |
@@ -64,7 +67,7 @@ Run with:
   - `input.rs` — Keyboard shortcuts, zoom, pan
   - `io.rs` — Save/load PNG, layer management, canvas resize
   - `panel_canvas.rs` — Canvas rendering, tool dispatch
-  - `panel_dialogs.rs` — Resize, Export, Brush Size dialogs
+  - `panel_dialogs/` — Resize, Export, Brush Size, Panels, Settings dialogs
   - `panel_layers.rs` — Layers panel, HSV color picker
   - `panel_toolbar.rs` — Toolbar with tool icons, grid toggle, zoom slider
   - `tools.rs` — Tool handlers (brush, fill, eyedropper, selection)

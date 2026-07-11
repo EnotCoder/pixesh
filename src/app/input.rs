@@ -47,8 +47,8 @@ impl PixeshApp {
                     self.show_settings = !self.show_settings;
                 }
             }
-            // Ctrl+F = диалог размера кисти
-            if i.consume_key(egui::Modifiers::CTRL, egui::Key::F) {
+            // Ctrl+B = диалог размера кисти
+            if i.consume_key(egui::Modifiers::CTRL, egui::Key::B) {
                 if !self.dialog_open() {
                     self.show_brush = true;
                 }

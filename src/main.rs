@@ -52,6 +52,14 @@ fn main() -> eframe::Result {
             };
             style.spacing.item_spacing = Vec2::new(10.0, 6.0);   // отступы между виджетами
             style.spacing.button_padding = Vec2::new(10.0, 6.0); // отступы внутри кнопок
+            // пиксель-арт стиль: все скругления = 0
+            style.visuals.widgets.noninteractive.corner_radius = egui::CornerRadius::ZERO;
+            style.visuals.widgets.inactive.corner_radius = egui::CornerRadius::ZERO;
+            style.visuals.widgets.hovered.corner_radius = egui::CornerRadius::ZERO;
+            style.visuals.widgets.active.corner_radius = egui::CornerRadius::ZERO;
+            style.visuals.widgets.open.corner_radius = egui::CornerRadius::ZERO;
+            style.visuals.window_corner_radius = egui::CornerRadius::ZERO;
+            style.visuals.menu_corner_radius = egui::CornerRadius::ZERO;
             style.text_styles.insert(
                 egui::TextStyle::Body,                  // текстовый стиль "Body"
                 egui::FontId::proportional(FONT_SZ),    // используем наш размер шрифта

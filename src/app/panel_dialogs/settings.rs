@@ -78,7 +78,7 @@ impl PixeshApp {
                 let btn_resp = ui.interact(btn_rect, egui::Id::new("btn_settings_ok"), egui::Sense::click());
                 let bg = if btn_resp.clicked() { ACCENT } else if btn_resp.hovered() { HOVER } else { PANEL };
                 let p2 = child_ui.painter();
-                p2.rect_filled(btn_rect, 4.0, bg);
+                p2.rect_filled(btn_rect, 0.0, bg);
                 p2.rect_stroke(btn_rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
                 p2.text(btn_rect.center(), egui::Align2::CENTER_CENTER, "OK", egui::FontId::proportional(FONT_SZ), TEXT);
                 if btn_resp.clicked() {

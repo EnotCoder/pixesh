@@ -52,11 +52,11 @@ impl PixeshApp {
                         Pos2::new(row_rect.max.x - cbs - 4.0, row_rect.center().y - cbs * 0.5),
                         Vec2::splat(cbs),
                     );
-                    p.rect_filled(cb_rect, 3.0, PANEL);
+                    p.rect_filled(cb_rect, 0.0, PANEL);
                     p.rect_stroke(cb_rect, 0.0, egui::Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
                     if self.show_top_panel {
                         let inner = cb_rect.shrink(4.0);
-                        p.rect_filled(inner, 2.0, ACCENT);
+                        p.rect_filled(inner, 0.0, ACCENT);
                     }
                     if ui.interact(row_rect, egui::Id::new("row_top"), egui::Sense::click()).clicked()
                         || ui.interact(cb_rect, egui::Id::new("cb_top"), egui::Sense::click()).clicked()
@@ -81,11 +81,11 @@ impl PixeshApp {
                         Pos2::new(row_rect.max.x - cbs - 4.0, row_rect.center().y - cbs * 0.5),
                         Vec2::splat(cbs),
                     );
-                    p.rect_filled(cb_rect, 3.0, PANEL);
+                    p.rect_filled(cb_rect, 0.0, PANEL);
                     p.rect_stroke(cb_rect, 0.0, egui::Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
                     if self.show_right_panel {
                         let inner = cb_rect.shrink(4.0);
-                        p.rect_filled(inner, 2.0, ACCENT);
+                        p.rect_filled(inner, 0.0, ACCENT);
                     }
                     if ui.interact(row_rect, egui::Id::new("row_right"), egui::Sense::click()).clicked()
                         || ui.interact(cb_rect, egui::Id::new("cb_right"), egui::Sense::click()).clicked()
@@ -108,7 +108,7 @@ impl PixeshApp {
                 let p = child_ui.painter();
                 let btn_resp = ui.interact(btn_rect, egui::Id::new("btn_ok"), egui::Sense::click());
                 let bg = if btn_resp.clicked() { ACCENT } else if btn_resp.hovered() { HOVER } else { PANEL };
-                p.rect_filled(btn_rect, 4.0, bg);
+                p.rect_filled(btn_rect, 0.0, bg);
                 p.rect_stroke(btn_rect, 0.0, egui::Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
                 p.text(btn_rect.center(), egui::Align2::CENTER_CENTER, "OK", egui::FontId::proportional(FONT_SZ), TEXT);
                 if btn_resp.clicked() {

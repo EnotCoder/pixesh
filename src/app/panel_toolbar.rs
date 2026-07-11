@@ -127,10 +127,10 @@ impl PixeshApp {
                         Pos2::new(grid_rect.center().x - cbs * 0.5, text_y + FONT_SZ + 0.0),
                         Vec2::splat(cbs),
                     );
-                    p.rect_filled(cb_rect, 3.0, PANEL);
+                    p.rect_filled(cb_rect, 0.0, PANEL);
                     p.rect_stroke(cb_rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
                     if self.grid {
-                        p.rect_filled(cb_rect.shrink(4.0), 2.0, ACCENT);
+                        p.rect_filled(cb_rect.shrink(4.0), 0.0, ACCENT);
                     }
                     let cb_resp = ui.interact(cb_rect, egui::Id::new("grid_cb"), Sense::click());
                     if cb_resp.clicked() {

@@ -43,7 +43,7 @@ impl PixeshApp {
                         ui.allocate_exact_size(Vec2::new(ui.available_size().x, row_h), Sense::click());
 
                     let bg = if is_active { HOVER } else { PANEL };
-                    ui.painter().rect_filled(rect, 4.0, bg);
+                    ui.painter().rect_filled(rect, 0.0, bg);
 
                     // чекбокс видимости слоя
                     let cbs = 14.0;
@@ -52,11 +52,11 @@ impl PixeshApp {
                         Vec2::splat(cbs),
                     );
                     let p = ui.painter();
-                    p.rect_filled(cb_rect, 3.0, PANEL_LIGHT);
+                    p.rect_filled(cb_rect, 0.0, PANEL_LIGHT);
                     p.rect_stroke(cb_rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
                     if cb {
                         let inner = cb_rect.shrink(3.0);
-                        p.rect_filled(inner, 2.0, ACCENT);
+                        p.rect_filled(inner, 0.0, ACCENT);
                     }
 
                     let cb_resp =
@@ -89,7 +89,7 @@ impl PixeshApp {
                     // кнопка "+"
                     let (r_plus, resp_plus) = ui.allocate_exact_size(Vec2::splat(sz), Sense::click());
                     let bg = if resp_plus.clicked() { ACCENT } else if resp_plus.hovered() { HOVER } else { PANEL };
-                    ui.painter().rect_filled(r_plus, 6.0, bg);
+                    ui.painter().rect_filled(r_plus, 0.0, bg);
                     ui.painter().rect_stroke(r_plus, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
                     ui.painter().text(r_plus.center(), egui::Align2::CENTER_CENTER, "+", egui::FontId::proportional(FONT_SZ * 2.5), TEXT);
                     if resp_plus.clicked() { self.add_layer(); }
@@ -99,7 +99,7 @@ impl PixeshApp {
                     // кнопка "-"
                     let (r_minus, resp_minus) = ui.allocate_exact_size(Vec2::splat(sz), Sense::click());
                     let bg = if resp_minus.clicked() { ACCENT } else if resp_minus.hovered() { HOVER } else { PANEL };
-                    ui.painter().rect_filled(r_minus, 6.0, bg);
+                    ui.painter().rect_filled(r_minus, 0.0, bg);
                     ui.painter().rect_stroke(r_minus, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
                     ui.painter().text(r_minus.center(), egui::Align2::CENTER_CENTER, "-", egui::FontId::proportional(FONT_SZ * 2.5), TEXT);
                     if resp_minus.clicked() { self.remove_layer(self.active_layer); }
@@ -130,7 +130,7 @@ impl PixeshApp {
                     let (pr, _) = ui.allocate_exact_size(Vec2::new(ps, ps), Sense::hover());
                     let pv = pr.translate(Vec2::new(0.0, -4.0));
                     let pc = Color32::from_rgba_unmultiplied(self.rgb_r as u8, self.rgb_g as u8, self.rgb_b as u8, self.rgb_a as u8);
-                    ui.painter().rect_filled(pv, 4.0, pc);
+                    ui.painter().rect_filled(pv, 0.0, pc);
                     ui.painter().rect_stroke(pv, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
 
                     ui.add_space(PANEL_PAD);
