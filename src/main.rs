@@ -60,6 +60,7 @@ fn main() -> eframe::Result {
             style.visuals.widgets.open.corner_radius = egui::CornerRadius::ZERO;
             style.visuals.window_corner_radius = egui::CornerRadius::ZERO;
             style.visuals.menu_corner_radius = egui::CornerRadius::ZERO;
+            style.visuals.handle_shape = egui::style::HandleShape::Rect { aspect_ratio: 1.0 };
             style.text_styles.insert(
                 egui::TextStyle::Body,                  // текстовый стиль "Body"
                 egui::FontId::proportional(FONT_SZ),    // используем наш размер шрифта
