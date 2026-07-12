@@ -177,6 +177,41 @@ impl PixeshApp {
                 });
                 self.color = Color32::from_rgba_unmultiplied(self.rgb_r as u8, self.rgb_g as u8, self.rgb_b as u8, self.rgb_a as u8);
 
+                // ── история цветов ──
+                if !self.color_history.is_empty() {
+                    ui.add_space(8.0);
+                    ui.horizontal(|ui| {
+                        ui.add_space(PANEL_PAD);
+                        let sw = 22.0;
+                        let gap = 4.0;
+                        let max_cols = ((ui.available_width() - PANEL_PAD) / (sw + gap)).max(1.0) as usize;
+                        let mut rows: Vec<Vec<Color32>> = Vec::new();
+                        for (i, c) in self.color_history.iter().rev().enumerate() {
+                            if i % max_cols == 0 { rows.push(Vec::new()); }
+                            rows.last_mut().unwrap().push(*c);
+                        }
+                        for row in &rows {
+                            for &c in row {
+                                let (r, resp) = ui.allocate_exact_size(Vec2::splat(sw), Sense::click());
+                                ui.painter().rect_filled(r, 0.0, c);
+                                ui.painter().rect_stroke(r, 0.0, Stroke::new(1.0, BORDER), egui::StrokeKind::Outside);
+                                if resp.clicked() {
+                                    self.color = c;
+                                    self.rgb_r = c.r() as f32;
+                                    self.rgb_g = c.g() as f32;
+                                    self.rgb_b = c.b() as f32;
+                                    self.rgb_a = c.a() as f32;
+                                    let (h_, s, v) = crate::color::rgb_to_hsv(c.r(), c.g(), c.b());
+                                    self.hsv_h = h_;
+                                    self.hsv_s = s;
+                                    self.hsv_v = v;
+                                }
+                            }
+                            ui.allocate_exact_size(Vec2::new(0.0, gap), Sense::hover());
+                        }
+                    });
+                }
+
                 // SV field + H strip
                 let avail = ui.available_size();
                 let fsize = (avail.x - 24.0).min(avail.y).min(180.0).max(40.0);

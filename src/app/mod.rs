@@ -109,6 +109,12 @@ pub struct PixeshApp {
     pub(crate) show_top_panel: bool,
     pub(crate) show_right_panel: bool,
 
+    // ── панорама ──
+    pub(crate) mid_pan_pos: Option<egui::Pos2>,
+
+    // ── история цветов ──
+    pub(crate) color_history: Vec<Color32>,
+
     // ── настройки ──
     pub(crate) arrow_speed: f32,           // скорость панорамы стрелками
     pub(crate) zoom_speed: f32,            // скорость зума колесом
@@ -178,6 +184,8 @@ impl PixeshApp {
             show_settings: false,
             show_top_panel: true,
             show_right_panel: true,
+            mid_pan_pos: None,
+            color_history: Vec::new(),
             arrow_speed: 20.0,
             zoom_speed: 0.2,
         }

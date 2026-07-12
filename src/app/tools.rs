@@ -29,6 +29,14 @@ impl PixeshApp {
         self.hsv_h = h_;
         self.hsv_s = s;
         self.hsv_v = v;
+        // добавить в историю
+        if c != Color32::TRANSPARENT {
+            self.color_history.retain(|&x| x != c);
+            self.color_history.push(c);
+            if self.color_history.len() > 16 {
+                self.color_history.remove(0);
+            }
+        }
     }
 
     // ── Fill ────────────────────────────────────────────

@@ -174,6 +174,19 @@ impl PixeshApp {
                     }
                 }
 
+                // ── панорама средней кнопкой мыши ──
+                if resp.dragged_by(egui::PointerButton::Middle) {
+                    if let Some(pos) = resp.interact_pointer_pos() {
+                        if let Some(last) = self.mid_pan_pos {
+                            self.pan += pos - last;
+                        }
+                        self.mid_pan_pos = Some(pos);
+                    }
+                }
+                if resp.drag_started() && resp.dragged_by(egui::PointerButton::Middle) {
+                    self.mid_pan_pos = resp.interact_pointer_pos();
+                }
+
                 // ── Tool dispatch ─────────────────────
                 if self.dialog_open() {
                     if resp.drag_stopped() {
@@ -266,6 +279,7 @@ impl PixeshApp {
                 if resp.drag_stopped() {
                     self.last_px_primary = None;
                     self.last_px_secondary = None;
+                    self.mid_pan_pos = None;
                 }
             });
     }
