@@ -83,7 +83,7 @@ impl PixeshApp {
                 // ── кнопки + / - слой ──
                 ui.add_space(PANEL_PAD);
                 ui.horizontal(|ui| {
-                    let sz = FONT_SZ * 2.5 + 8.0;
+                    let sz = FONT_SZ * 2.5 + 2.0;
                     ui.add_space(PANEL_PAD);
 
                     // кнопка "+"
@@ -126,7 +126,7 @@ impl PixeshApp {
                 // preview + RGB readout
                 ui.horizontal(|ui| {
                     ui.add_space(PANEL_PAD);
-                    let ps = 72.0;
+                    let ps = 100.0;
                     let (pr, _) = ui.allocate_exact_size(Vec2::new(ps, ps), Sense::hover());
                     let pv = pr.translate(Vec2::new(0.0, -4.0));
                     let pc = Color32::from_rgba_unmultiplied(self.rgb_r as u8, self.rgb_g as u8, self.rgb_b as u8, self.rgb_a as u8);

@@ -27,7 +27,8 @@ impl PixeshApp {
                     });
                     let logo_sz = Vec2::splat((ROW_H + 6.0) * 1.5);
                     let (lr, _) = ui.allocate_exact_size(logo_sz, Sense::hover());
-                    ui.painter().image(logo_tex.id(), lr.translate(Vec2::new(0.0, 4.0)), Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
+                    ui.painter().image(logo_tex.id(), lr.translate(Vec2::new(0.0, 4.0)), 
+                        Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
 
                     // ── разделитель ──
                     separator(ui);
@@ -108,23 +109,14 @@ impl PixeshApp {
                     separator(ui);
                     ui.add_space(6.0);
 
-                    // Grid: текст над чекбоксом
+                    // Grid: чекбокс + текст в одну строку, высота как у кнопок
                     let cbs = 18.0;
-                    let total_h = (ROW_H + 8.0).max(cbs + 8.0);
-                    let grid_w = (cbs + 12.0).max("Grid".len() as f32 * CHAR_W);
-                    let (grid_rect, grid_resp) = ui.allocate_exact_size(Vec2::new(grid_w, total_h + 14.0), Sense::click());
+                    let btn_h = ROW_H + 16.0;
+                    let grid_w = cbs + 8.0 + "Grid".len() as f32 * CHAR_W;
+                    let (grid_rect, grid_resp) = ui.allocate_exact_size(Vec2::new(grid_w, btn_h), Sense::click());
                     let p = ui.painter();
-                    let text_center_x = grid_rect.center().x;
-                    let text_y = grid_rect.min.y + 2.0;
-                    p.text(
-                        Pos2::new(text_center_x, text_y),
-                        egui::Align2::CENTER_TOP,
-                        "Grid",
-                        egui::FontId::proportional(FONT_SZ),
-                        TEXT,
-                    );
                     let cb_rect = Rect::from_min_size(
-                        Pos2::new(grid_rect.center().x - cbs * 0.5, text_y + FONT_SZ + 0.0),
+                        Pos2::new(grid_rect.min.x, grid_rect.center().y - cbs * 0.5),
                         Vec2::splat(cbs),
                     );
                     p.rect_filled(cb_rect, 0.0, PANEL);
@@ -132,6 +124,13 @@ impl PixeshApp {
                     if self.grid {
                         p.rect_filled(cb_rect.shrink(4.0), 0.0, ACCENT);
                     }
+                    p.text(
+                        Pos2::new(cb_rect.max.x + 8.0, grid_rect.center().y),
+                        egui::Align2::LEFT_CENTER,
+                        "Grid",
+                        egui::FontId::proportional(FONT_SZ),
+                        TEXT,
+                    );
                     let cb_resp = ui.interact(cb_rect, egui::Id::new("grid_cb"), Sense::click());
                     if cb_resp.clicked() {
                         self.grid = !self.grid;
@@ -169,15 +168,17 @@ impl PixeshApp {
 
                     ui.add_space(6.0);
 
-                    ui.scope(|ui| {
-                        ui.style_mut().text_styles.insert(
-                            egui::TextStyle::Body,
-                            egui::FontId::proportional(20.0),
-                        );
-                        ui.add(egui::Label::new(
-                            egui::RichText::new(format!("Zoom: {:.2}", self.zoom)).size(20.0).color(TEXT),
-                        ));
-                    });
+                    // Zoom: рисуем текст через painter на той же высоте что и кнопки
+                    let zoom_text = format!("Zoom: {:.2}", self.zoom);
+                    let zoom_w = zoom_text.len() as f32 * CHAR_W * (20.0 / FONT_SZ) + 10.0;
+                    let (zoom_rect, _) = ui.allocate_exact_size(Vec2::new(zoom_w, btn_h), Sense::hover());
+                    ui.painter().text(
+                        Pos2::new(zoom_rect.min.x, zoom_rect.center().y),
+                        egui::Align2::LEFT_CENTER,
+                        &zoom_text,
+                        egui::FontId::proportional(20.0),
+                        TEXT,
+                    );
                     ui.add_space(6.0);
                 });
                 ui.add_space(6.0);
