@@ -47,7 +47,7 @@ pub fn icon_btn(ui: &mut egui::Ui, tex_id: egui::TextureId, active: bool) -> boo
     let img_rect = rect;
     p.image(tex_id, img_rect, Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
 
-    p.rect_stroke(rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
+    p.rect_stroke(rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Inside);
 
     resp.clicked()
 }
