@@ -134,7 +134,7 @@ impl PixeshApp {
                 self.brush = (self.brush + scroll.signum()).clamp(1.0, max);
             } else {
                 let old = self.zoom;
-                self.zoom = (self.zoom - scroll * self.zoom_speed).clamp(1.0, 60.0);
+                self.zoom = (self.zoom + scroll * self.zoom_speed).clamp(1.0, 60.0);
                 self.pan *= self.zoom / old;
             }
         }
