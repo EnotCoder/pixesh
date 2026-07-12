@@ -6,4 +6,4 @@ edition = "2024"
 [dependencies]
 eframe = "0.31"
 image = "0.25"
-rfd = "0.15"
+rfd = { version = "0.15", default-features = false, features = ["gtk3"] }
