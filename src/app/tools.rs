@@ -56,12 +56,6 @@ impl PixeshApp {
         self.last_px_primary = Some((px, py));
     }
 
-    // клик кистью — поставить пиксель с сохранением undo
-    pub(crate) fn handle_brush_click(&mut self, px: i32, py: i32, color: Color32) {
-        self.push_undo();
-        self.paint_pixel(px, py, color);
-    }
-
     // ── Selection ──────────────────────────────────────
     // начало работы с выделением: если клик внутри существующего — начать перемещение
     // иначе — начать рисовать новый прямоугольник выделения

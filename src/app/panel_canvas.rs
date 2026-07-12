@@ -69,7 +69,8 @@ impl PixeshApp {
                             }
                         }
 
-                        let img = ColorImage { size: [self.width, self.height], pixels: self.display_buf.clone() };
+                        let pixels = std::mem::take(&mut self.display_buf);
+                        let img = ColorImage { size: [self.width, self.height], pixels };
                         let tex = self.tex.get_or_insert_with(|| {
                             ui.ctx().load_texture("canvas", img.clone(), egui::TextureOptions::NEAREST)
                         });
@@ -236,11 +237,6 @@ impl PixeshApp {
                                 self.handle_brush_drag(p.0, p.1, paint_color);
                             } else {
                                 self.last_px_primary = None;
-                            }
-                        }
-                        if resp.clicked_by(egui::PointerButton::Primary) {
-                            if let Some(p) = cp(&resp) {
-                                self.handle_brush_click(p.0, p.1, paint_color);
                             }
                         }
                     }

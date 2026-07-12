@@ -134,7 +134,8 @@ impl PixeshApp {
                 let enter = ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Enter));
                 if enter || save_resp.clicked() {
                     let dir = if self.export_path.is_empty() { home.clone() } else { self.export_path.clone() };
-                    let path = format!("{}/{}", dir, self.export_name);
+                    let name = if self.export_name.ends_with(".png") { self.export_name.clone() } else { format!("{}.png", self.export_name) };
+                    let path = format!("{}/{}", dir, name);
                     self.save_png(&path);
                     self.show_export = false;
                 }

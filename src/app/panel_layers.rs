@@ -196,7 +196,7 @@ impl PixeshApp {
                         for y in 0..ts {
                             for x in 0..ts {
                                 let s = x as f32 / (ts - 1) as f32 * 255.0;
-                                let v = y as f32 / (ts - 1) as f32 * 255.0;
+                                let v = (ts - 1 - y) as f32 / (ts - 1) as f32 * 255.0;
                                 let (r, g, b) = hsv_to_rgb(h, s, v);
                                 pix.push(Color32::from_rgb(r, g, b));
                             }
@@ -212,7 +212,7 @@ impl PixeshApp {
 
                         // курсор на SV-поле
                         let cx = rect.min.x + (self.hsv_s / 255.0) * rect.width();
-                        let cy = rect.min.y + (self.hsv_v / 255.0) * rect.height();
+                        let cy = rect.min.y + (1.0 - self.hsv_v / 255.0) * rect.height();
                         let cc = if self.hsv_v > 180.0 { Color32::BLACK } else { Color32::WHITE };
                         p.circle_stroke(Pos2::new(cx, cy), 4.0, Stroke::new(1.5, cc));
                         p.circle_filled(Pos2::new(cx, cy), 2.0, cc);
@@ -224,7 +224,7 @@ impl PixeshApp {
                         if let Some(pos) = resp.interact_pointer_pos() {
                             let rel = pos - rect.min;
                             self.hsv_s = (rel.x / rect.width() * 255.0).clamp(0.0, 255.0);
-                            self.hsv_v = (rel.y / rect.height() * 255.0).clamp(0.0, 255.0);
+                            self.hsv_v = (255.0 - rel.y / rect.height() * 255.0).clamp(0.0, 255.0);
                             let (r, g, b) = hsv_to_rgb(self.hsv_h, self.hsv_s, self.hsv_v);
                             self.rgb_r = r as f32;
                             self.rgb_g = g as f32;

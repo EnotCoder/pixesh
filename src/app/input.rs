@@ -66,9 +66,9 @@ impl PixeshApp {
             }
             // B = кисть, E = ластик, F = заливка, R = выделение (только когда не зажат Alt/Ctrl)
             if !i.modifiers.alt && !i.modifiers.ctrl {
-                if i.consume_key(egui::Modifiers::NONE, egui::Key::B) { self.tool = Tool::Fill; }
+                if i.consume_key(egui::Modifiers::NONE, egui::Key::B) { self.tool = Tool::Brush; }
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::E) { self.tool = Tool::Eraser; }
-                if i.consume_key(egui::Modifiers::NONE, egui::Key::P) { self.tool = Tool::Brush; }
+                if i.consume_key(egui::Modifiers::NONE, egui::Key::F) { self.tool = Tool::Fill; }
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::R) { self.tool = Tool::Select; }
                 // G = переключить сетку
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::G) {
@@ -150,9 +150,9 @@ impl PixeshApp {
             });
         }
 
-        // ── временная пипетка ──
+        // ── временная пипетка (Alt) ──
         ctx.input(|i| {
-            let held = i.modifiers.alt || i.modifiers.ctrl;
+            let held = i.modifiers.alt;
             if held && self.tool_saved.is_none() {
                 self.tool_saved = Some(self.tool);
                 self.tool = Tool::Eyedropper;
