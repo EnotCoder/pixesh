@@ -38,7 +38,10 @@ impl PixeshApp {
                 // ── Arrow Speed ──
                 child_ui.vertical_centered(|ui| {
                     ui.label(egui::RichText::new("Arrow Speed").size(24.0).color(TEXT));
-                    ui.add_space(4.0);
+                });
+                child_ui.add_space(4.0);
+                child_ui.horizontal(|ui| {
+                    ui.add_space(ui.available_width() - 200.0 - PANEL_PAD);
                     ui.add_sized(
                         Vec2::new(200.0, 32.0),
                         egui::Slider::new(&mut self.arrow_speed, 5.0..=200.0)
@@ -51,7 +54,10 @@ impl PixeshApp {
                 // ── Zoom Speed ──
                 child_ui.vertical_centered(|ui| {
                     ui.label(egui::RichText::new("Zoom Speed").size(24.0).color(TEXT));
-                    ui.add_space(4.0);
+                });
+                child_ui.add_space(4.0);
+                child_ui.horizontal(|ui| {
+                    ui.add_space(ui.available_width() - 200.0 - PANEL_PAD);
                     ui.add_sized(
                         Vec2::new(200.0, 32.0),
                         egui::Slider::new(&mut self.zoom_speed, 0.05..=1.0)
