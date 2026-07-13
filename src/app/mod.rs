@@ -69,6 +69,7 @@ pub struct PixeshApp {
     pub(crate) sv_tex: Option<egui::TextureHandle>,       // текстура SV-поля
     pub(crate) sv_tex_h: f32,
     pub(crate) select_tex: Option<egui::TextureHandle>,
+    pub(crate) move_tex: Option<egui::TextureHandle>,
     pub(crate) h_tex: Option<egui::TextureHandle>,          // H-strip текстура (кэш)
     pub(crate) mirror_h_tex: Option<egui::TextureHandle>,
     pub(crate) mirror_v_tex: Option<egui::TextureHandle>,
@@ -91,6 +92,10 @@ pub struct PixeshApp {
     pub(crate) sel_buf_w: usize,
     pub(crate) sel_buf_h: usize,
     pub(crate) sel_tex: Option<egui::TextureHandle>,
+
+    // ── перемещение холста (Move tool, без выделения) ──
+    pub(crate) canvas_move_origin: Option<(i32, i32)>,
+    pub(crate) canvas_move_current: Option<(i32, i32)>,
 
     // ── диалоги ──
     pub(crate) show_resize: bool,
@@ -157,6 +162,7 @@ impl PixeshApp {
             sv_tex: None,
             sv_tex_h: -1.0,
             select_tex: None,
+            move_tex: None,
             h_tex: None,
             mirror_h_tex: None,
             mirror_v_tex: None,
@@ -171,6 +177,8 @@ impl PixeshApp {
             sel_buf_w: 0,
             sel_buf_h: 0,
             sel_tex: None,
+            canvas_move_origin: None,
+            canvas_move_current: None,
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
             show_resize: false,

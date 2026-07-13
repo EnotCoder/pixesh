@@ -70,6 +70,7 @@ impl PixeshApp {
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::E) { self.tool = Tool::Eraser; }
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::F) { self.tool = Tool::Fill; }
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::R) { self.tool = Tool::Select; }
+                if i.consume_key(egui::Modifiers::NONE, egui::Key::M) { self.tool = Tool::Move; }
                 // G = переключить сетку
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::G) {
                     self.grid = !self.grid;

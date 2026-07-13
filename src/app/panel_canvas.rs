@@ -41,7 +41,7 @@ impl PixeshApp {
 
                 if ui.is_rect_visible(canvas_rect) {
                     // перестроить текстуру если холст изменился или двигается выделение
-                    if self.canvas_dirty || self.sel_move_current.is_some() {
+                    if self.canvas_dirty || self.sel_move_current.is_some() || self.canvas_move_current.is_some() {
                         self.composite_display();
 
                         // наложение перемещаемого выделения поверх композита
@@ -69,13 +69,37 @@ impl PixeshApp {
                             }
                         }
 
+                        // ── canvas move preview ──
+                        if let Some((origin, current)) =
+                            self.canvas_move_origin.zip(self.canvas_move_current)
+                        {
+                            let dx = current.0 - origin.0;
+                            let dy = current.1 - origin.1;
+                            if dx != 0 || dy != 0 {
+                                let w = self.width as i32;
+                                let h = self.height as i32;
+                                let mut shifted = vec![Color32::TRANSPARENT; (w * h) as usize];
+                                for yy in 0..h {
+                                    for xx in 0..w {
+                                        let src = self.display_buf[(yy * w + xx) as usize];
+                                        let nx = xx + dx;
+                                        let ny = yy + dy;
+                                        if nx >= 0 && nx < w && ny >= 0 && ny < h {
+                                            shifted[(ny * w + nx) as usize] = src;
+                                        }
+                                    }
+                                }
+                                self.display_buf = shifted;
+                            }
+                        }
+
                         let pixels = std::mem::take(&mut self.display_buf);
                         let img = ColorImage { size: [self.width, self.height], pixels };
                         let tex = self.tex.get_or_insert_with(|| {
                             ui.ctx().load_texture("canvas", img.clone(), egui::TextureOptions::NEAREST)
                         });
                         tex.set(img, egui::TextureOptions::NEAREST);
-                        if self.sel_move_current.is_none() {
+                        if self.sel_move_current.is_none() && self.canvas_move_current.is_none() {
                             self.canvas_dirty = false;
                         }
                     }
@@ -234,6 +258,21 @@ impl PixeshApp {
                         }
                         if resp.drag_stopped() {
                             self.handle_select_release();
+                        }
+                    }
+                    Tool::Move => {
+                        if resp.drag_started() {
+                            if let Some(p) = cp(&resp) {
+                                self.handle_move_press(p.0, p.1);
+                            }
+                        }
+                        if resp.dragged_by(egui::PointerButton::Primary) {
+                            if let Some(p) = cp(&resp) {
+                                self.handle_move_drag(p.0, p.1);
+                            }
+                        }
+                        if resp.drag_stopped() {
+                            self.handle_move_release();
                         }
                     }
                     _ => {

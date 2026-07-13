@@ -70,6 +70,11 @@ impl PixeshApp {
                     });
                     if icon_btn(ui, select_tex.id(), self.tool == Tool::Select) { self.tool = Tool::Select; }
 
+                    let move_tex = self.move_tex.get_or_insert_with(|| {
+                        load_icon_texture(ui, "move_icon", include_bytes!("../../tex/move.png"))
+                    });
+                    if icon_btn(ui, move_tex.id(), self.tool == Tool::Move) { self.tool = Tool::Move; }
+
                     // ── очистка ──
                     separator(ui);
 

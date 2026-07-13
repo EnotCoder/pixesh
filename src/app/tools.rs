@@ -64,6 +64,119 @@ impl PixeshApp {
         self.last_px_primary = Some((px, py));
     }
 
+    // ── Move ──────────────────────────────────────────
+    // если есть выделение — двигает его, иначе двигает весь холст
+    pub(crate) fn handle_move_press(&mut self, px: i32, py: i32) {
+        if let Some((x0, y0, x1, y1)) = self.sel {
+            if px >= x0 && px <= x1 && py >= y0 && py <= y1 {
+                self.push_undo();
+                let sw = (x1 - x0 + 1) as usize;
+                let sh = (y1 - y0 + 1) as usize;
+                let w = self.width;
+                let mut buf = Vec::with_capacity(sw * sh);
+                for yy in y0..=y1 {
+                    for xx in x0..=x1 {
+                        let idx = (yy * w as i32 + xx) as usize;
+                        buf.push(self.layers[self.active_layer].pixels[idx]);
+                    }
+                }
+                self.sel_buffer = Some(buf);
+                self.sel_buf_w = sw;
+                self.sel_buf_h = sh;
+                self.sel_move_origin = Some((px, py));
+                self.sel_move_current = None;
+                return;
+            }
+        }
+        self.canvas_move_origin = Some((px, py));
+        self.canvas_move_current = None;
+    }
+
+    pub(crate) fn handle_move_drag(&mut self, px: i32, py: i32) {
+        if self.sel_move_origin.is_some() {
+            self.sel_move_current = Some((px, py));
+            return;
+        }
+        if self.canvas_move_origin.is_some() {
+            self.canvas_move_current = Some((px, py));
+        }
+    }
+
+    pub(crate) fn handle_move_release(&mut self) {
+        // завершение перемещения выделения
+        if self.sel_move_origin.is_some() {
+            if let (Some(current), Some((x0, y0, x1, y1))) = (self.sel_move_current, self.sel) {
+                if let Some(origin) = self.sel_move_origin {
+                    let w = self.sel_buf_w as i32;
+                    let h = self.sel_buf_h as i32;
+                    let dx = current.0 - origin.0;
+                    let dy = current.1 - origin.1;
+                    let nx0 = (x0 + dx).max(0).min(self.width as i32 - w);
+                    let ny0 = (y0 + dy).max(0).min(self.height as i32 - h);
+                    let nx1 = nx0 + w - 1;
+                    let ny1 = ny0 + h - 1;
+                    let cw = self.width as i32;
+
+                    if let Some(buf) = self.sel_buffer.take() {
+                        let pixels = self.pixels_mut(self.active_layer);
+                        for yy in y0..=y1 {
+                            for xx in x0..=x1 {
+                                pixels[(yy * cw + xx) as usize] = Color32::TRANSPARENT;
+                            }
+                        }
+                        for yy in 0..h {
+                            for xx in 0..w {
+                                let src = buf[(yy * w + xx) as usize];
+                                if src != Color32::TRANSPARENT {
+                                    pixels[((ny0 + yy) * cw + nx0 + xx) as usize] = src;
+                                }
+                            }
+                        }
+                    }
+                    self.sel = Some((nx0, ny0, nx1, ny1));
+                    self.canvas_dirty = true;
+                }
+            }
+            self.clear_move_state();
+            self.canvas_move_origin = None;
+            self.canvas_move_current = None;
+            return;
+        }
+
+        // завершение перемещения холста
+        if let (Some(origin), Some(current)) = (self.canvas_move_origin, self.canvas_move_current) {
+            let dx = current.0 - origin.0;
+            let dy = current.1 - origin.1;
+            if dx == 0 && dy == 0 {
+                self.canvas_move_origin = None;
+                self.canvas_move_current = None;
+                return;
+            }
+            self.push_undo();
+            let w = self.width as i32;
+            let h = self.height as i32;
+            for layer_idx in 0..self.layers.len() {
+                let pixels = self.pixels_mut(layer_idx);
+                let mut new_pixels = vec![Color32::TRANSPARENT; (w * h) as usize];
+                for yy in 0..h {
+                    for xx in 0..w {
+                        let src = pixels[(yy * w + xx) as usize];
+                        if src == Color32::TRANSPARENT { continue; }
+                        let nx = xx + dx;
+                        let ny = yy + dy;
+                        if nx >= 0 && nx < w && ny >= 0 && ny < h {
+                            new_pixels[(ny * w + nx) as usize] = src;
+                        }
+                    }
+                }
+                *pixels = new_pixels;
+            }
+            self.canvas_dirty = true;
+        }
+        self.canvas_move_origin = None;
+        self.canvas_move_current = None;
+    }
+
     // ── Selection ──────────────────────────────────────
     // начало работы с выделением: если клик внутри существующего — начать перемещение
     // иначе — начать рисовать новый прямоугольник выделения
