@@ -1,6 +1,7 @@
 use eframe::egui::{self, Stroke, Vec2};
 use crate::app::PixeshApp;
 use crate::constants::*;
+use crate::ui::*;
 
 impl PixeshApp {
     pub(crate) fn ui_export_dialog(&mut self, ctx: &egui::Context) {
@@ -93,53 +94,49 @@ impl PixeshApp {
                     }
                 }
 
-                let btn_y = rect.max.y - btn_h - pad;
-                let spacing = 10.0;
-                let half_w = (rect.width() - pad * 2.0 - spacing) / 2.0;
-                let save_rect = egui::Rect::from_min_size(
-                    egui::pos2(rect.min.x + pad, btn_y),
-                    Vec2::new(half_w, btn_h),
-                );
-                let cancel_rect = egui::Rect::from_min_size(
-                    egui::pos2(rect.min.x + pad + half_w + spacing, btn_y),
-                    Vec2::new(half_w, btn_h),
-                );
-                let save_resp = ui.interact(save_rect, egui::Id::new("export_save"), egui::Sense::click());
-                let cancel_resp = ui.interact(cancel_rect, egui::Id::new("export_cancel"), egui::Sense::click());
-
-                // ── paint buttons on top ──
+                // ── dot button paint ──
                 {
                     let p = ui.painter();
-
-                    // dot button
                     let dot_bg = if dot_resp.clicked() { ACCENT } else if dot_resp.hovered() { HOVER } else { PANEL };
                     p.rect_filled(dot_btn_rect, 0.0, dot_bg);
                     p.rect_stroke(dot_btn_rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
                     p.text(dot_btn_rect.center(), egui::Align2::CENTER_CENTER, "…", body_font.clone(), TEXT);
+                }
 
-                    // save
-                    let save_bg = if save_resp.clicked() { ACCENT } else if save_resp.hovered() { HOVER } else { PANEL };
-                    p.rect_filled(save_rect, 0.0, save_bg);
-                    p.rect_stroke(save_rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
-                    p.text(save_rect.center(), egui::Align2::CENTER_CENTER, "Save", body_font.clone(), TEXT);
-
-                    // cancel
-                    let cancel_bg = if cancel_resp.clicked() { ACCENT } else if cancel_resp.hovered() { HOVER } else { PANEL };
-                    p.rect_filled(cancel_rect, 0.0, cancel_bg);
-                    p.rect_stroke(cancel_rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
-                    p.text(cancel_rect.center(), egui::Align2::CENTER_CENTER, "Cancel", body_font.clone(), TEXT);
+                // ── bottom buttons (flush) ──
+                let mut save_clicked = false;
+                {
+                    let btn_y = rect.max.y - btn_h;
+                    let btn_rect = egui::Rect::from_min_size(
+                        egui::pos2(rect.min.x, btn_y),
+                        Vec2::new(rect.width(), btn_h),
+                    );
+                    let mut btn_ui = ui.new_child(
+                        egui::UiBuilder::new()
+                            .layout(egui::Layout::left_to_right(egui::Align::Center))
+                            .max_rect(btn_rect),
+                    );
+                    btn_ui.style_mut().text_styles.insert(
+                        egui::TextStyle::Button,
+                        egui::FontId::proportional(28.0),
+                    );
+                    let spacing = btn_ui.style().spacing.item_spacing.x;
+                    let half_w = (btn_ui.available_width() - spacing) / 2.0;
+                    if btn_min_w(&mut btn_ui, "Save", half_w) {
+                        save_clicked = true;
+                    }
+                    if btn_min_w(&mut btn_ui, "Cancel", half_w) {
+                        self.show_export = false;
+                    }
                 }
 
                 // ── actions ──
                 let enter = ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Enter));
-                if enter || save_resp.clicked() {
+                if enter || save_clicked {
                     let dir = if self.export_path.is_empty() { home.clone() } else { self.export_path.clone() };
                     let name = if self.export_name.ends_with(".png") { self.export_name.clone() } else { format!("{}.png", self.export_name) };
                     let path = format!("{}/{}", dir, name);
                     self.save_png(&path);
-                    self.show_export = false;
-                }
-                if cancel_resp.clicked() {
                     self.show_export = false;
                 }
             });

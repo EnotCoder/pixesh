@@ -4,22 +4,31 @@ use crate::constants::*;
 use crate::ui::*;
 
 impl PixeshApp {
+    // ── диалог изменения размера холста ──
+    // вызывается из ui_dialogs(), если show_resize == true
     pub(crate) fn ui_resize_dialog(&mut self, ctx: &egui::Context) {
         if !self.show_resize { return; }
+
+        // модальное окно по центру экрана
         egui::Area::new("resize_dialog".into())
             .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
             .order(egui::Order::Foreground)
             .show(ctx, |ui| {
                 let size = Vec2::splat(300.0);
                 let (rect, _) = ui.allocate_exact_size(size, egui::Sense::hover());
+
+                // ── фон и рамка ──
                 let p = ui.painter();
                 p.rect_filled(rect, 0.0, PANEL);
                 p.rect_stroke(rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
+
+                // ── внутренняя область с центрированным лейаутом ──
                 let mut child_ui = ui.new_child(
                     egui::UiBuilder::new()
                         .layout(egui::Layout::top_down(egui::Align::Center))
                         .max_rect(rect)
                 );
+                // крупный шрифт для пиксельного стиля
                 child_ui.style_mut().text_styles.insert(
                     egui::TextStyle::Body,
                     egui::FontId::proportional(28.0),
@@ -28,10 +37,14 @@ impl PixeshApp {
                     egui::TextStyle::Button,
                     egui::FontId::proportional(28.0),
                 );
+
                 child_ui.add_space(8.0);
+                // ── заголовок ──
                 child_ui.vertical_centered(|ui| {
                     ui.label(egui::RichText::new("Resize Canvas").size(32.0).color(TEXT));
                 });
+
+                // ── поля ввода W и H ──
                 child_ui.add_space(20.0);
                 child_ui.vertical_centered(|ui| {
                     let mut w = self.resize_w as i32;
@@ -52,6 +65,8 @@ impl PixeshApp {
                     );
                     self.resize_h = h as f32;
                 });
+
+                // ── Enter подтверждает ──
                 let enter = ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Enter));
                 if enter {
                     if self.resize_w as usize != self.width
@@ -61,6 +76,8 @@ impl PixeshApp {
                     }
                     self.show_resize = false;
                 }
+
+                // ── кнопки Apply / Cancel ──
                 child_ui.add_space(child_ui.available_height() - 44.0);
                 let spacing = child_ui.style().spacing.item_spacing.x;
                 let half_w = (child_ui.available_width() - spacing) / 2.0;
