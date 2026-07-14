@@ -34,9 +34,9 @@ impl PixeshApp {
                 // ── список слоёв (снизу вверх) ──
                 let n = self.layers.len();
                 for i in (0..n).rev() {
-                    let name = self.layers[i].name.clone();
                     let is_active = self.active_layer == i;
                     let cb = self.layers[i].visible;
+                    let renaming = self.renaming_layer == Some(i);
 
                     let row_h = ROW_H * 1.5 + 16.0;
                     let (rect, resp) =
@@ -66,14 +66,41 @@ impl PixeshApp {
                         self.canvas_dirty = true;
                     }
 
-                    // имя слоя
-                    p.text(
-                        Pos2::new(cb_rect.max.x + 8.0, rect.min.y + 8.0),
-                        egui::Align2::LEFT_TOP,
-                        &name,
-                        egui::FontId::proportional(FONT_SZ * 1.5),
-                        TEXT,
-                    );
+                    // имя слоя (или TextEdit при переименовании)
+                    let text_x = cb_rect.max.x + 8.0;
+                    let text_w = rect.max.x - text_x - PANEL_PAD;
+                    if renaming {
+                        let te_rect = Rect::from_min_size(
+                            Pos2::new(text_x, rect.min.y + 4.0),
+                            Vec2::new(text_w, row_h - 8.0),
+                        );
+                        ui.put(te_rect, egui::TextEdit::singleline(&mut self.rename_buf)
+                            .desired_width(text_w)
+                            .font(egui::TextStyle::Body));
+                        let enter = ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Enter));
+                        let escape = ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Escape));
+                        if enter {
+                            if !self.rename_buf.is_empty() {
+                                self.layers[i].name = self.rename_buf.clone();
+                            }
+                            self.renaming_layer = None;
+                        }
+                        if escape {
+                            self.renaming_layer = None;
+                        }
+                    } else {
+                        p.text(
+                            Pos2::new(text_x, rect.min.y + 8.0),
+                            egui::Align2::LEFT_TOP,
+                            &self.layers[i].name,
+                            egui::FontId::proportional(FONT_SZ * 1.5),
+                            TEXT,
+                        );
+                        if resp.double_clicked() && !cb_resp.clicked() {
+                            self.rename_buf = self.layers[i].name.clone();
+                            self.renaming_layer = Some(i);
+                        }
+                    }
 
                     if resp.clicked() && !cb_resp.clicked() {
                         self.active_layer = i;

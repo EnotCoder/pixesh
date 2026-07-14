@@ -120,6 +120,10 @@ pub struct PixeshApp {
     // ── история цветов ──
     pub(crate) color_history: Vec<Color32>,
 
+    // ── переименование слоёв ──
+    pub(crate) renaming_layer: Option<usize>,
+    pub(crate) rename_buf: String,
+
     // ── настройки ──
     pub(crate) arrow_speed: f32,           // скорость панорамы стрелками
     pub(crate) zoom_speed: f32,            // скорость зума колесом
@@ -194,6 +198,8 @@ impl PixeshApp {
             show_right_panel: true,
             mid_pan_pos: None,
             color_history: Vec::new(),
+            renaming_layer: None,
+            rename_buf: String::new(),
             arrow_speed: 20.0,
             zoom_speed: 0.2,
         }
