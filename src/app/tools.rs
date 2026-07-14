@@ -111,11 +111,10 @@ impl PixeshApp {
                     let h = self.sel_buf_h as i32;
                     let dx = current.0 - origin.0;
                     let dy = current.1 - origin.1;
-                    let nx0 = (x0 + dx).max(0).min(self.width as i32 - w);
-                    let ny0 = (y0 + dy).max(0).min(self.height as i32 - h);
-                    let nx1 = nx0 + w - 1;
-                    let ny1 = ny0 + h - 1;
+                    let nx0 = x0 + dx;
+                    let ny0 = y0 + dy;
                     let cw = self.width as i32;
+                    let ch = self.height as i32;
 
                     if let Some(buf) = self.sel_buffer.take() {
                         let pixels = self.pixels_mut(self.active_layer);
@@ -127,13 +126,21 @@ impl PixeshApp {
                         for yy in 0..h {
                             for xx in 0..w {
                                 let src = buf[(yy * w + xx) as usize];
-                                if src != Color32::TRANSPARENT {
-                                    pixels[((ny0 + yy) * cw + nx0 + xx) as usize] = src;
+                                if src == Color32::TRANSPARENT { continue; }
+                                let px = nx0 + xx;
+                                let py = ny0 + yy;
+                                if px >= 0 && px < cw && py >= 0 && py < ch {
+                                    pixels[(py * cw + px) as usize] = src;
                                 }
                             }
                         }
                     }
-                    self.sel = Some((nx0, ny0, nx1, ny1));
+                    // обрезаем sel до видимой части
+                    let cl = nx0.max(0);
+                    let ct = ny0.max(0);
+                    let cr = (nx0 + w - 1).min(cw - 1);
+                    let cb = (ny0 + h - 1).min(ch - 1);
+                    self.sel = if cl <= cr && ct <= cb { Some((cl, ct, cr, cb)) } else { None };
                     self.canvas_dirty = true;
                 }
             }
@@ -229,11 +236,10 @@ impl PixeshApp {
                     let h = self.sel_buf_h as i32;
                     let dx = current.0 - origin.0;
                     let dy = current.1 - origin.1;
-                    let nx0 = (x0 + dx).max(0).min(self.width as i32 - w);
-                    let ny0 = (y0 + dy).max(0).min(self.height as i32 - h);
-                    let nx1 = nx0 + w - 1;
-                    let ny1 = ny0 + h - 1;
+                    let nx0 = x0 + dx;
+                    let ny0 = y0 + dy;
                     let cw = self.width as i32;
+                    let ch = self.height as i32;
 
                     if let Some(buf) = self.sel_buffer.take() {
                         let pixels = self.pixels_mut(self.active_layer);
@@ -243,17 +249,25 @@ impl PixeshApp {
                                 pixels[(yy * cw + xx) as usize] = Color32::TRANSPARENT;
                             }
                         }
-                        // вставить в новое
+                        // вставить в новое (с обрезкой по границам)
                         for yy in 0..h {
                             for xx in 0..w {
                                 let src = buf[(yy * w + xx) as usize];
-                                if src != Color32::TRANSPARENT {
-                                    pixels[((ny0 + yy) * cw + nx0 + xx) as usize] = src;
+                                if src == Color32::TRANSPARENT { continue; }
+                                let px = nx0 + xx;
+                                let py = ny0 + yy;
+                                if px >= 0 && px < cw && py >= 0 && py < ch {
+                                    pixels[(py * cw + px) as usize] = src;
                                 }
                             }
                         }
                     }
-                    self.sel = Some((nx0, ny0, nx1, ny1));
+                    // обрезаем sel до видимой части
+                    let cl = nx0.max(0);
+                    let ct = ny0.max(0);
+                    let cr = (nx0 + w - 1).min(cw - 1);
+                    let cb = (ny0 + h - 1).min(ch - 1);
+                    self.sel = if cl <= cr && ct <= cb { Some((cl, ct, cr, cb)) } else { None };
                     self.canvas_dirty = true;
                 }
             }

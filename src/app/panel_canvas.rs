@@ -65,16 +65,18 @@ impl PixeshApp {
                                 let dy = current.1 - origin.1;
                                 let bw = self.sel_buf_w as i32;
                                 let bh = self.sel_buf_h as i32;
-                                let nx0 = (x0 + dx).max(0).min(self.width as i32 - bw);
-                                let ny0 = (y0 + dy).max(0).min(self.height as i32 - bh);
+                                let nx0 = x0 + dx;
+                                let ny0 = y0 + dy;
+                                let cw = self.width as i32;
+                                let ch = self.height as i32;
                                 for yy in 0..bh {
                                     for xx in 0..bw {
                                         let src = buf[(yy * bw + xx) as usize];
-                                        if src != Color32::TRANSPARENT {
-                                            let idx = ((ny0 + yy) * w + nx0 + xx) as usize;
-                                            if idx < self.display_buf.len() {
-                                                self.display_buf[idx] = src;
-                                            }
+                                        if src == Color32::TRANSPARENT { continue; }
+                                        let px = nx0 + xx;
+                                        let py = ny0 + yy;
+                                        if px >= 0 && px < cw && py >= 0 && py < ch {
+                                            self.display_buf[(py * cw + px) as usize] = src;
                                         }
                                     }
                                 }
@@ -140,7 +142,15 @@ impl PixeshApp {
                             None
                         }
                     });
-                    if let Some((x0, y0, x1, y1)) = sel_rect {
+                    // если выделение двигается — смещаем рамку за ним (без обрезки)
+                    let sel_draw_pos = sel_rect.and_then(|r| {
+                        self.sel_move_origin.zip(self.sel_move_current).map(|(o, c)| {
+                            let dx = c.0 - o.0;
+                            let dy = c.1 - o.1;
+                            (r.0 + dx, r.1 + dy, r.2 + dx, r.3 + dy)
+                        })
+                    });
+                    if let Some((x0, y0, x1, y1)) = sel_draw_pos.or(sel_rect) {
                         let r = Rect::from_min_size(
                             Pos2::new(canvas_rect.min.x + x0 as f32 * zoom, canvas_rect.min.y + y0 as f32 * zoom),
                             Vec2::new((x1 - x0 + 1) as f32 * zoom, (y1 - y0 + 1) as f32 * zoom),
