@@ -48,18 +48,30 @@ impl PixeshApp {
                         if let (Some(buf), Some(origin), Some(current)) =
                             (self.sel_buffer.as_ref(), self.sel_move_origin, self.sel_move_current)
                         {
-                            if let Some((x0, y0, _, _)) = self.sel {
+                            if let Some((x0, y0, x1, y1)) = self.sel {
+                                // стереть оригинальное выделение с композита
+                                let w = self.width as i32;
+                                for yy in y0..=y1 {
+                                    for xx in x0..=x1 {
+                                        let idx = (yy * w + xx) as usize;
+                                        if idx < self.display_buf.len() {
+                                            let ck_a = Color32::from_gray(200);
+                                            let ck_b = Color32::from_gray(180);
+                                            self.display_buf[idx] = if (xx + yy) % 2 == 0 { ck_a } else { ck_b };
+                                        }
+                                    }
+                                }
                                 let dx = current.0 - origin.0;
                                 let dy = current.1 - origin.1;
-                                let w = self.sel_buf_w as i32;
-                                let h = self.sel_buf_h as i32;
-                                let nx0 = (x0 + dx).max(0).min(self.width as i32 - w);
-                                let ny0 = (y0 + dy).max(0).min(self.height as i32 - h);
-                                for yy in 0..h {
-                                    for xx in 0..w {
-                                        let src = buf[(yy * w + xx) as usize];
+                                let bw = self.sel_buf_w as i32;
+                                let bh = self.sel_buf_h as i32;
+                                let nx0 = (x0 + dx).max(0).min(self.width as i32 - bw);
+                                let ny0 = (y0 + dy).max(0).min(self.height as i32 - bh);
+                                for yy in 0..bh {
+                                    for xx in 0..bw {
+                                        let src = buf[(yy * bw + xx) as usize];
                                         if src != Color32::TRANSPARENT {
-                                            let idx = ((ny0 + yy) * self.width as i32 + nx0 + xx) as usize;
+                                            let idx = ((ny0 + yy) * w + nx0 + xx) as usize;
                                             if idx < self.display_buf.len() {
                                                 self.display_buf[idx] = src;
                                             }
