@@ -125,6 +125,7 @@ impl PixeshApp {
                     self.show_panels = false;
                     self.show_settings = false;
                     self.show_scale = false;
+                    self.show_quit_dialog = false;
                 } else {
                     self.deselect();
                 }

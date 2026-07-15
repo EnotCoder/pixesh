@@ -137,6 +137,7 @@ impl PixeshApp {
                     let name = if self.export_name.ends_with(".png") { self.export_name.clone() } else { format!("{}.png", self.export_name) };
                     let path = format!("{}/{}", dir, name);
                     self.save_png(&path);
+                    self.unsaved = false;
                     self.show_export = false;
                 }
             });

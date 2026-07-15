@@ -3,6 +3,7 @@ use super::{PixeshApp, Snapshot};
 impl PixeshApp {
     // сохранить текущее состояние в undo-стек (снапшот пикселей всех слоёв)
     pub(crate) fn push_undo(&mut self) {
+        self.unsaved = true;
         self.undo_stack.push(Snapshot {
             layers: self.layers.iter().map(|l| l.pixels.clone()).collect(),
             active: self.active_layer,
