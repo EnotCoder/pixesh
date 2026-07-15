@@ -101,4 +101,29 @@ impl PixeshApp {
         self.tex = None;
         self.canvas_dirty = true;
     }
+
+    // масштабировать изображение (nearest-neighbour) — меняет размер всех слоёв
+    pub(crate) fn scale_image(&mut self, new_w: usize, new_h: usize) {
+        if new_w == 0 || new_h == 0 { return; }
+        self.push_undo();
+        let ow = self.width;
+        let oh = self.height;
+        for layer in &mut self.layers {
+            let mut np = vec![Color32::TRANSPARENT; new_w * new_h];
+            for dy in 0..new_h {
+                for dx in 0..new_w {
+                    let sx = (dx as f64 * ow as f64 / new_w as f64) as usize;
+                    let sy = (dy as f64 * oh as f64 / new_h as f64) as usize;
+                    let sx = sx.min(ow - 1);
+                    let sy = sy.min(oh - 1);
+                    np[dy * new_w + dx] = layer.pixels[sy * ow + sx];
+                }
+            }
+            layer.pixels = Arc::new(np);
+        }
+        self.width = new_w;
+        self.height = new_h;
+        self.tex = None;
+        self.canvas_dirty = true;
+    }
 }

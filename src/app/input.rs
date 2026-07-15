@@ -53,6 +53,14 @@ impl PixeshApp {
                     self.show_brush = true;
                 }
             }
+            // Ctrl+I = масштабировать изображение
+            if i.consume_key(egui::Modifiers::CTRL, egui::Key::I) {
+                if !self.dialog_open() {
+                    self.scale_w = self.width as f32;
+                    self.scale_h = self.height as f32;
+                    self.show_scale = true;
+                }
+            }
             // Ctrl+L = загрузить PNG (открыть диалог выбора файла)
             if i.consume_key(egui::Modifiers::CTRL, egui::Key::L) {
                 let home = std::env::var("HOME").unwrap_or_else(|_| "/".into());
@@ -116,6 +124,7 @@ impl PixeshApp {
                     self.show_brush = false;
                     self.show_panels = false;
                     self.show_settings = false;
+                    self.show_scale = false;
                 } else {
                     self.deselect();
                 }

@@ -102,6 +102,10 @@ pub struct PixeshApp {
     pub(crate) resize_w: f32,
     pub(crate) resize_h: f32,
 
+    pub(crate) show_scale: bool,
+    pub(crate) scale_w: f32,
+    pub(crate) scale_h: f32,
+
     pub(crate) show_export: bool,
     pub(crate) export_name: String,
     pub(crate) export_path: String,
@@ -188,6 +192,9 @@ impl PixeshApp {
             show_resize: false,
             resize_w: 64.0,
             resize_h: 64.0,
+            show_scale: false,
+            scale_w: 64.0,
+            scale_h: 64.0,
             show_export: false,
             export_name: "pixesh.png".into(),
             export_path: String::new(),
@@ -208,7 +215,7 @@ impl PixeshApp {
 
 impl PixeshApp {
     pub(crate) fn dialog_open(&self) -> bool {
-        self.show_resize || self.show_export || self.show_brush || self.show_panels || self.show_settings
+        self.show_resize || self.show_export || self.show_brush || self.show_panels || self.show_settings || self.show_scale
     }
 }
 
