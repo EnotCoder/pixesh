@@ -48,8 +48,18 @@ impl PixeshApp {
                         break;
                     }
                 }
+                let cb = if (x + y) % 2 == 0 { ck_a } else { ck_b };
                 if c == Color32::TRANSPARENT {
-                    c = if (x + y) % 2 == 0 { ck_a } else { ck_b };
+                    c = cb;
+                } else if c.a() < 255 {
+                    let a = c.a() as u32;
+                    let ia = 255 - a;
+                    c = Color32::from_rgba_premultiplied(
+                        ((c.r() as u32 * a + cb.r() as u32 * ia) / 255) as u8,
+                        ((c.g() as u32 * a + cb.g() as u32 * ia) / 255) as u8,
+                        ((c.b() as u32 * a + cb.b() as u32 * ia) / 255) as u8,
+                        255,
+                    );
                 }
                 self.display_buf.push(c);
             }

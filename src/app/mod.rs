@@ -237,7 +237,7 @@ impl eframe::App for PixeshApp {
         self.ui_dialogs(ctx);
 
         // ── подтверждение закрытия при несохранённых изменениях ──
-        if ctx.input(|i| i.viewport().close_requested()) && self.unsaved {
+        if ctx.input(|i| i.viewport().close_requested()) && self.unsaved && !self.show_quit_dialog {
             ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
             self.show_quit_dialog = true;
         }
