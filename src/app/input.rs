@@ -9,6 +9,7 @@ use super::PixeshApp;
 impl PixeshApp {
     pub(crate) fn handle_input(&mut self, ctx: &egui::Context) {
         // ── хоткеи ──
+        let text_focused = ctx.memory(|m| m.focused().is_some());
         ctx.input_mut(|i| {
             // Ctrl+Z = отмена
             if i.consume_key(egui::Modifiers::CTRL, egui::Key::Z) {
@@ -72,8 +73,8 @@ impl PixeshApp {
                     self.load_png(&path.to_string_lossy());
                 }
             }
-            // B = кисть, E = ластик, F = заливка, R = выделение (только когда не зажат Alt/Ctrl)
-            if !i.modifiers.alt && !i.modifiers.ctrl {
+            // B = кисть, E = ластик, F = заливка, R = выделение (только когда не зажат Alt/Ctrl и нет фокуса текстового поля)
+            if !i.modifiers.alt && !i.modifiers.ctrl && !text_focused {
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::B) { self.tool = Tool::Brush; }
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::E) { self.tool = Tool::Eraser; }
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::F) { self.tool = Tool::Fill; }
