@@ -38,6 +38,7 @@ A minimal pixel art editor built with Rust and egui.
 | `Ctrl+S` | Export PNG |
 | `Ctrl+L` | Load PNG |
 | `Ctrl+R` | Resize canvas |
+| `Ctrl+I` | Scale canvas |
 | `Ctrl+H` | Settings dialog |
 | `Ctrl+W` | Panels dialog |
 | `Ctrl+D` | Deselect |

@@ -36,7 +36,7 @@ impl PixeshApp {
 
                 child_ui.add_space(8.0);
                 child_ui.vertical_centered(|ui| {
-                    ui.label(egui::RichText::new("Scale Image").size(32.0).color(TEXT));
+                    ui.label(egui::RichText::new("Scale Canvas").size(32.0).color(TEXT));
                 });
 
                 child_ui.add_space(20.0);
