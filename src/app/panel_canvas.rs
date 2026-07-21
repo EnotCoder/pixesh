@@ -268,7 +268,7 @@ impl PixeshApp {
                         }
                     }
                     Tool::Select => {
-                        if resp.drag_started() {
+                        if resp.drag_started() || (resp.is_pointer_button_down_on() && self.sel_start.is_none()) {
                             if let Some(p) = cp(&resp) {
                                 self.handle_select_press(p.0, p.1);
                             }
