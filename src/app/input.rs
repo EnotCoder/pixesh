@@ -67,7 +67,7 @@ impl PixeshApp {
                 let home = std::env::var("HOME").unwrap_or_else(|_| "/".into());
                 if let Some(path) = rfd::FileDialog::new()
                     .set_directory(&home)
-                    .add_filter("PNG", &["png"])
+                    .add_filter("Images", &["png", "jpg", "jpeg", "gif", "bmp", "webp", "tiff", "tga"])
                     .pick_file()
                 {
                     self.load_png(&path.to_string_lossy());
