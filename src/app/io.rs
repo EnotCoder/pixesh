@@ -102,6 +102,36 @@ impl PixeshApp {
         self.canvas_dirty = true;
     }
 
+    // обрезать холст по выделению
+    pub(crate) fn crop_to_selection(&mut self) {
+        if let Some((x0, y0, x1, y1)) = self.sel {
+            let sx = x0.min(x1).max(0) as usize;
+            let sy = y0.min(y1).max(0) as usize;
+            let ex = (x0.max(x1) as usize).min(self.width - 1);
+            let ey = (y0.max(y1) as usize).min(self.height - 1);
+            let new_w = ex - sx + 1;
+            let new_h = ey - sy + 1;
+            if new_w == 0 || new_h == 0 { return; }
+            self.push_undo();
+            for layer in &mut self.layers {
+                let mut np = vec![Color32::TRANSPARENT; new_w * new_h];
+                for y in 0..new_h {
+                    for x in 0..new_w {
+                        np[y * new_w + x] = layer.pixels[(sy + y) * self.width + (sx + x)];
+                    }
+                }
+                layer.pixels = Arc::new(np);
+            }
+            self.width = new_w;
+            self.height = new_h;
+            self.sel = None;
+            self.sel_start = None;
+            self.sel_end = None;
+            self.tex = None;
+            self.canvas_dirty = true;
+        }
+    }
+
     // масштабировать изображение (nearest-neighbour) — меняет размер всех слоёв
     pub(crate) fn scale_image(&mut self, new_w: usize, new_h: usize) {
         if new_w == 0 || new_h == 0 { return; }

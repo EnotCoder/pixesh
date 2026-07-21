@@ -117,6 +117,12 @@ impl PixeshApp {
             if i.consume_key(egui::Modifiers::NONE, egui::Key::Delete) {
                 self.delete_selection();
             }
+            // Enter = обрезать по выделению
+            if i.consume_key(egui::Modifiers::NONE, egui::Key::Enter) {
+                if self.sel.is_some() && !self.dialog_open() {
+                    self.crop_to_selection();
+                }
+            }
             // Escape = сначала закрыть диалоги, потом снять выделение
             if i.consume_key(egui::Modifiers::NONE, egui::Key::Escape) {
                 if self.dialog_open() {
