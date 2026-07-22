@@ -9,7 +9,7 @@ impl PixeshApp {
             .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
             .order(egui::Order::Foreground)
             .show(ctx, |ui| {
-                let size = Vec2::new(300.0, 280.0);
+                let size = Vec2::new(300.0, 320.0);
                 let (rect, _) = ui.allocate_exact_size(size, egui::Sense::hover());
                 let p = ui.painter();
                 p.rect_filled(rect, 0.0, PANEL);
@@ -44,7 +44,7 @@ impl PixeshApp {
                     ui.add_space(ui.available_width() - 200.0 - PANEL_PAD);
                     ui.add_sized(
                         Vec2::new(200.0, 32.0),
-                        egui::Slider::new(&mut self.arrow_speed, 5.0..=200.0)
+                        egui::Slider::new(&mut self.arrow_speed, 1.0..=100.0)
                             .show_value(true)
                             .step_by(5.0),
                     );
@@ -60,9 +60,8 @@ impl PixeshApp {
                     ui.add_space(ui.available_width() - 200.0 - PANEL_PAD);
                     ui.add_sized(
                         Vec2::new(200.0, 32.0),
-                        egui::Slider::new(&mut self.zoom_speed, 0.05..=1.0)
-                            .show_value(true)
-                            .step_by(0.05),
+                        egui::Slider::new(&mut self.zoom_speed, 0.005..=1.0)
+                            .show_value(true),
                     );
                 });
 

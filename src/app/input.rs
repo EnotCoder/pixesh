@@ -146,13 +146,14 @@ impl PixeshApp {
         // ── зум колесом мыши / размер кисти (Shift) ──
         let scroll = ctx.input(|i| i.raw_scroll_delta.y);
         if scroll != 0.0 {
+            let scroll_norm = scroll.signum(); // +1 или -1, одинаковая скорость всегда
             if self.show_brush || ctx.input(|i| i.modifiers.shift) {
                 // диалог открыт или Shift = размер кисти (без зума)
                 let max = self.width.max(self.height) as f32;
-                self.brush = (self.brush + scroll.signum()).clamp(1.0, max);
+                self.brush = (self.brush + scroll_norm).clamp(1.0, max);
             } else {
                 let old = self.zoom;
-                self.zoom = (self.zoom + scroll * self.zoom_speed).clamp(0.1, 60.0);
+                self.zoom = (self.zoom * (1.0 + scroll_norm * self.zoom_speed * 0.1)).clamp(0.1, 60.0);
                 self.pan *= self.zoom / old;
             }
         }

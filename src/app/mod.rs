@@ -212,7 +212,7 @@ impl PixeshApp {
             color_history: Vec::new(),
             renaming_layer: None,
             rename_buf: String::new(),
-            arrow_speed: 20.0,
+            arrow_speed: 5.0,
             zoom_speed: 0.2,
             unsaved: false,
             show_quit_dialog: false,
