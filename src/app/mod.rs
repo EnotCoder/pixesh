@@ -186,7 +186,7 @@ impl PixeshApp {
             show_panels: false, show_settings: false,
             show_top_panel: true, show_right_panel: true,
             show_quit_dialog: false,
-            arrow_speed: 5.0, zoom_speed: 0.2,
+            arrow_speed: 5.0,             zoom_speed: 0.5,
             color_history: Vec::new(),
             renaming_layer: None, rename_buf: String::new(),
         }
