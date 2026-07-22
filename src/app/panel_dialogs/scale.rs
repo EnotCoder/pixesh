@@ -4,10 +4,9 @@ use crate::constants::*;
 use crate::ui::*;
 
 impl PixeshApp {
-    // ── диалог масштабирования изображения ──
-    // меняет размер картинки (пиксели сэмплируются заново), а не холста
     pub(crate) fn ui_scale_dialog(&mut self, ctx: &egui::Context) {
         if !self.show_scale { return; }
+        let i = self.active_tab;
 
         egui::Area::new("scale_dialog".into())
             .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
@@ -62,10 +61,10 @@ impl PixeshApp {
 
                 let enter = ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Enter));
                 if enter {
-                    if self.scale_w as usize != self.width
-                        || self.scale_h as usize != self.height
+                    if self.scale_w as usize != self.docs[i].width
+                        || self.scale_h as usize != self.docs[i].height
                     {
-                        self.scale_image(self.scale_w as usize, self.scale_h as usize);
+                        self.docs[i].scale_image(self.scale_w as usize, self.scale_h as usize);
                     }
                     self.show_scale = false;
                 }
@@ -75,10 +74,10 @@ impl PixeshApp {
                 let half_w = (child_ui.available_width() - spacing) / 2.0;
                 child_ui.horizontal(|ui| {
                     if btn_min_w(ui, "Apply", half_w) {
-                        if self.scale_w as usize != self.width
-                            || self.scale_h as usize != self.height
+                        if self.scale_w as usize != self.docs[i].width
+                            || self.scale_h as usize != self.docs[i].height
                         {
-                            self.scale_image(self.scale_w as usize, self.scale_h as usize);
+                            self.docs[i].scale_image(self.scale_w as usize, self.scale_h as usize);
                         }
                         self.show_scale = false;
                     }

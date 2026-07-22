@@ -2,10 +2,9 @@ use std::sync::Arc;
 
 use eframe::egui::Color32;
 
-use super::{Layer, PixeshApp};
+use super::{Document, Layer};
 
-impl PixeshApp {
-    // создать новый пустой слой и сделать его активным
+impl Document {
     pub(crate) fn add_layer(&mut self) {
         self.push_undo();
         self.layers.push(Layer {
@@ -17,7 +16,6 @@ impl PixeshApp {
         self.canvas_dirty = true;
     }
 
-    // удалить слой по индексу (нельзя удалить последний)
     pub(crate) fn remove_layer(&mut self, idx: usize) {
         if self.layers.len() <= 1 { return; }
         self.push_undo();
@@ -28,24 +26,18 @@ impl PixeshApp {
         self.canvas_dirty = true;
     }
 
-    // сохранить композит canvas в PNG по заданному пути
     pub(crate) fn save_png(&self, path: &str) {
         let flat = self.composite();
         let mut img = image::RgbaImage::new(self.width as u32, self.height as u32);
         for y in 0..self.height {
             for x in 0..self.width {
                 let c = flat[y * self.width + x];
-                img.put_pixel(
-                    x as u32,
-                    y as u32,
-                    image::Rgba([c.r(), c.g(), c.b(), c.a()]),
-                );
+                img.put_pixel(x as u32, y as u32, image::Rgba([c.r(), c.g(), c.b(), c.a()]));
             }
         }
         let _ = img.save(path);
     }
 
-    // загрузить PNG из файла — заменяет все слои, подгоняет размер холста
     pub(crate) fn load_png(&mut self, path: &str) {
         let img = match image::open(path) {
             Ok(i) => i.to_rgba8(),
@@ -74,7 +66,6 @@ impl PixeshApp {
         self.tex = None;
         self.canvas_dirty = true;
 
-        // сохраняем путь загруженного файла для авто-заполнения диалога экспорта
         let p = std::path::Path::new(path);
         if let Some(parent) = p.parent() {
             self.export_path = parent.to_string_lossy().into();
@@ -84,7 +75,6 @@ impl PixeshApp {
         }
     }
 
-    // изменить размер холста (с обрезкой/расширением всех слоёв)
     pub(crate) fn resize_canvas(&mut self, new_w: usize, new_h: usize) {
         self.push_undo();
         for layer in &mut self.layers {
@@ -102,7 +92,6 @@ impl PixeshApp {
         self.canvas_dirty = true;
     }
 
-    // обрезать холст по выделению
     pub(crate) fn crop_to_selection(&mut self) {
         if let Some((x0, y0, x1, y1)) = self.sel {
             let sx = x0.min(x1).max(0) as usize;
@@ -132,7 +121,6 @@ impl PixeshApp {
         }
     }
 
-    // масштабировать изображение (nearest-neighbour) — меняет размер всех слоёв
     pub(crate) fn scale_image(&mut self, new_w: usize, new_h: usize) {
         if new_w == 0 || new_h == 0 { return; }
         self.push_undo();

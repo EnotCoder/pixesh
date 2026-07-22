@@ -5,7 +5,6 @@ use crate::constants::*;
 use super::PixeshApp;
 
 impl PixeshApp {
-    // правая панель: список слоёв + HSV-пикер
     pub(crate) fn ui_layers(&mut self, ctx: &egui::Context) {
         egui::SidePanel::right("layers")
             .resizable(true)
@@ -14,7 +13,6 @@ impl PixeshApp {
             .show(ctx, |ui| {
                 ui.add_space(8.0);
 
-                // ── заголовок "Layers" ──
                 let header = "Layers";
                 let hdr_w = header.len() as f32 * CHAR_W * 1.5;
                 let (hdr, _) = ui.allocate_exact_size(
@@ -31,12 +29,13 @@ impl PixeshApp {
 
                 ui.add_space(4.0);
 
-                // ── список слоёв (снизу вверх) ──
-                let n = self.layers.len();
-                for i in (0..n).rev() {
-                    let is_active = self.active_layer == i;
-                    let cb = self.layers[i].visible;
-                    let renaming = self.renaming_layer == Some(i);
+                let i = self.active_tab;
+                let n = self.docs[i].layers.len();
+                let active_layer = self.docs[i].active_layer;
+                for li in (0..n).rev() {
+                    let is_active = active_layer == li;
+                    let cb = self.docs[i].layers[li].visible;
+                    let renaming = self.renaming_layer == Some(li);
 
                     let row_h = ROW_H * 1.5 + 16.0;
                     let (rect, resp) =
@@ -45,7 +44,6 @@ impl PixeshApp {
                     let bg = if is_active { HOVER } else { PANEL };
                     ui.painter().rect_filled(rect, 0.0, bg);
 
-                    // чекбокс видимости слоя
                     let cbs = 14.0;
                     let cb_rect = Rect::from_min_size(
                         Pos2::new(rect.min.x + PANEL_PAD, rect.center().y - cbs * 0.5),
@@ -60,13 +58,12 @@ impl PixeshApp {
                     }
 
                     let cb_resp =
-                        ui.interact(cb_rect, egui::Id::new(("lc", i)), Sense::click());
+                        ui.interact(cb_rect, egui::Id::new(("lc", li)), Sense::click());
                     if cb_resp.clicked() {
-                        self.layers[i].visible = !self.layers[i].visible;
-                        self.canvas_dirty = true;
+                        self.docs[i].layers[li].visible = !self.docs[i].layers[li].visible;
+                        self.docs[i].canvas_dirty = true;
                     }
 
-                    // имя слоя (или TextEdit при переименовании)
                     let text_x = cb_rect.max.x + 8.0;
                     let text_w = rect.max.x - text_x - PANEL_PAD;
                     if renaming {
@@ -81,7 +78,7 @@ impl PixeshApp {
                         let escape = ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Escape));
                         if enter {
                             if !self.rename_buf.is_empty() {
-                                self.layers[i].name = self.rename_buf.clone();
+                                self.docs[i].layers[li].name = self.rename_buf.clone();
                             }
                             self.renaming_layer = None;
                         }
@@ -92,47 +89,45 @@ impl PixeshApp {
                         p.text(
                             Pos2::new(text_x, rect.min.y + 8.0),
                             egui::Align2::LEFT_TOP,
-                            &self.layers[i].name,
+                            &self.docs[i].layers[li].name,
                             egui::FontId::proportional(FONT_SZ * 1.5),
                             TEXT,
                         );
                         if resp.double_clicked() && !cb_resp.clicked() {
-                            self.rename_buf = self.layers[i].name.clone();
-                            self.renaming_layer = Some(i);
+                            self.rename_buf = self.docs[i].layers[li].name.clone();
+                            self.renaming_layer = Some(li);
                         }
                     }
 
                     if resp.clicked() && !cb_resp.clicked() {
-                        self.active_layer = i;
+                        self.docs[i].active_layer = li;
                     }
                 }
 
-                // ── кнопки + / - слой ──
+                // +/- layer buttons
                 ui.add_space(PANEL_PAD);
                 ui.horizontal(|ui| {
                     let sz = FONT_SZ * 2.5 + 2.0;
                     ui.add_space(PANEL_PAD);
 
-                    // кнопка "+"
                     let (r_plus, resp_plus) = ui.allocate_exact_size(Vec2::splat(sz), Sense::click());
                     let bg = if resp_plus.clicked() { ACCENT } else if resp_plus.hovered() { HOVER } else { PANEL };
                     ui.painter().rect_filled(r_plus, 0.0, bg);
                     ui.painter().rect_stroke(r_plus, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
                     ui.painter().text(r_plus.center(), egui::Align2::CENTER_CENTER, "+", egui::FontId::proportional(FONT_SZ * 2.5), TEXT);
-                    if resp_plus.clicked() { self.add_layer(); }
+                    if resp_plus.clicked() { self.docs[i].add_layer(); }
 
                     ui.add_space(6.0);
 
-                    // кнопка "-"
                     let (r_minus, resp_minus) = ui.allocate_exact_size(Vec2::splat(sz), Sense::click());
                     let bg = if resp_minus.clicked() { ACCENT } else if resp_minus.hovered() { HOVER } else { PANEL };
                     ui.painter().rect_filled(r_minus, 0.0, bg);
                     ui.painter().rect_stroke(r_minus, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
                     ui.painter().text(r_minus.center(), egui::Align2::CENTER_CENTER, "-", egui::FontId::proportional(FONT_SZ * 2.5), TEXT);
-                    if resp_minus.clicked() { self.remove_layer(self.active_layer); }
+                    if resp_minus.clicked() { let al = self.docs[i].active_layer; self.docs[i].remove_layer(al); }
                 });
 
-                // ── HSV picker ───────────────────────────
+                // ── HSV picker ──
                 ui.add_space(12.0);
                 let hdr = "Color";
                 let hw = hdr.len() as f32 * CHAR_W * 1.5;
@@ -178,7 +173,7 @@ impl PixeshApp {
                     });
                 });
 
-                // ── слайдер альфы ──
+                // alpha slider
                 ui.add_space(4.0);
                 ui.style_mut().text_styles.insert(
                     egui::TextStyle::Body,
@@ -204,7 +199,7 @@ impl PixeshApp {
                 });
                 self.color = Color32::from_rgba_unmultiplied(self.rgb_r as u8, self.rgb_g as u8, self.rgb_b as u8, self.rgb_a as u8);
 
-                // ── история цветов ──
+                // color history
                 if !self.color_history.is_empty() {
                     ui.add_space(8.0);
                     ui.horizontal(|ui| {
@@ -213,8 +208,8 @@ impl PixeshApp {
                         let gap = 4.0;
                         let max_cols = ((ui.available_width() - PANEL_PAD) / (sw + gap)).max(1.0) as usize;
                         let mut rows: Vec<Vec<Color32>> = Vec::new();
-                        for (i, c) in self.color_history.iter().rev().enumerate() {
-                            if i % max_cols == 0 { rows.push(Vec::new()); }
+                        for (ii, c) in self.color_history.iter().rev().enumerate() {
+                            if ii % max_cols == 0 { rows.push(Vec::new()); }
                             rows.last_mut().unwrap().push(*c);
                         }
                         for row in &rows {
@@ -247,7 +242,6 @@ impl PixeshApp {
 
                     ui.add_space(PANEL_PAD);
 
-                    // ── SV 2D field ──
                     let (rect, resp) = ui.allocate_exact_size(Vec2::splat(fsize), Sense::click_and_drag());
 
                     if self.sv_tex.is_none() || (self.sv_tex_h - self.hsv_h).abs() > 0.5 {
@@ -272,7 +266,6 @@ impl PixeshApp {
                         p.image(tex.id(), rect, Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
                         p.rect_stroke(rect, 0.0, Stroke::new(1.0, BORDER), egui::StrokeKind::Outside);
 
-                        // курсор на SV-поле
                         let cx = rect.min.x + (self.hsv_s / 255.0) * rect.width();
                         let cy = rect.min.y + (1.0 - self.hsv_v / 255.0) * rect.height();
                         let cc = if self.hsv_v > 180.0 { Color32::BLACK } else { Color32::WHITE };
@@ -295,7 +288,6 @@ impl PixeshApp {
                         }
                     }
 
-                    // ── H strip (вертикальный) ──
                     let (srect, sresp) = ui.allocate_exact_size(Vec2::new(strip_w, fsize), Sense::click_and_drag());
 
                     if self.h_tex.is_none() {
@@ -314,7 +306,6 @@ impl PixeshApp {
                     sp.image(stex.id(), srect, Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
                     sp.rect_stroke(srect, 0.0, Stroke::new(1.0, BORDER), egui::StrokeKind::Outside);
 
-                    // курсор на H-стрипе
                     let hy = srect.min.y + (self.hsv_h / 360.0) * srect.height();
                     sp.hline(srect.x_range(), hy, Stroke::new(2.0, Color32::WHITE));
 

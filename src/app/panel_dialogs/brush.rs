@@ -6,7 +6,8 @@ use crate::ui::*;
 impl PixeshApp {
     pub(crate) fn ui_brush_dialog(&mut self, ctx: &egui::Context) {
         if !self.show_brush { return; }
-        let max = self.width.max(self.height) as f32;
+        let i = self.active_tab;
+        let max = self.docs[i].width.max(self.docs[i].height) as f32;
         egui::Area::new("brush_dialog".into())
             .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
             .order(egui::Order::Foreground)
