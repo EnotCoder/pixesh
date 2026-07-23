@@ -68,6 +68,7 @@ pub(crate) struct Document {
     pub(crate) unsaved: bool,
     pub(crate) export_path: String,
     pub(crate) export_name: String,
+    pub(crate) needs_zoom_fit: bool,
 }
 
 impl Document {
@@ -107,6 +108,7 @@ impl Document {
             unsaved: false,
             export_path: String::new(),
             export_name: "pixesh.png".into(),
+            needs_zoom_fit: false,
         }
     }
 }

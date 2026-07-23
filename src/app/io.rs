@@ -65,6 +65,7 @@ impl Document {
         self.active_layer = 0;
         self.tex = None;
         self.canvas_dirty = true;
+        self.needs_zoom_fit = true;
 
         let p = std::path::Path::new(path);
         if let Some(parent) = p.parent() {

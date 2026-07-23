@@ -21,10 +21,21 @@ impl PixeshApp {
                 let color = self.color;
                 let dialog_open = self.dialog_open();
 
-                let zoom = self.docs[i].zoom;
-                let pan = self.docs[i].pan;
                 let width = self.docs[i].width;
                 let height = self.docs[i].height;
+
+                // zoom to fit after loading
+                if self.docs[i].needs_zoom_fit {
+                    let avail = ui.available_size();
+                    let zoom_x = avail.x / width as f32;
+                    let zoom_y = avail.y / height as f32;
+                    self.docs[i].zoom = zoom_x.min(zoom_y).clamp(0.1, 60.0);
+                    self.docs[i].pan = Vec2::ZERO;
+                    self.docs[i].needs_zoom_fit = false;
+                }
+
+                let zoom = self.docs[i].zoom;
+                let pan = self.docs[i].pan;
 
                 let canvas_size = Vec2::new(width as f32 * zoom, height as f32 * zoom);
                 let avail = ui.available_size();
