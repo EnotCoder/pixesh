@@ -151,6 +151,48 @@ impl PixeshApp {
             if i.consume_key(egui::Modifiers::CTRL, egui::Key::D) {
                 self.docs[self.active_tab].deselect();
             }
+            // Y = copy selection
+            if i.consume_key(egui::Modifiers::NONE, egui::Key::Y) {
+                let tab = self.active_tab;
+                if let Some((x0, y0, x1, y1)) = self.docs[tab].sel {
+                    let sw = (x1 - x0 + 1) as usize;
+                    let sh = (y1 - y0 + 1) as usize;
+                    let w = self.docs[tab].width;
+                    let mut buf = Vec::with_capacity(sw * sh);
+                    for yy in y0..=y1 {
+                        for xx in x0..=x1 {
+                            let idx = (yy * w as i32 + xx) as usize;
+                            buf.push(self.docs[tab].layers[self.docs[tab].active_layer].pixels[idx]);
+                        }
+                    }
+                    self.docs[tab].clipboard = Some(buf);
+                    self.docs[tab].clip_w = sw;
+                    self.docs[tab].clip_h = sh;
+                }
+            }
+            // P = paste selection
+            if i.consume_key(egui::Modifiers::NONE, egui::Key::P) {
+                let tab = self.active_tab;
+                if let Some(clip) = self.docs[tab].clipboard.clone() {
+                    let cw = self.docs[tab].clip_w as i32;
+                    let ch = self.docs[tab].clip_h as i32;
+                    let w = self.docs[tab].width as i32;
+                    let h = self.docs[tab].height as i32;
+                    let cx = (w - cw) / 2;
+                    let cy = (h - ch) / 2;
+                    self.docs[tab].sel = Some((cx, cy, cx + cw - 1, cy + ch - 1));
+                    self.docs[tab].sel_buffer = Some(clip);
+                    self.docs[tab].sel_buf_w = self.docs[tab].clip_w;
+                    self.docs[tab].sel_buf_h = self.docs[tab].clip_h;
+                    self.docs[tab].sel_start = None;
+                    self.docs[tab].sel_end = None;
+                    // start move immediately
+                    let center = (cx + cw / 2, cy + ch / 2);
+                    self.docs[tab].sel_move_origin = Some(center);
+                    self.docs[tab].sel_move_current = Some(center);
+                    self.docs[tab].pasting = true;
+                }
+            }
         });
 
         // scroll zoom / brush size

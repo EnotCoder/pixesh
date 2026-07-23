@@ -69,6 +69,11 @@ pub(crate) struct Document {
     pub(crate) export_path: String,
     pub(crate) export_name: String,
     pub(crate) needs_zoom_fit: bool,
+
+    pub(crate) clipboard: Option<Vec<Color32>>,
+    pub(crate) clip_w: usize,
+    pub(crate) clip_h: usize,
+    pub(crate) pasting: bool,
 }
 
 impl Document {
@@ -109,6 +114,10 @@ impl Document {
             export_path: String::new(),
             export_name: "pixesh.png".into(),
             needs_zoom_fit: false,
+            clipboard: None,
+            clip_w: 0,
+            clip_h: 0,
+            pasting: false,
         }
     }
 }

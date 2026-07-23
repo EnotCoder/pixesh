@@ -267,6 +267,7 @@ impl PixeshApp {
                 match tool {
                     Tool::Eyedropper => {
                         if resp.clicked_by(egui::PointerButton::Primary) {
+                            self.docs[i].commit_pending_paste();
                             if let Some(p) = cp(&resp) {
                                 self.handle_eyedropper(p.0, p.1);
                             }
@@ -274,6 +275,7 @@ impl PixeshApp {
                     }
                     Tool::Fill => {
                         if resp.clicked_by(egui::PointerButton::Primary) {
+                            self.docs[i].commit_pending_paste();
                             if let Some(p) = cp(&resp) {
                                 self.docs[i].handle_fill(p.0, p.1, color);
                             }
@@ -281,6 +283,9 @@ impl PixeshApp {
                     }
                     Tool::Select => {
                         if resp.drag_started() || (resp.is_pointer_button_down_on() && self.docs[i].sel_start.is_none()) {
+                            if self.docs[i].pasting && !self.docs[i].sel_move_origin.is_some() {
+                                self.docs[i].commit_pending_paste();
+                            }
                             let press_pos = ctx.input(|i| i.pointer.press_origin());
                             if let Some(pos) = press_pos {
                                 if canvas_rect.contains(pos) {
@@ -300,6 +305,9 @@ impl PixeshApp {
                     }
                     Tool::Move => {
                         if resp.drag_started() {
+                            if self.docs[i].pasting && !self.docs[i].sel_move_origin.is_some() {
+                                self.docs[i].commit_pending_paste();
+                            }
                             if let Some(p) = cp(&resp) {
                                 self.docs[i].handle_move_press(p.0, p.1);
                             }
@@ -314,6 +322,7 @@ impl PixeshApp {
                         }
                     }
                     _ => {
+                        self.docs[i].commit_pending_paste();
                         let paint_color = if tool == Tool::Eraser { Color32::TRANSPARENT } else { color };
                         if self.docs[i].last_px_primary.is_none() {
                             if ctx.input(|i| i.pointer.primary_down()) {
@@ -334,6 +343,7 @@ impl PixeshApp {
 
                 // right click eraser
                 if resp.dragged_by(egui::PointerButton::Secondary) {
+                    self.docs[i].commit_pending_paste();
                     if let Some(p) = cp(&resp) {
                         if self.docs[i].last_px_secondary.is_none() { self.docs[i].push_undo(); }
                         if let Some(last) = self.docs[i].last_px_secondary {
@@ -347,6 +357,7 @@ impl PixeshApp {
                     }
                 }
                 if resp.clicked_by(egui::PointerButton::Secondary) {
+                    self.docs[i].commit_pending_paste();
                     if let Some(p) = cp(&resp) {
                         self.docs[i].push_undo();
                         self.docs[i].paint_pixel(p.0, p.1, Color32::TRANSPARENT, brush);

@@ -26,6 +26,11 @@ impl Document {
     pub(crate) fn handle_move_press(&mut self, px: i32, py: i32) {
         if let Some((x0, y0, x1, y1)) = self.sel {
             if px >= x0 && px <= x1 && py >= y0 && py <= y1 {
+                if self.pasting {
+                    self.sel_move_origin = Some((px, py));
+                    self.sel_move_current = None;
+                    return;
+                }
                 self.push_undo();
                 let sw = (x1 - x0 + 1) as usize;
                 let sh = (y1 - y0 + 1) as usize;
@@ -61,47 +66,81 @@ impl Document {
 
     pub(crate) fn handle_move_release(&mut self) {
         if self.sel_move_origin.is_some() {
-            if let (Some(current), Some((x0, y0, x1, y1))) = (self.sel_move_current, self.sel) {
-                if let Some(origin) = self.sel_move_origin {
-                    let w = self.sel_buf_w as i32;
-                    let h = self.sel_buf_h as i32;
-                    let dx = current.0 - origin.0;
-                    let dy = current.1 - origin.1;
-                    let nx0 = x0 + dx;
-                    let ny0 = y0 + dy;
-                    let cw = self.width as i32;
-                    let ch = self.height as i32;
+            let was_pasting = self.pasting;
+            let origin = self.sel_move_origin;
+            let current = self.sel_move_current;
+            let sel = self.sel;
+            let has_move = current.is_some() && origin.is_some() && sel.is_some();
 
-                    if let Some(buf) = self.sel_buffer.take() {
-                        let pixels = self.pixels_mut(self.active_layer);
+            if has_move {
+                let (cx, cy) = current.unwrap();
+                let (ox, oy) = origin.unwrap();
+                let (x0, y0, x1, y1) = sel.unwrap();
+                let w = self.sel_buf_w as i32;
+                let h = self.sel_buf_h as i32;
+                let dx = cx - ox;
+                let dy = cy - oy;
+                let nx0 = x0 + dx;
+                let ny0 = y0 + dy;
+                let cw = self.width as i32;
+                let ch = self.height as i32;
+
+                if let Some(buf) = self.sel_buffer.take() {
+                    let pixels = self.pixels_mut(self.active_layer);
+                    if !was_pasting {
                         for yy in y0..=y1 {
                             for xx in x0..=x1 {
                                 pixels[(yy * cw + xx) as usize] = Color32::TRANSPARENT;
                             }
                         }
-                        for yy in 0..h {
-                            for xx in 0..w {
-                                let src = buf[(yy * w + xx) as usize];
-                                if src == Color32::TRANSPARENT { continue; }
-                                let px = nx0 + xx;
-                                let py = ny0 + yy;
-                                if px >= 0 && px < cw && py >= 0 && py < ch {
-                                    pixels[(py * cw + px) as usize] = src;
-                                }
+                    }
+                    for yy in 0..h {
+                        for xx in 0..w {
+                            let src = buf[(yy * w + xx) as usize];
+                            if src == Color32::TRANSPARENT { continue; }
+                            let px = nx0 + xx;
+                            let py = ny0 + yy;
+                            if px >= 0 && px < cw && py >= 0 && py < ch {
+                                pixels[(py * cw + px) as usize] = src;
                             }
                         }
                     }
-                    let cl = nx0.max(0);
-                    let ct = ny0.max(0);
-                    let cr = (nx0 + w - 1).min(cw - 1);
-                    let cb = (ny0 + h - 1).min(ch - 1);
-                    self.sel = if cl <= cr && ct <= cb { Some((cl, ct, cr, cb)) } else { None };
+                }
+                let cl = nx0.max(0);
+                let ct = ny0.max(0);
+                let cr = (nx0 + w - 1).min(cw - 1);
+                let cb = (ny0 + h - 1).min(ch - 1);
+                self.sel = if cl <= cr && ct <= cb { Some((cl, ct, cr, cb)) } else { None };
+                self.canvas_dirty = true;
+            } else if was_pasting {
+                // paste without move: commit buffer at current sel position
+                if let (Some(buf), Some((x0, y0, _x1, _y1))) = (self.sel_buffer.take(), sel) {
+                    let w = self.sel_buf_w as i32;
+                    let h = self.sel_buf_h as i32;
+                    let cw = self.width as i32;
+                    let ch = self.height as i32;
+                    let pixels = self.pixels_mut(self.active_layer);
+                    for yy in 0..h {
+                        for xx in 0..w {
+                            let src = buf[(yy * w + xx) as usize];
+                            if src == Color32::TRANSPARENT { continue; }
+                            let px = x0 + xx;
+                            let py = y0 + yy;
+                            if px >= 0 && px < cw && py >= 0 && py < ch {
+                                pixels[(py * cw + px) as usize] = src;
+                            }
+                        }
+                    }
                     self.canvas_dirty = true;
                 }
             }
             self.clear_move_state();
             self.canvas_move_origin = None;
             self.canvas_move_current = None;
+            if was_pasting {
+                self.sel = None;
+                self.pasting = false;
+            }
             return;
         }
 
@@ -141,6 +180,11 @@ impl Document {
     pub(crate) fn handle_select_press(&mut self, px: i32, py: i32) {
         if let Some((x0, y0, x1, y1)) = self.sel {
             if px >= x0 && px <= x1 && py >= y0 && py <= y1 {
+                if self.pasting {
+                    self.sel_move_origin = Some((px, py));
+                    self.sel_move_current = None;
+                    return;
+                }
                 self.push_undo();
                 let sw = (x1 - x0 + 1) as usize;
                 let sh = (y1 - y0 + 1) as usize;
@@ -178,45 +222,79 @@ impl Document {
 
     pub(crate) fn handle_select_release(&mut self) {
         if self.sel_move_origin.is_some() {
-            if let (Some(current), Some((x0, y0, x1, y1))) = (self.sel_move_current, self.sel) {
-                if let Some(origin) = self.sel_move_origin {
-                    let w = self.sel_buf_w as i32;
-                    let h = self.sel_buf_h as i32;
-                    let dx = current.0 - origin.0;
-                    let dy = current.1 - origin.1;
-                    let nx0 = x0 + dx;
-                    let ny0 = y0 + dy;
-                    let cw = self.width as i32;
-                    let ch = self.height as i32;
+            let was_pasting = self.pasting;
+            let origin = self.sel_move_origin;
+            let current = self.sel_move_current;
+            let sel = self.sel;
+            let has_move = current.is_some() && origin.is_some() && sel.is_some();
 
-                    if let Some(buf) = self.sel_buffer.take() {
-                        let pixels = self.pixels_mut(self.active_layer);
+            if has_move {
+                let (cx, cy) = current.unwrap();
+                let (ox, oy) = origin.unwrap();
+                let (x0, y0, x1, y1) = sel.unwrap();
+                let w = self.sel_buf_w as i32;
+                let h = self.sel_buf_h as i32;
+                let dx = cx - ox;
+                let dy = cy - oy;
+                let nx0 = x0 + dx;
+                let ny0 = y0 + dy;
+                let cw = self.width as i32;
+                let ch = self.height as i32;
+
+                if let Some(buf) = self.sel_buffer.take() {
+                    let pixels = self.pixels_mut(self.active_layer);
+                    if !was_pasting {
                         for yy in y0..=y1 {
                             for xx in x0..=x1 {
                                 pixels[(yy * cw + xx) as usize] = Color32::TRANSPARENT;
                             }
                         }
-                        for yy in 0..h {
-                            for xx in 0..w {
-                                let src = buf[(yy * w + xx) as usize];
-                                if src == Color32::TRANSPARENT { continue; }
-                                let px = nx0 + xx;
-                                let py = ny0 + yy;
-                                if px >= 0 && px < cw && py >= 0 && py < ch {
-                                    pixels[(py * cw + px) as usize] = src;
-                                }
+                    }
+                    for yy in 0..h {
+                        for xx in 0..w {
+                            let src = buf[(yy * w + xx) as usize];
+                            if src == Color32::TRANSPARENT { continue; }
+                            let px = nx0 + xx;
+                            let py = ny0 + yy;
+                            if px >= 0 && px < cw && py >= 0 && py < ch {
+                                pixels[(py * cw + px) as usize] = src;
                             }
                         }
                     }
-                    let cl = nx0.max(0);
-                    let ct = ny0.max(0);
-                    let cr = (nx0 + w - 1).min(cw - 1);
-                    let cb = (ny0 + h - 1).min(ch - 1);
-                    self.sel = if cl <= cr && ct <= cb { Some((cl, ct, cr, cb)) } else { None };
+                }
+                let cl = nx0.max(0);
+                let ct = ny0.max(0);
+                let cr = (nx0 + w - 1).min(cw - 1);
+                let cb = (ny0 + h - 1).min(ch - 1);
+                self.sel = if cl <= cr && ct <= cb { Some((cl, ct, cr, cb)) } else { None };
+                self.canvas_dirty = true;
+            } else if was_pasting {
+                // paste without move: commit buffer at current sel position
+                if let (Some(buf), Some((x0, y0, _x1, _y1))) = (self.sel_buffer.take(), sel) {
+                    let w = self.sel_buf_w as i32;
+                    let h = self.sel_buf_h as i32;
+                    let cw = self.width as i32;
+                    let ch = self.height as i32;
+                    let pixels = self.pixels_mut(self.active_layer);
+                    for yy in 0..h {
+                        for xx in 0..w {
+                            let src = buf[(yy * w + xx) as usize];
+                            if src == Color32::TRANSPARENT { continue; }
+                            let px = x0 + xx;
+                            let py = y0 + yy;
+                            if px >= 0 && px < cw && py >= 0 && py < ch {
+                                pixels[(py * cw + px) as usize] = src;
+                            }
+                        }
+                    }
                     self.canvas_dirty = true;
                 }
             }
             self.clear_move_state();
+            if was_pasting {
+                self.sel = None;
+                self.pasting = false;
+            }
             return;
         }
 
@@ -264,6 +342,32 @@ impl Document {
         self.sel = None;
         self.sel_start = None;
         self.sel_end = None;
+        self.clear_move_state();
+    }
+
+    pub(crate) fn commit_pending_paste(&mut self) {
+        if !self.pasting { return; }
+        if let (Some(buf), Some((x0, y0, _x1, _y1))) = (self.sel_buffer.take(), self.sel) {
+            let w = self.sel_buf_w as i32;
+            let h = self.sel_buf_h as i32;
+            let cw = self.width as i32;
+            let ch = self.height as i32;
+            let pixels = self.pixels_mut(self.active_layer);
+            for yy in 0..h {
+                for xx in 0..w {
+                    let src = buf[(yy * w + xx) as usize];
+                    if src == Color32::TRANSPARENT { continue; }
+                    let px = x0 + xx;
+                    let py = y0 + yy;
+                    if px >= 0 && px < cw && py >= 0 && py < ch {
+                        pixels[(py * cw + px) as usize] = src;
+                    }
+                }
+            }
+            self.canvas_dirty = true;
+        }
+        self.pasting = false;
+        self.sel = None;
         self.clear_move_state();
     }
 }
