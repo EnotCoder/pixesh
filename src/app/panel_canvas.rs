@@ -270,8 +270,12 @@ impl PixeshApp {
                     }
                     Tool::Select => {
                         if resp.drag_started() || (resp.is_pointer_button_down_on() && self.docs[i].sel_start.is_none()) {
-                            if let Some(p) = cp(&resp) {
-                                self.docs[i].handle_select_press(p.0, p.1);
+                            let press_pos = ctx.input(|i| i.pointer.press_origin());
+                            if let Some(pos) = press_pos {
+                                if canvas_rect.contains(pos) {
+                                    let (px, py) = self.docs[i].screen_to_pixel(pos, canvas_rect.min);
+                                    self.docs[i].handle_select_press(px, py);
+                                }
                             }
                         }
                         if resp.dragged_by(egui::PointerButton::Primary) {
