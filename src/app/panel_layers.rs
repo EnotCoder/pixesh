@@ -6,8 +6,8 @@ use super::PixeshApp;
 
 impl PixeshApp {
     pub(crate) fn ui_layers(&mut self, ctx: &egui::Context) {
-        egui::SidePanel::right("layers")
-            .resizable(true)
+                egui::SidePanel::right("layers")
+                    .resizable(false)
             .default_width(280.0)
             .frame(egui::Frame::new().fill(PANEL))
             .show(ctx, |ui| {
