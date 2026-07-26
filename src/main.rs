@@ -13,7 +13,7 @@ use crate::constants::*;      // цветовые константы (TEXT, PANE
 // точка входа — запускает окно через eframe
 fn main() -> eframe::Result {
     // читаем файл шрифта во время компиляции (лежит в корне проекта)
-    let font_data: &'static [u8] = include_bytes!("../font.otf");
+    let font_data: &'static [u8] = include_bytes!("../tex/font.otf");
 
     // создаём окно через eframe (библиотека для окон/OpenGL)
     eframe::run_native(

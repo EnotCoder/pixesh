@@ -118,7 +118,7 @@ impl PixeshApp {
                     ui.add_space(PANEL_PAD);
 
                     let plus_tex = self.plus_layer_tex.get_or_insert_with(|| {
-                        load_icon_texture(ui, "plus_layer", include_bytes!("../../tex/plus_layer.png"))
+                        load_icon_texture(ui, "plus_layer", include_bytes!("../../tex/layers/plus_layer.png"))
                     });
                     if icon_btn_tip(ui, plus_tex.id(), false, "Add Layer") {
                         self.docs[i].add_layer();
@@ -127,7 +127,7 @@ impl PixeshApp {
                     ui.add_space(4.0);
 
                     let minus_tex = self.minus_layer_tex.get_or_insert_with(|| {
-                        load_icon_texture(ui, "minus_layer", include_bytes!("../../tex/minus_layer.png"))
+                        load_icon_texture(ui, "minus_layer", include_bytes!("../../tex/layers/minus_layer.png"))
                     });
                     if icon_btn_tip(ui, minus_tex.id(), false, "Remove Layer") {
                         let al = self.docs[i].active_layer;
@@ -138,7 +138,7 @@ impl PixeshApp {
 
                     // duplicate button
                     let clone_tex = self.clone_layer_tex.get_or_insert_with(|| {
-                        load_icon_texture(ui, "clone_layer", include_bytes!("../../tex/clone_layer.png"))
+                        load_icon_texture(ui, "clone_layer", include_bytes!("../../tex/layers/clone_layer.png"))
                     });
                     if icon_btn_tip(ui, clone_tex.id(), false, "Duplicate Layer") {
                         let al = self.docs[i].active_layer;
@@ -149,7 +149,7 @@ impl PixeshApp {
 
                     // flatten button
                     let set_all_tex = self.set_all_tex.get_or_insert_with(|| {
-                        load_icon_texture(ui, "set_all", include_bytes!("../../tex/set_all.png"))
+                        load_icon_texture(ui, "set_all", include_bytes!("../../tex/layers/set_all.png"))
                     });
                     if icon_btn_tip(ui, set_all_tex.id(), false, "Flatten Layers") {
                         self.docs[i].flatten_layers();
