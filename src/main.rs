@@ -20,7 +20,7 @@ fn main() -> eframe::Result {
         "Pixesh",                          // заголовок окна
         eframe::NativeOptions {
             viewport: egui::ViewportBuilder::default()
-                .with_inner_size([960.0, 700.0])   // начальный размер окна
+                .with_inner_size([1400.0, 900.0])   // начальный размер окна
                 .with_min_inner_size([400.0, 300.0]) // минимальный размер
                 .with_maximized(true),
             ..Default::default()
