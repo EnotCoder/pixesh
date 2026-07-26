@@ -113,6 +113,7 @@ impl PixeshApp {
                                 for yy in 0..h {
                                     for xx in 0..w {
                                         let src = self.docs[i].display_buf[(yy * w + xx) as usize];
+                                        if src == Color32::TRANSPARENT { continue; }
                                         let nx = xx + dx;
                                         let ny = yy + dy;
                                         if nx >= 0 && nx < w && ny >= 0 && ny < h {
