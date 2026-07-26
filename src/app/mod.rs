@@ -167,6 +167,7 @@ pub struct PixeshApp {
     pub(crate) show_settings: bool,
     pub(crate) show_top_panel: bool,
     pub(crate) show_right_panel: bool,
+    pub(crate) show_status_bar: bool,
     pub(crate) show_quit_dialog: bool,
 
     pub(crate) arrow_speed: f32,
@@ -204,7 +205,7 @@ impl PixeshApp {
             show_scale: false, scale_w: 64.0, scale_h: 64.0,
             show_export: false, show_brush: false,
             show_panels: false, show_settings: false,
-            show_top_panel: true, show_right_panel: true,
+            show_top_panel: true, show_right_panel: true, show_status_bar: true,
             show_quit_dialog: false,
             arrow_speed: 5.0,             zoom_speed: 0.5,
             color_history: Vec::new(),
@@ -251,7 +252,7 @@ impl eframe::App for PixeshApp {
         if self.show_top_panel { self.ui_toolbar(ctx); }
         if self.show_right_panel { self.ui_layers(ctx); }
         self.ui_canvas(ctx);
-        self.ui_status(ctx);
+        if self.show_status_bar { self.ui_status(ctx); }
         self.ui_dialogs(ctx);
 
         if ctx.input(|i| i.viewport().close_requested()) && self.any_unsaved() && !self.show_quit_dialog {

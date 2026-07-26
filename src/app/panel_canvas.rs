@@ -107,21 +107,45 @@ impl PixeshApp {
                             let dx = current.0 - origin.0;
                             let dy = current.1 - origin.1;
                             if dx != 0 || dy != 0 {
-                                let w = self.docs[i].width as i32;
-                                let h = self.docs[i].height as i32;
-                                let mut shifted = vec![Color32::TRANSPARENT; (w * h) as usize];
+                                let w = self.docs[i].width;
+                                let h = self.docs[i].height;
+                                let wi = w as i32;
+                                let hi = h as i32;
+                                let ck_a = Color32::from_gray(200);
+                                let ck_b = Color32::from_gray(180);
+                                let active = self.docs[i].active_layer;
                                 for yy in 0..h {
                                     for xx in 0..w {
-                                        let src = self.docs[i].display_buf[(yy * w + xx) as usize];
-                                        if src == Color32::TRANSPARENT { continue; }
-                                        let nx = xx + dx;
-                                        let ny = yy + dy;
-                                        if nx >= 0 && nx < w && ny >= 0 && ny < h {
-                                            shifted[(ny * w + nx) as usize] = src;
+                                        let idx = yy * w + xx;
+                                        let mut c = Color32::TRANSPARENT;
+                                        for (li, layer) in self.docs[i].layers.iter().enumerate() {
+                                            if !layer.visible { continue; }
+                                            let (sx, sy) = if li == active {
+                                                (xx as i32 - dx, yy as i32 - dy)
+                                            } else {
+                                                (xx as i32, yy as i32)
+                                            };
+                                            if sx >= 0 && sx < wi && sy >= 0 && sy < hi {
+                                                let p = layer.pixels[sy as usize * w + sx as usize];
+                                                if p != Color32::TRANSPARENT { c = p; break; }
+                                            }
                                         }
+                                        let cb = if (xx + yy) % 2 == 0 { ck_a } else { ck_b };
+                                        if c == Color32::TRANSPARENT {
+                                            c = cb;
+                                        } else if c.a() < 255 {
+                                            let a = c.a() as u32;
+                                            let ia = 255 - a;
+                                            c = Color32::from_rgba_premultiplied(
+                                                ((c.r() as u32 * a + cb.r() as u32 * ia) / 255) as u8,
+                                                ((c.g() as u32 * a + cb.g() as u32 * ia) / 255) as u8,
+                                                ((c.b() as u32 * a + cb.b() as u32 * ia) / 255) as u8,
+                                                255,
+                                            );
+                                        }
+                                        self.docs[i].display_buf[idx] = c;
                                     }
                                 }
-                                self.docs[i].display_buf = shifted;
                             }
                         }
 

@@ -155,22 +155,20 @@ impl Document {
             self.push_undo();
             let w = self.width as i32;
             let h = self.height as i32;
-            for layer_idx in 0..self.layers.len() {
-                let pixels = self.pixels_mut(layer_idx);
-                let mut new_pixels = vec![Color32::TRANSPARENT; (w * h) as usize];
-                for yy in 0..h {
-                    for xx in 0..w {
-                        let src = pixels[(yy * w + xx) as usize];
-                        if src == Color32::TRANSPARENT { continue; }
-                        let nx = xx + dx;
-                        let ny = yy + dy;
-                        if nx >= 0 && nx < w && ny >= 0 && ny < h {
-                            new_pixels[(ny * w + nx) as usize] = src;
-                        }
+            let pixels = self.pixels_mut(self.active_layer);
+            let mut new_pixels = vec![Color32::TRANSPARENT; (w * h) as usize];
+            for yy in 0..h {
+                for xx in 0..w {
+                    let src = pixels[(yy * w + xx) as usize];
+                    if src == Color32::TRANSPARENT { continue; }
+                    let nx = xx + dx;
+                    let ny = yy + dy;
+                    if nx >= 0 && nx < w && ny >= 0 && ny < h {
+                        new_pixels[(ny * w + nx) as usize] = src;
                     }
                 }
-                *pixels = new_pixels;
             }
+            *pixels = new_pixels;
             self.canvas_dirty = true;
         }
         self.canvas_move_origin = None;
