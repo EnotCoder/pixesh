@@ -2,6 +2,7 @@ use eframe::egui::{self, Color32, ColorImage, Pos2, Rect, Sense, Stroke, Vec2};
 
 use crate::color::*;
 use crate::constants::*;
+use crate::ui::*;
 use super::PixeshApp;
 
 impl PixeshApp {
@@ -114,47 +115,45 @@ impl PixeshApp {
                 // layer action buttons
                 ui.add_space(PANEL_PAD);
                 ui.horizontal(|ui| {
-                    let sz = FONT_SZ * 2.5 + 2.0;
                     ui.add_space(PANEL_PAD);
 
-                    let (r_plus, resp_plus) = ui.allocate_exact_size(Vec2::splat(sz), Sense::click());
-                    let bg = if resp_plus.clicked() { ACCENT } else if resp_plus.hovered() { HOVER } else { PANEL };
-                    ui.painter().rect_filled(r_plus, 0.0, bg);
-                    ui.painter().rect_stroke(r_plus, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
-                    ui.painter().text(r_plus.center(), egui::Align2::CENTER_CENTER, "+", egui::FontId::proportional(FONT_SZ * 2.5), TEXT);
-                    if resp_plus.clicked() { self.docs[i].add_layer(); }
+                    let plus_tex = self.plus_layer_tex.get_or_insert_with(|| {
+                        load_icon_texture(ui, "plus_layer", include_bytes!("../../tex/plus_layer.png"))
+                    });
+                    if icon_btn_tip(ui, plus_tex.id(), false, "Add Layer") {
+                        self.docs[i].add_layer();
+                    }
 
                     ui.add_space(4.0);
 
-                    let (r_minus, resp_minus) = ui.allocate_exact_size(Vec2::splat(sz), Sense::click());
-                    let bg = if resp_minus.clicked() { ACCENT } else if resp_minus.hovered() { HOVER } else { PANEL };
-                    ui.painter().rect_filled(r_minus, 0.0, bg);
-                    ui.painter().rect_stroke(r_minus, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
-                    ui.painter().text(r_minus.center(), egui::Align2::CENTER_CENTER, "-", egui::FontId::proportional(FONT_SZ * 2.5), TEXT);
-                    if resp_minus.clicked() { let al = self.docs[i].active_layer; self.docs[i].remove_layer(al); }
+                    let minus_tex = self.minus_layer_tex.get_or_insert_with(|| {
+                        load_icon_texture(ui, "minus_layer", include_bytes!("../../tex/minus_layer.png"))
+                    });
+                    if icon_btn_tip(ui, minus_tex.id(), false, "Remove Layer") {
+                        let al = self.docs[i].active_layer;
+                        self.docs[i].remove_layer(al);
+                    }
 
                     ui.add_space(4.0);
 
                     // duplicate button
-                    let (r_dup, resp_dup) = ui.allocate_exact_size(Vec2::splat(sz), Sense::click());
-                    let bg = if resp_dup.clicked() { ACCENT } else if resp_dup.hovered() { HOVER } else { PANEL };
-                    ui.painter().rect_filled(r_dup, 0.0, bg);
-                    ui.painter().rect_stroke(r_dup, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
-                    ui.painter().text(r_dup.center(), egui::Align2::CENTER_CENTER, "2", egui::FontId::proportional(FONT_SZ * 1.8), TEXT);
-                    if resp_dup.clicked() { let al = self.docs[i].active_layer; self.docs[i].duplicate_layer(al); }
+                    let clone_tex = self.clone_layer_tex.get_or_insert_with(|| {
+                        load_icon_texture(ui, "clone_layer", include_bytes!("../../tex/clone_layer.png"))
+                    });
+                    if icon_btn_tip(ui, clone_tex.id(), false, "Duplicate Layer") {
+                        let al = self.docs[i].active_layer;
+                        self.docs[i].duplicate_layer(al);
+                    }
 
                     ui.add_space(6.0);
 
                     // flatten button
-                    let fsz = (FONT_SZ * 1.5) as f32;
-                    let flabel = "FL";
-                    let fw = flabel.len() as f32 * CHAR_W * (fsz / FONT_SZ) + 16.0;
-                    let (r_fl, resp_fl) = ui.allocate_exact_size(Vec2::new(fw, sz), Sense::click());
-                    let bg = if resp_fl.clicked() { ACCENT } else if resp_fl.hovered() { HOVER } else { PANEL };
-                    ui.painter().rect_filled(r_fl, 0.0, bg);
-                    ui.painter().rect_stroke(r_fl, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
-                    ui.painter().text(r_fl.center(), egui::Align2::CENTER_CENTER, flabel, egui::FontId::proportional(fsz), TEXT);
-                    if resp_fl.clicked() { self.docs[i].flatten_layers(); }
+                    let set_all_tex = self.set_all_tex.get_or_insert_with(|| {
+                        load_icon_texture(ui, "set_all", include_bytes!("../../tex/set_all.png"))
+                    });
+                    if icon_btn_tip(ui, set_all_tex.id(), false, "Flatten Layers") {
+                        self.docs[i].flatten_layers();
+                    }
                 });
 
                 // ── HSV picker ──

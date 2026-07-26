@@ -1,6 +1,21 @@
-use eframe::egui::{self, Color32, Pos2, Rect, Sense, Stroke, Vec2};
+use eframe::egui::{self, Color32, ColorImage, Pos2, Rect, Sense, Stroke, Vec2};
 
 use crate::constants::*;
+
+pub(crate) fn load_icon_texture(ui: &egui::Ui, name: &str, bytes: &[u8]) -> egui::TextureHandle {
+    let img = match image::load_from_memory(bytes) {
+        Ok(img) => img.into_rgba8(),
+        Err(_) => return {
+            let fallback = ColorImage::from_rgba_unmultiplied([1, 1], &[255, 0, 255, 255]);
+            ui.ctx().load_texture(name, fallback, egui::TextureOptions::NEAREST)
+        },
+    };
+    let w = img.width() as usize;
+    let h = img.height() as usize;
+    let raw = img.into_raw();
+    let ci = ColorImage::from_rgba_unmultiplied([w, h], &raw);
+    ui.ctx().load_texture(name, ci, egui::TextureOptions::NEAREST)
+}
 
 pub fn btn_min_w(ui: &mut egui::Ui, label: &str, min_w: f32) -> bool {
     let font_id = ui.style().text_styles.get(&egui::TextStyle::Button)
