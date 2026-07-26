@@ -26,7 +26,7 @@ impl Document {
         self.canvas_dirty = true;
     }
 
-    pub(crate) fn save_png(&self, path: &str) {
+    pub(crate) fn save_png(&self, path: &str) -> Result<(), String> {
         let flat = self.composite();
         let mut img = image::RgbaImage::new(self.width as u32, self.height as u32);
         for y in 0..self.height {
@@ -35,7 +35,7 @@ impl Document {
                 img.put_pixel(x as u32, y as u32, image::Rgba([c.r(), c.g(), c.b(), c.a()]));
             }
         }
-        let _ = img.save(path);
+        img.save(path).map_err(|e| format!("Failed to save: {}", e))
     }
 
     pub(crate) fn load_png(&mut self, path: &str) {
@@ -55,11 +55,7 @@ impl Document {
         for y in 0..h as usize {
             for x in 0..w as usize {
                 let p = img.get_pixel(x as u32, y as u32);
-                pixels[y * self.width + x] = if p[3] < 128 {
-                    Color32::TRANSPARENT
-                } else {
-                    Color32::from_rgb(p[0], p[1], p[2])
-                };
+                pixels[y * self.width + x] = Color32::from_rgba_unmultiplied(p[0], p[1], p[2], p[3]);
             }
         }
         self.active_layer = 0;

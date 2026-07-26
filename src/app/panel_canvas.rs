@@ -7,7 +7,7 @@ fn click_pixel(resp: &egui::Response, canvas_rect: &Rect, zoom: f32) -> Option<(
     let pos = resp.interact_pointer_pos()?;
     if !canvas_rect.contains(pos) { return None; }
     let r = pos - canvas_rect.min;
-    Some(((r.x / zoom) as i32, (r.y / zoom) as i32))
+    Some(((r.x / zoom).round() as i32, (r.y / zoom).round() as i32))
 }
 
 impl PixeshApp {
@@ -118,7 +118,7 @@ impl PixeshApp {
                                     for xx in 0..w {
                                         let idx = yy * w + xx;
                                         let mut c = Color32::TRANSPARENT;
-                                        for (li, layer) in self.docs[i].layers.iter().enumerate() {
+                                        for (li, layer) in self.docs[i].layers.iter().enumerate().rev() {
                                             if !layer.visible { continue; }
                                             let (sx, sy) = if li == active {
                                                 (xx as i32 - dx, yy as i32 - dy)

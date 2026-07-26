@@ -128,7 +128,7 @@ impl PixeshApp {
                     let dir = if self.docs[i].export_path.is_empty() { home.clone() } else { self.docs[i].export_path.clone() };
                     let name = if self.docs[i].export_name.ends_with(".png") { self.docs[i].export_name.clone() } else { format!("{}.png", self.docs[i].export_name) };
                     let path = format!("{}/{}", dir, name);
-                    self.docs[i].save_png(&path);
+                    let _ = self.docs[i].save_png(&path);
                     self.docs[i].unsaved = false;
                     self.show_export = false;
                 }

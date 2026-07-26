@@ -346,6 +346,7 @@ impl Document {
     pub(crate) fn commit_pending_paste(&mut self) {
         if !self.pasting { return; }
         if let (Some(buf), Some((x0, y0, _x1, _y1))) = (self.sel_buffer.take(), self.sel) {
+            self.push_undo();
             let w = self.sel_buf_w as i32;
             let h = self.sel_buf_h as i32;
             let cw = self.width as i32;

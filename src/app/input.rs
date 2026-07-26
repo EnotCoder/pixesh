@@ -128,15 +128,21 @@ impl PixeshApp {
             if i.consume_key(egui::Modifiers::NONE, egui::Key::Delete) {
                 self.docs[self.active_tab].delete_selection();
             }
-            // Enter = crop to selection
-            if self.docs[self.active_tab].sel.is_some() && !self.dialog_open() {
+            // Enter = crop to selection (but not during layer rename)
+            if self.docs[self.active_tab].sel.is_some() && !self.dialog_open() && self.renaming_layer.is_none() {
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::Enter) {
                     self.docs[self.active_tab].crop_to_selection();
                 }
             }
             // Escape
             if i.consume_key(egui::Modifiers::NONE, egui::Key::Escape) {
-                if self.dialog_open() {
+                if self.renaming_layer.is_some() {
+                    self.renaming_layer = None;
+                } else if self.show_text {
+                    self.show_text = false;
+                    self.text_cursor = None;
+                    self.text_buffer.clear();
+                } else if self.dialog_open() {
                     self.show_resize = false;
                     self.show_export = false;
                     self.show_brush = false;
@@ -252,7 +258,7 @@ impl PixeshApp {
         if px < 0 || px >= w || py < 0 || py >= h { return; }
         let idx = (py * w + px) as usize;
         let mut c = egui::Color32::TRANSPARENT;
-        for layer in &self.docs[tab].layers {
+        for layer in self.docs[tab].layers.iter().rev() {
             if !layer.visible { continue; }
             let p = layer.pixels[idx];
             if p != egui::Color32::TRANSPARENT {

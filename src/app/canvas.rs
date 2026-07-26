@@ -11,7 +11,7 @@ impl Document {
 
     pub(crate) fn composite(&self) -> Vec<Color32> {
         let mut out = vec![Color32::TRANSPARENT; self.width * self.height];
-        for layer in &self.layers {
+        for layer in self.layers.iter().rev() {
             if !layer.visible { continue; }
             for (i, &p) in layer.pixels.iter().enumerate() {
                 if p != Color32::TRANSPARENT { out[i] = p; }
@@ -30,7 +30,7 @@ impl Document {
             for x in 0..self.width {
                 let idx = y * self.width + x;
                 let mut c = Color32::TRANSPARENT;
-                for layer in &self.layers {
+                for layer in self.layers.iter().rev() {
                     if !layer.visible { continue; }
                     let p = layer.pixels[idx];
                     if p != Color32::TRANSPARENT { c = p; break; }

@@ -24,11 +24,25 @@ pub(crate) struct Layer {
     pub(crate) visible: bool,
 }
 
+pub(crate) struct SnapshotLayer {
+    pub(crate) name: String,
+    pub(crate) pixels: Arc<Vec<Color32>>,
+    pub(crate) visible: bool,
+}
+
 pub(crate) struct Snapshot {
-    pub(crate) layers: Vec<Arc<Vec<Color32>>>,
+    pub(crate) layers: Vec<SnapshotLayer>,
     pub(crate) active: usize,
     pub(crate) width: usize,
     pub(crate) height: usize,
+    pub(crate) sel: Option<(i32, i32, i32, i32)>,
+    pub(crate) sel_buffer: Option<Vec<Color32>>,
+    pub(crate) sel_buf_w: usize,
+    pub(crate) sel_buf_h: usize,
+    pub(crate) pasting: bool,
+    pub(crate) clipboard: Option<Vec<Color32>>,
+    pub(crate) clip_w: usize,
+    pub(crate) clip_h: usize,
 }
 
 // ── Document: per-image state ────────────────────────
@@ -183,6 +197,7 @@ pub struct PixeshApp {
     pub(crate) text_scale: i32,
 
     pub(crate) cursor_px: Option<(i32, i32)>,
+    pub(crate) close_handled: bool,
 }
 
 impl PixeshApp {
@@ -215,6 +230,7 @@ impl PixeshApp {
             text_buffer: String::new(),
             text_scale: 2,
             cursor_px: None,
+            close_handled: false,
         }
     }
 }
@@ -255,9 +271,12 @@ impl eframe::App for PixeshApp {
         if self.show_status_bar { self.ui_status(ctx); }
         self.ui_dialogs(ctx);
 
-        if ctx.input(|i| i.viewport().close_requested()) && self.any_unsaved() && !self.show_quit_dialog {
+        if ctx.input(|i| i.viewport().close_requested()) && self.any_unsaved() && !self.show_quit_dialog && !self.close_handled {
             ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
             self.show_quit_dialog = true;
+        }
+        if !ctx.input(|i| i.viewport().close_requested()) {
+            self.close_handled = false;
         }
         if self.show_quit_dialog {
             egui::Area::new("quit_dialog".into())
@@ -295,6 +314,7 @@ impl eframe::App for PixeshApp {
                         }
                         if btn_min_w(ui, "Cancel", half) {
                             self.show_quit_dialog = false;
+                            self.close_handled = true;
                         }
                     });
                 });

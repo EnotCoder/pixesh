@@ -179,7 +179,7 @@ impl PixeshApp {
                         let tab_h = 28.0;
 
                         for ti in 0..self.docs.len() {
-                            let is_active = self.docs[ti].name == self.docs[ti].name && ti == self.active_tab;
+                            let is_active = ti == self.active_tab;
                             let unsaved = self.docs[ti].unsaved;
                             let name = &self.docs[ti].name;
                             let label = if unsaved { format!("*{}", name) } else { name.clone() };
