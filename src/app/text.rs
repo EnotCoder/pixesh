@@ -113,6 +113,7 @@ pub(crate) fn draw_text(
 ) {
     let idx = doc.active_layer;
     if idx >= doc.layers.len() { return; }
+    doc.push_undo();
     let w = doc.width as i32;
     let h = doc.height as i32;
     let pixels = doc.pixels_mut(idx);
