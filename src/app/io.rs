@@ -122,6 +122,32 @@ impl Document {
         }
     }
 
+    pub(crate) fn flatten_layers(&mut self) {
+        self.push_undo();
+        let flat = self.composite();
+        self.layers.clear();
+        self.layers.push(Layer {
+            name: "Flattened".into(),
+            pixels: Arc::new(flat),
+            visible: true,
+        });
+        self.active_layer = 0;
+        self.canvas_dirty = true;
+    }
+
+    pub(crate) fn duplicate_layer(&mut self, idx: usize) {
+        self.push_undo();
+        let dup = Layer {
+            name: format!("{} copy", self.layers[idx].name),
+            pixels: self.layers[idx].pixels.clone(),
+            visible: true,
+        };
+        let insert_pos = (idx + 1).min(self.layers.len());
+        self.layers.insert(insert_pos, dup);
+        self.active_layer = insert_pos;
+        self.canvas_dirty = true;
+    }
+
     pub(crate) fn scale_image(&mut self, new_w: usize, new_h: usize) {
         if new_w == 0 || new_h == 0 { return; }
         self.push_undo();

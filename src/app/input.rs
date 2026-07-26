@@ -95,6 +95,7 @@ impl PixeshApp {
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::F) { self.tool = Tool::Fill; }
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::R) { self.tool = Tool::Select; }
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::M) { self.tool = Tool::Move; }
+                if i.consume_key(egui::Modifiers::NONE, egui::Key::T) { self.tool = Tool::Text; }
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::G) {
                     self.docs[self.active_tab].grid = !self.docs[self.active_tab].grid;
                 }
@@ -128,8 +129,8 @@ impl PixeshApp {
                 self.docs[self.active_tab].delete_selection();
             }
             // Enter = crop to selection
-            if i.consume_key(egui::Modifiers::NONE, egui::Key::Enter) {
-                if self.docs[self.active_tab].sel.is_some() && !self.dialog_open() {
+            if self.docs[self.active_tab].sel.is_some() && !self.dialog_open() {
+                if i.consume_key(egui::Modifiers::NONE, egui::Key::Enter) {
                     self.docs[self.active_tab].crop_to_selection();
                 }
             }
@@ -150,6 +151,12 @@ impl PixeshApp {
             // Ctrl+D = deselect
             if i.consume_key(egui::Modifiers::CTRL, egui::Key::D) {
                 self.docs[self.active_tab].deselect();
+            }
+            // Ctrl+Shift+F = flatten layers
+            if i.consume_key(egui::Modifiers::CTRL | egui::Modifiers::SHIFT, egui::Key::F) {
+                if !self.dialog_open() {
+                    self.docs[self.active_tab].flatten_layers();
+                }
             }
             // Y = copy selection
             if i.consume_key(egui::Modifiers::NONE, egui::Key::Y) {

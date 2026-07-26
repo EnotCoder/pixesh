@@ -74,6 +74,17 @@ impl PixeshApp {
                     });
                     if icon_btn(ui, move_tex.id(), self.tool == Tool::Move) { self.tool = Tool::Move; }
 
+                    // Text tool
+                    {
+                        let sz = ROW_H + 16.0;
+                        let (r, resp) = ui.allocate_exact_size(Vec2::splat(sz), Sense::click());
+                        let bg = if self.tool == Tool::Text { ACCENT } else if resp.hovered() { HOVER } else { PANEL };
+                        ui.painter().rect_filled(r, 0.0, bg);
+                        ui.painter().text(r.center(), egui::Align2::CENTER_CENTER, "T", egui::FontId::proportional(24.0), TEXT);
+                        ui.painter().rect_stroke(r, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Inside);
+                        if resp.clicked() { self.tool = Tool::Text; }
+                    }
+
                     // clear
                     separator(ui);
 

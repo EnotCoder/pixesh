@@ -265,6 +265,16 @@ impl PixeshApp {
                 let cp = |r: &egui::Response| click_pixel(r, &canvas_rect, zoom);
 
                 match tool {
+                    Tool::Text => {
+                        if resp.clicked_by(egui::PointerButton::Primary) {
+                            self.docs[i].commit_pending_paste();
+                            if let Some(p) = cp(&resp) {
+                                self.text_cursor = Some(p);
+                                self.text_buffer.clear();
+                                self.show_text = true;
+                            }
+                        }
+                    }
                     Tool::Eyedropper => {
                         if resp.clicked_by(egui::PointerButton::Primary) {
                             self.docs[i].commit_pending_paste();

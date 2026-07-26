@@ -7,6 +7,7 @@ mod brush;
 mod panels;
 mod settings;
 mod scale;
+mod text;
 
 impl PixeshApp {
     pub(crate) fn ui_dialogs(&mut self, ctx: &egui::Context) {
@@ -16,5 +17,6 @@ impl PixeshApp {
         self.ui_panels_dialog(ctx);
         self.ui_settings_dialog(ctx);
         self.ui_scale_dialog(ctx);
+        self.ui_text_dialog(ctx);
     }
 }

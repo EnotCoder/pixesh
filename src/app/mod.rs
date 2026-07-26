@@ -6,6 +6,7 @@ pub mod panel_canvas;
 pub mod panel_dialogs;
 pub mod panel_layers;
 pub mod panel_toolbar;
+pub mod text;
 pub mod tools;
 
 use std::sync::Arc;
@@ -173,6 +174,11 @@ pub struct PixeshApp {
     pub(crate) color_history: Vec<Color32>,
     pub(crate) renaming_layer: Option<usize>,
     pub(crate) rename_buf: String,
+
+    pub(crate) show_text: bool,
+    pub(crate) text_cursor: Option<(i32, i32)>,
+    pub(crate) text_buffer: String,
+    pub(crate) text_scale: i32,
 }
 
 impl PixeshApp {
@@ -200,6 +206,10 @@ impl PixeshApp {
             arrow_speed: 5.0,             zoom_speed: 0.5,
             color_history: Vec::new(),
             renaming_layer: None, rename_buf: String::new(),
+            show_text: false,
+            text_cursor: None,
+            text_buffer: String::new(),
+            text_scale: 2,
         }
     }
 }
@@ -208,7 +218,7 @@ impl PixeshApp {
     pub(crate) fn dialog_open(&self) -> bool {
         self.show_resize || self.show_export || self.show_brush
             || self.show_panels || self.show_settings || self.show_scale
-            || self.show_quit_dialog
+            || self.show_quit_dialog || self.show_text
     }
 
     pub(crate) fn any_unsaved(&self) -> bool {
