@@ -217,6 +217,7 @@ impl PixeshApp {
                     if let Some(pos) = cursor {
                         if canvas_rect.contains(pos) {
                             let (px, py) = self.docs[i].screen_to_pixel(pos, canvas_rect.min);
+                            self.cursor_px = Some((px, py));
                             let b = brush.round() as i32;
                             let half = (b - 1) / 2;
                             let bx0 = (px - half).max(0) as f32;
@@ -229,7 +230,11 @@ impl PixeshApp {
                             );
                             p.rect_filled(cr, 0.0, Color32::from_black_alpha(60));
                             p.rect_stroke(cr, 0.0, Stroke::new(1.0, Color32::WHITE.linear_multiply(0.4)), egui::StrokeKind::Inside);
+                        } else {
+                            self.cursor_px = None;
                         }
+                    } else {
+                        self.cursor_px = None;
                     }
                 }
 

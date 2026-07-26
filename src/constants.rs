@@ -12,6 +12,7 @@ pub const BORDER: Color32 = Color32::from_rgb(80, 80, 80);      // границ�
 pub const TEXT: Color32 = Color32::from_rgb(220, 220, 220);      // текст
 pub const ACCENT: Color32 = Color32::from_rgb(200, 120, 60);     // акцент (выделение)
 pub const HOVER: Color32 = Color32::from_rgb(60, 60, 60);       // наведение мыши
+pub const DIM: Color32 = Color32::from_rgb(120, 120, 120);      // приглушённый текст
 
 // ── размеры ──
 pub const FONT_SZ: f32 = 20.0;    // размер шрифта в пикселях

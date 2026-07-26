@@ -5,6 +5,7 @@ pub mod io;
 pub mod panel_canvas;
 pub mod panel_dialogs;
 pub mod panel_layers;
+pub mod panel_status;
 pub mod panel_toolbar;
 pub mod text;
 pub mod tools;
@@ -179,6 +180,8 @@ pub struct PixeshApp {
     pub(crate) text_cursor: Option<(i32, i32)>,
     pub(crate) text_buffer: String,
     pub(crate) text_scale: i32,
+
+    pub(crate) cursor_px: Option<(i32, i32)>,
 }
 
 impl PixeshApp {
@@ -210,6 +213,7 @@ impl PixeshApp {
             text_cursor: None,
             text_buffer: String::new(),
             text_scale: 2,
+            cursor_px: None,
         }
     }
 }
@@ -247,6 +251,7 @@ impl eframe::App for PixeshApp {
         if self.show_top_panel { self.ui_toolbar(ctx); }
         if self.show_right_panel { self.ui_layers(ctx); }
         self.ui_canvas(ctx);
+        self.ui_status(ctx);
         self.ui_dialogs(ctx);
 
         if ctx.input(|i| i.viewport().close_requested()) && self.any_unsaved() && !self.show_quit_dialog {

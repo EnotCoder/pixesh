@@ -28,9 +28,8 @@ pub fn btn_min_w(ui: &mut egui::Ui, label: &str, min_w: f32) -> bool {
     resp.clicked()
 }
 
-// ── icon_btn ─────────────────────────────────────────
-// квадратная кнопка с иконкой (текстурой), active = подсвечена
-pub fn icon_btn(ui: &mut egui::Ui, tex_id: egui::TextureId, active: bool) -> bool {
+// ── icon_btn with tooltip ────────────────────────────
+pub fn icon_btn_tip(ui: &mut egui::Ui, tex_id: egui::TextureId, active: bool, tip: &str) -> bool {
     let size = Vec2::splat(ROW_H + 16.0);
     let (rect, resp) = ui.allocate_exact_size(size, Sense::click());
 
@@ -43,17 +42,14 @@ pub fn icon_btn(ui: &mut egui::Ui, tex_id: egui::TextureId, active: bool) -> boo
     };
     let p = ui.painter();
     p.rect_filled(rect, 0.0, bg);
-
-    let img_rect = rect;
-    p.image(tex_id, img_rect, Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
-
+    p.image(tex_id, rect, Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
     p.rect_stroke(rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Inside);
 
+    let resp = resp.on_hover_text(tip);
     resp.clicked()
 }
 
 // ── separator ────────────────────────────────────────
-// вертикальная разделительная линия
 pub fn separator(ui: &mut egui::Ui) {
     let h = ROW_H + 16.0;
     let (rect, _) = ui.allocate_exact_size(Vec2::new(4.0, h), Sense::hover());

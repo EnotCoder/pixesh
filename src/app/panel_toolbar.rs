@@ -47,32 +47,32 @@ impl PixeshApp {
                     let brush_tex = self.brush_tex.get_or_insert_with(|| {
                         load_icon_texture(ui, "brush_icon", include_bytes!("../../tex/brush.png"))
                     });
-                    if icon_btn(ui, brush_tex.id(), self.tool == Tool::Brush) { self.tool = Tool::Brush; }
+                    if icon_btn_tip(ui, brush_tex.id(), self.tool == Tool::Brush, "Brush (B)") { self.tool = Tool::Brush; }
 
                     let eraser_tex = self.eraser_tex.get_or_insert_with(|| {
                         load_icon_texture(ui, "eraser_icon", include_bytes!("../../tex/eraser.png"))
                     });
-                    if icon_btn(ui, eraser_tex.id(), self.tool == Tool::Eraser) { self.tool = Tool::Eraser; }
+                    if icon_btn_tip(ui, eraser_tex.id(), self.tool == Tool::Eraser, "Eraser (E)") { self.tool = Tool::Eraser; }
 
                     let fill_tex = self.fill_tex.get_or_insert_with(|| {
                         load_icon_texture(ui, "fill_icon", include_bytes!("../../tex/fill.png"))
                     });
-                    if icon_btn(ui, fill_tex.id(), self.tool == Tool::Fill) { self.tool = Tool::Fill; }
+                    if icon_btn_tip(ui, fill_tex.id(), self.tool == Tool::Fill, "Fill (F)") { self.tool = Tool::Fill; }
 
                     let drop_tex = self.drop_tex.get_or_insert_with(|| {
                         load_icon_texture(ui, "drop_icon", include_bytes!("../../tex/drop.png"))
                     });
-                    if icon_btn(ui, drop_tex.id(), self.tool == Tool::Eyedropper) { self.tool = Tool::Eyedropper; }
+                    if icon_btn_tip(ui, drop_tex.id(), self.tool == Tool::Eyedropper, "Eyedropper (A)") { self.tool = Tool::Eyedropper; }
 
                     let select_tex = self.select_tex.get_or_insert_with(|| {
                         load_icon_texture(ui, "select_icon", include_bytes!("../../tex/select.png"))
                     });
-                    if icon_btn(ui, select_tex.id(), self.tool == Tool::Select) { self.tool = Tool::Select; }
+                    if icon_btn_tip(ui, select_tex.id(), self.tool == Tool::Select, "Select (R)") { self.tool = Tool::Select; }
 
                     let move_tex = self.move_tex.get_or_insert_with(|| {
                         load_icon_texture(ui, "move_icon", include_bytes!("../../tex/move.png"))
                     });
-                    if icon_btn(ui, move_tex.id(), self.tool == Tool::Move) { self.tool = Tool::Move; }
+                    if icon_btn_tip(ui, move_tex.id(), self.tool == Tool::Move, "Move (M)") { self.tool = Tool::Move; }
 
                     // Text tool
                     {
@@ -82,6 +82,7 @@ impl PixeshApp {
                         ui.painter().rect_filled(r, 0.0, bg);
                         ui.painter().text(r.center(), egui::Align2::CENTER_CENTER, "T", egui::FontId::proportional(24.0), TEXT);
                         ui.painter().rect_stroke(r, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Inside);
+                        let resp = resp.on_hover_text("Text (T)");
                         if resp.clicked() { self.tool = Tool::Text; }
                     }
 
@@ -91,7 +92,7 @@ impl PixeshApp {
                     let clear_tex = self.clear_tex.get_or_insert_with(|| {
                         load_icon_texture(ui, "clear_icon", include_bytes!("../../tex/clear.png"))
                     });
-                    if icon_btn(ui, clear_tex.id(), false) {
+                    if icon_btn_tip(ui, clear_tex.id(), false, "Clear All Layers") {
                         let doc = &mut self.docs[self.active_tab];
                         doc.push_undo();
                         for layer in &mut doc.layers {
@@ -138,7 +139,7 @@ impl PixeshApp {
                     let mh_tex = self.mirror_h_tex.get_or_insert_with(|| {
                         load_icon_texture(ui, "mirror_h", include_bytes!("../../tex/mirror_h.png"))
                     });
-                    if icon_btn(ui, mh_tex.id(), false) {
+                    if icon_btn_tip(ui, mh_tex.id(), false, "Mirror Horizontal") {
                         let doc = &mut self.docs[self.active_tab];
                         doc.push_undo();
                         doc.mirror_horizontal();
@@ -147,7 +148,7 @@ impl PixeshApp {
                     let mv_tex = self.mirror_v_tex.get_or_insert_with(|| {
                         load_icon_texture(ui, "mirror_v", include_bytes!("../../tex/mirror_v.png"))
                     });
-                    if icon_btn(ui, mv_tex.id(), false) {
+                    if icon_btn_tip(ui, mv_tex.id(), false, "Mirror Vertical") {
                         let doc = &mut self.docs[self.active_tab];
                         doc.push_undo();
                         doc.mirror_vertical();
