@@ -10,10 +10,6 @@ impl PixeshApp {
             .frame(egui::Frame::new().fill(PANEL))
             .show_separator_line(false)
             .show(ctx, |ui| {
-                let panel_left = ui.max_rect().left();
-                let panel_right = ui.max_rect().right();
-                let panel_top = ui.max_rect().top();
-                ui.painter().hline(panel_left..=panel_right, panel_top, Stroke::new(8.0, BORDER));
                 ui.add_space(2.0);
                 ui.horizontal(|ui| {
                     ui.add_space(6.0);
@@ -108,6 +104,11 @@ impl PixeshApp {
                     });
                 });
                 ui.add_space(2.0);
+
+                let panel_left = ui.max_rect().left();
+                let panel_right = ui.max_rect().right();
+                let panel_top = ui.max_rect().top();
+                ui.painter().hline(panel_left..=panel_right, panel_top, Stroke::new(8.0, BORDER));
             });
     }
 }

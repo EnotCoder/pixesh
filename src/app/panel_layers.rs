@@ -13,10 +13,6 @@ impl PixeshApp {
             .frame(egui::Frame::new().fill(PANEL))
             .show_separator_line(false)
             .show(ctx, |ui| {
-                let panel_left = ui.max_rect().left();
-                let panel_top = ui.max_rect().top();
-                let panel_bottom = ui.max_rect().bottom();
-                ui.painter().vline(panel_left, panel_top..=panel_bottom, Stroke::new(8.0, BORDER));
                 ui.add_space(8.0);
 
                 let header = "Layers";
@@ -358,6 +354,10 @@ impl PixeshApp {
                     }
                 });
 
+                let panel_left = ui.max_rect().left();
+                let panel_top = ui.max_rect().top();
+                let panel_bottom = ui.max_rect().bottom();
+                ui.painter().vline(panel_left, panel_top..=panel_bottom, Stroke::new(8.0, BORDER));
             });
     }
 }

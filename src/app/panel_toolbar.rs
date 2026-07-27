@@ -12,10 +12,6 @@ impl PixeshApp {
             .frame(egui::Frame::new().fill(PANEL))
             .show_separator_line(false)
             .show(ctx, |ui| {
-                let panel_bottom = ui.max_rect().bottom();
-                let panel_left = ui.max_rect().left();
-                let panel_right = ui.max_rect().right();
-                ui.painter().hline(panel_left..=panel_right, panel_bottom, Stroke::new(8.0, BORDER));
                 // ── main toolbar row ──
                 ui.add_space(6.0);
                 ui.horizontal(|ui| {
@@ -245,6 +241,11 @@ impl PixeshApp {
                     });
                     ui.add_space(4.0);
                 }
+
+                let panel_bottom = ui.max_rect().bottom();
+                let panel_left = ui.max_rect().left();
+                let panel_right = ui.max_rect().right();
+                ui.painter().hline(panel_left..=panel_right, panel_bottom, Stroke::new(8.0, BORDER));
             });
     }
 }
