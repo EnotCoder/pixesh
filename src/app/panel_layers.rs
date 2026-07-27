@@ -11,7 +11,12 @@ impl PixeshApp {
                     .resizable(false)
             .default_width(280.0)
             .frame(egui::Frame::new().fill(PANEL))
+            .show_separator_line(false)
             .show(ctx, |ui| {
+                let panel_left = ui.max_rect().left();
+                let panel_top = ui.max_rect().top();
+                let panel_bottom = ui.max_rect().bottom();
+                ui.painter().vline(panel_left, panel_top..=panel_bottom, Stroke::new(8.0, BORDER));
                 ui.add_space(8.0);
 
                 let header = "Layers";
@@ -52,7 +57,7 @@ impl PixeshApp {
                     );
                     let p = ui.painter();
                     p.rect_filled(cb_rect, 0.0, PANEL_LIGHT);
-                    p.rect_stroke(cb_rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
+                    p.rect_stroke(cb_rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
                     if cb {
                         let inner = cb_rect.shrink(3.0);
                         p.rect_filled(inner, 0.0, ACCENT);
@@ -182,7 +187,7 @@ impl PixeshApp {
                     let pv = pr.translate(Vec2::new(0.0, -4.0));
                     let pc = Color32::from_rgba_unmultiplied(self.rgb_r as u8, self.rgb_g as u8, self.rgb_b as u8, self.rgb_a as u8);
                     ui.painter().rect_filled(pv, 0.0, pc);
-                    ui.painter().rect_stroke(pv, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
+                    ui.painter().rect_stroke(pv, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
 
                     ui.add_space(PANEL_PAD);
                     ui.vertical(|ui| {
@@ -245,7 +250,7 @@ impl PixeshApp {
                             for &c in row {
                                 let (r, resp) = ui.allocate_exact_size(Vec2::splat(sw), Sense::click());
                                 ui.painter().rect_filled(r, 0.0, c);
-                                ui.painter().rect_stroke(r, 0.0, Stroke::new(1.0, BORDER), egui::StrokeKind::Outside);
+                                ui.painter().rect_stroke(r, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
                                 if resp.clicked() {
                                     self.color = c;
                                     self.rgb_r = c.r() as f32;
@@ -293,12 +298,12 @@ impl PixeshApp {
                     if let Some(tex) = &self.sv_tex {
                         let p = ui.painter();
                         p.image(tex.id(), rect, Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
-                        p.rect_stroke(rect, 0.0, Stroke::new(1.0, BORDER), egui::StrokeKind::Outside);
+                        p.rect_stroke(rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
 
                         let cx = rect.min.x + (self.hsv_s / 255.0) * rect.width();
                         let cy = rect.min.y + (1.0 - self.hsv_v / 255.0) * rect.height();
                         let cc = if self.hsv_v > 180.0 { Color32::BLACK } else { Color32::WHITE };
-                        p.circle_stroke(Pos2::new(cx, cy), 4.0, Stroke::new(1.5, cc));
+                        p.circle_stroke(Pos2::new(cx, cy), 4.0, Stroke::new(3.0, cc));
                         p.circle_filled(Pos2::new(cx, cy), 2.0, cc);
                     }
 
@@ -333,10 +338,10 @@ impl PixeshApp {
                     let stex = self.h_tex.as_ref().unwrap();
                     let sp = ui.painter();
                     sp.image(stex.id(), srect, Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
-                    sp.rect_stroke(srect, 0.0, Stroke::new(1.0, BORDER), egui::StrokeKind::Outside);
+                    sp.rect_stroke(srect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
 
                     let hy = srect.min.y + (self.hsv_h / 360.0) * srect.height();
-                    sp.hline(srect.x_range(), hy, Stroke::new(2.0, Color32::WHITE));
+                    sp.hline(srect.x_range(), hy, Stroke::new(4.0, Color32::WHITE));
 
                     let spick = sresp.dragged_by(egui::PointerButton::Primary)
                         || sresp.clicked_by(egui::PointerButton::Primary);

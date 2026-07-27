@@ -1,4 +1,4 @@
-use eframe::egui::{self};
+use eframe::egui::{self, Stroke};
 
 use crate::constants::*;
 use crate::ui::separator;
@@ -8,7 +8,12 @@ impl PixeshApp {
     pub(crate) fn ui_status(&mut self, ctx: &egui::Context) {
         egui::TopBottomPanel::bottom("status")
             .frame(egui::Frame::new().fill(PANEL))
+            .show_separator_line(false)
             .show(ctx, |ui| {
+                let panel_left = ui.max_rect().left();
+                let panel_right = ui.max_rect().right();
+                let panel_top = ui.max_rect().top();
+                ui.painter().hline(panel_left..=panel_right, panel_top, Stroke::new(8.0, BORDER));
                 ui.add_space(2.0);
                 ui.horizontal(|ui| {
                     ui.add_space(6.0);

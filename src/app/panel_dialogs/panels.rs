@@ -13,7 +13,7 @@ impl PixeshApp {
                 let (rect, _) = ui.allocate_exact_size(size, egui::Sense::hover());
                 let p = ui.painter();
                 p.rect_filled(rect, 0.0, PANEL);
-                p.rect_stroke(rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
+                p.rect_stroke(rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
                 let inner = rect.shrink2(Vec2::splat(6.0));
                 let mut child_ui = ui.new_child(
                     egui::UiBuilder::new()
@@ -52,7 +52,7 @@ impl PixeshApp {
                         Vec2::splat(cbs),
                     );
                     p.rect_filled(cb_rect, 0.0, PANEL);
-                    p.rect_stroke(cb_rect, 0.0, egui::Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
+                    p.rect_stroke(cb_rect, 0.0, egui::Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
                     if self.show_top_panel {
                         let inner = cb_rect.shrink(4.0);
                         p.rect_filled(inner, 0.0, ACCENT);
@@ -64,7 +64,7 @@ impl PixeshApp {
                     }
 
                     let line = ui.allocate_exact_size(Vec2::new(160.0, 1.0), egui::Sense::hover()).0;
-                    ui.painter().hline(line.x_range(), line.center().y, egui::Stroke::new(1.0, BORDER));
+                    ui.painter().hline(line.x_range(), line.center().y, egui::Stroke::new(2.0, BORDER));
 
                     let (row_rect, _) = ui.allocate_exact_size(Vec2::new(160.0, row_h), egui::Sense::click());
                     let p = ui.painter();
@@ -80,7 +80,7 @@ impl PixeshApp {
                         Vec2::splat(cbs),
                     );
                     p.rect_filled(cb_rect, 0.0, PANEL);
-                    p.rect_stroke(cb_rect, 0.0, egui::Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
+                    p.rect_stroke(cb_rect, 0.0, egui::Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
                     if self.show_right_panel {
                         let inner = cb_rect.shrink(4.0);
                         p.rect_filled(inner, 0.0, ACCENT);
@@ -92,7 +92,7 @@ impl PixeshApp {
                     }
 
                     let line = ui.allocate_exact_size(Vec2::new(160.0, 1.0), egui::Sense::hover()).0;
-                    ui.painter().hline(line.x_range(), line.center().y, egui::Stroke::new(1.0, BORDER));
+                    ui.painter().hline(line.x_range(), line.center().y, egui::Stroke::new(2.0, BORDER));
 
                     let (row_rect, _) = ui.allocate_exact_size(Vec2::new(160.0, row_h), egui::Sense::click());
                     let p = ui.painter();
@@ -108,7 +108,7 @@ impl PixeshApp {
                         Vec2::splat(cbs),
                     );
                     p.rect_filled(cb_rect, 0.0, PANEL);
-                    p.rect_stroke(cb_rect, 0.0, egui::Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
+                    p.rect_stroke(cb_rect, 0.0, egui::Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
                     if self.show_status_bar {
                         let inner = cb_rect.shrink(4.0);
                         p.rect_filled(inner, 0.0, ACCENT);
@@ -135,7 +135,7 @@ impl PixeshApp {
                 let btn_resp = ui.interact(btn_rect, egui::Id::new("btn_ok"), egui::Sense::click());
                 let bg = if btn_resp.clicked() { ACCENT } else if btn_resp.hovered() { HOVER } else { PANEL };
                 p.rect_filled(btn_rect, 0.0, bg);
-                p.rect_stroke(btn_rect, 0.0, egui::Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
+                p.rect_stroke(btn_rect, 0.0, egui::Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
                 p.text(btn_rect.center(), egui::Align2::CENTER_CENTER, "OK", egui::FontId::proportional(FONT_SZ), TEXT);
                 if btn_resp.clicked() {
                     self.show_panels = false;

@@ -296,7 +296,7 @@ impl eframe::App for PixeshApp {
                     let (rect, _) = ui.allocate_exact_size(size, egui::Sense::hover());
                     let p = ui.painter();
                     p.rect_filled(rect, 0.0, PANEL);
-                    p.rect_stroke(rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
+                    p.rect_stroke(rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
                     let mut child = ui.new_child(
                         egui::UiBuilder::new()
                             .layout(egui::Layout::top_down(egui::Align::Center))

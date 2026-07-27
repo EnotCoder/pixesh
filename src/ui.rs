@@ -37,7 +37,7 @@ pub fn btn_min_w(ui: &mut egui::Ui, label: &str, min_w: f32) -> bool {
     };
     let p = ui.painter();
     p.rect_filled(rect, 0.0, bg);
-    p.rect_stroke(rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
+    p.rect_stroke(rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
     p.text(rect.center(), egui::Align2::CENTER_CENTER, label, font_id, TEXT);
 
     resp.clicked()
@@ -58,7 +58,7 @@ pub fn icon_btn_tip(ui: &mut egui::Ui, tex_id: egui::TextureId, active: bool, ti
     let p = ui.painter();
     p.rect_filled(rect, 0.0, bg);
     p.image(tex_id, rect, Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
-    p.rect_stroke(rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Inside);
+    p.rect_stroke(rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Inside);
 
     let resp = resp.on_hover_text(tip);
     resp.clicked()
@@ -71,6 +71,6 @@ pub fn separator(ui: &mut egui::Ui) {
     ui.painter().vline(
         rect.center().x,
         rect.y_range(),
-        Stroke::new(2.0, BORDER),
+        Stroke::new(4.0, BORDER),
     );
 }

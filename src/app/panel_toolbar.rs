@@ -10,7 +10,12 @@ impl PixeshApp {
     pub(crate) fn ui_toolbar(&mut self, ctx: &egui::Context) {
         egui::TopBottomPanel::top("tools")
             .frame(egui::Frame::new().fill(PANEL))
+            .show_separator_line(false)
             .show(ctx, |ui| {
+                let panel_bottom = ui.max_rect().bottom();
+                let panel_left = ui.max_rect().left();
+                let panel_right = ui.max_rect().right();
+                ui.painter().hline(panel_left..=panel_right, panel_bottom, Stroke::new(8.0, BORDER));
                 // ── main toolbar row ──
                 ui.add_space(6.0);
                 ui.horizontal(|ui| {
@@ -66,7 +71,7 @@ impl PixeshApp {
                         let bg = if self.tool == Tool::Text { ACCENT } else if resp.hovered() { HOVER } else { PANEL };
                         ui.painter().rect_filled(r, 0.0, bg);
                         ui.painter().text(r.center(), egui::Align2::CENTER_CENTER, "T", egui::FontId::proportional(24.0), TEXT);
-                        ui.painter().rect_stroke(r, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Inside);
+                        ui.painter().rect_stroke(r, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Inside);
                         let resp = resp.on_hover_text("Text (T)");
                         if resp.clicked() { self.tool = Tool::Text; }
                     }
@@ -101,7 +106,7 @@ impl PixeshApp {
                         Vec2::splat(cbs),
                     );
                     p.rect_filled(cb_rect, 0.0, PANEL);
-                    p.rect_stroke(cb_rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
+                    p.rect_stroke(cb_rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
                     if self.docs[self.active_tab].grid {
                         p.rect_filled(cb_rect.shrink(4.0), 0.0, ACCENT);
                     }
@@ -177,7 +182,7 @@ impl PixeshApp {
                             let bg = if is_active { HOVER } else { PANEL };
                             let p = ui.painter();
                             p.rect_filled(tab_rect, 0.0, bg);
-                            p.rect_stroke(tab_rect, 0.0, Stroke::new(1.0, BORDER), egui::StrokeKind::Inside);
+                            p.rect_stroke(tab_rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Inside);
 
                             // tab label
                             p.text(
@@ -220,7 +225,7 @@ impl PixeshApp {
                         let (plus_rect, plus_resp) = ui.allocate_exact_size(Vec2::new(plus_w, tab_h), Sense::click());
                         let bg = if plus_resp.hovered() { HOVER } else { PANEL };
                         ui.painter().rect_filled(plus_rect, 0.0, bg);
-                        ui.painter().rect_stroke(plus_rect, 0.0, Stroke::new(1.0, BORDER), egui::StrokeKind::Inside);
+                        ui.painter().rect_stroke(plus_rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Inside);
                         let tab_plus_tex = self.tab_plus_tex.get_or_insert_with(|| {
                             load_icon_texture(ui, "tab_plus", include_bytes!("../../tex/layers/plus_layer.png"))
                         });

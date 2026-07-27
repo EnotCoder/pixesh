@@ -203,7 +203,7 @@ impl PixeshApp {
                             let t0 = ii as f32 / segments as f32;
                             let t1 = (ii + 1) as f32 / segments as f32;
                             let c = if ((ii as f32 + phase) % 2.0) < 1.0 { white } else { black };
-                            let s = Stroke::new(3.0, c);
+                            let s = Stroke::new(6.0, c);
                             p.line_segment([Pos2::new(r.min.x + r.width() * t0, r.min.y), Pos2::new(r.min.x + r.width() * t1, r.min.y)], s);
                             p.line_segment([Pos2::new(r.min.x + r.width() * t0, r.max.y), Pos2::new(r.min.x + r.width() * t1, r.max.y)], s);
                         }
@@ -211,7 +211,7 @@ impl PixeshApp {
                             let t0 = ii as f32 / segments as f32;
                             let t1 = (ii + 1) as f32 / segments as f32;
                             let c = if (((ii as f32 + phase) % 2.0) < 1.0) ^ true { white } else { black };
-                            let s = Stroke::new(3.0, c);
+                            let s = Stroke::new(6.0, c);
                             p.line_segment([Pos2::new(r.min.x, r.min.y + r.height() * t0), Pos2::new(r.min.x, r.min.y + r.height() * t1)], s);
                             p.line_segment([Pos2::new(r.max.x, r.min.y + r.height() * t0), Pos2::new(r.max.x, r.min.y + r.height() * t1)], s);
                         }
@@ -224,14 +224,14 @@ impl PixeshApp {
                             p.vline(
                                 canvas_rect.min.x + x as f32 * zoom,
                                 canvas_rect.y_range(),
-                                Stroke::new(1.0, gc),
+                                Stroke::new(2.0, gc),
                             );
                         }
                         for y in 0..=self.docs[i].height {
                             p.hline(
                                 canvas_rect.x_range(),
                                 canvas_rect.min.y + y as f32 * zoom,
-                                Stroke::new(1.0, gc),
+                                Stroke::new(2.0, gc),
                             );
                         }
                     }
@@ -254,7 +254,7 @@ impl PixeshApp {
                                 Vec2::new((bx1 - bx0) * zoom, (by1 - by0) * zoom),
                             );
                             p.rect_filled(cr, 0.0, Color32::from_black_alpha(60));
-                            p.rect_stroke(cr, 0.0, Stroke::new(1.0, Color32::WHITE.linear_multiply(0.4)), egui::StrokeKind::Inside);
+                            p.rect_stroke(cr, 0.0, Stroke::new(2.0, Color32::WHITE.linear_multiply(0.4)), egui::StrokeKind::Inside);
                         } else {
                             self.cursor_px = None;
                         }

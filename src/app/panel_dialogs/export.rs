@@ -38,7 +38,7 @@ impl PixeshApp {
                 {
                     let p = ui.painter();
                     p.rect_filled(rect, 0.0, PANEL);
-                    p.rect_stroke(rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
+                    p.rect_stroke(rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
 
                     let title = "Export PNG";
                     let title_galley = ui.fonts(|f| f.layout_no_wrap(title.into(), title_font.clone(), TEXT));
@@ -93,7 +93,7 @@ impl PixeshApp {
                     let p = ui.painter();
                     let dot_bg = if dot_resp.clicked() { ACCENT } else if dot_resp.hovered() { HOVER } else { PANEL };
                     p.rect_filled(dot_btn_rect, 0.0, dot_bg);
-                    p.rect_stroke(dot_btn_rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
+                    p.rect_stroke(dot_btn_rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
                     p.text(dot_btn_rect.center(), egui::Align2::CENTER_CENTER, "...", body_font.clone(), TEXT);
                 }
 

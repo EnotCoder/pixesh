@@ -13,7 +13,7 @@ impl PixeshApp {
                 let (rect, _) = ui.allocate_exact_size(size, egui::Sense::hover());
                 let p = ui.painter();
                 p.rect_filled(rect, 0.0, PANEL);
-                p.rect_stroke(rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
+                p.rect_stroke(rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
                 let inner = rect.shrink2(Vec2::splat(6.0));
                 let mut child_ui = ui.new_child(
                     egui::UiBuilder::new()
@@ -84,7 +84,7 @@ impl PixeshApp {
                 let bg = if btn_resp.clicked() { ACCENT } else if btn_resp.hovered() { HOVER } else { PANEL };
                 let p2 = child_ui.painter();
                 p2.rect_filled(btn_rect, 0.0, bg);
-                p2.rect_stroke(btn_rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
+                p2.rect_stroke(btn_rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
                 p2.text(btn_rect.center(), egui::Align2::CENTER_CENTER, "OK", egui::FontId::proportional(FONT_SZ), TEXT);
                 if btn_resp.clicked() {
                     self.show_settings = false;

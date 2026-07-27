@@ -17,7 +17,7 @@ impl PixeshApp {
 
                 let p = ui.painter();
                 p.rect_filled(rect, 0.0, PANEL);
-                p.rect_stroke(rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
+                p.rect_stroke(rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
 
                 let mut child_ui = ui.new_child(
                     egui::UiBuilder::new()
