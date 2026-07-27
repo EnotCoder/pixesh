@@ -172,6 +172,8 @@ pub struct PixeshApp {
     pub(crate) minus_layer_tex: Option<egui::TextureHandle>,
     pub(crate) clone_layer_tex: Option<egui::TextureHandle>,
     pub(crate) set_all_tex: Option<egui::TextureHandle>,
+    pub(crate) tab_close_tex: Option<egui::TextureHandle>,
+    pub(crate) tab_plus_tex: Option<egui::TextureHandle>,
 
     pub(crate) show_resize: bool,
     pub(crate) resize_w: f32,
@@ -222,6 +224,7 @@ impl PixeshApp {
             mirror_h_tex: None, mirror_v_tex: None,
             plus_layer_tex: None, minus_layer_tex: None,
             clone_layer_tex: None, set_all_tex: None,
+            tab_close_tex: None, tab_plus_tex: None,
             show_resize: false, resize_w: 64.0, resize_h: 64.0,
             show_scale: false, scale_w: 64.0, scale_h: 64.0,
             show_export: false, show_brush: false,

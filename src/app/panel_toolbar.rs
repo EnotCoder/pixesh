@@ -169,7 +169,7 @@ impl PixeshApp {
                             let name = &self.docs[ti].name;
                             let label = if unsaved { format!("*{}", name) } else { name.clone() };
                             let label_w = label.len() as f32 * CHAR_W * (18.0 / FONT_SZ) + 24.0;
-                            let close_w = 22.0;
+                            let close_w = tab_h;
                             let tab_w = label_w + close_w;
 
                             let (tab_rect, tab_resp) = ui.allocate_exact_size(Vec2::new(tab_w, tab_h), Sense::click());
@@ -196,12 +196,14 @@ impl PixeshApp {
                             let close_resp = ui.interact(close_rect, egui::Id::new(("tab_close", ti)), Sense::click());
                             let close_bg = if close_resp.hovered() { ACCENT } else { PANEL };
                             p.rect_filled(close_rect, 0.0, close_bg);
-                            p.text(
-                                close_rect.center(),
-                                egui::Align2::CENTER_CENTER,
-                                "x",
-                                egui::FontId::proportional(16.0),
-                                TEXT,
+                            let tab_close_tex = self.tab_close_tex.get_or_insert_with(|| {
+                                load_icon_texture(ui, "tab_close", include_bytes!("../../tex/tools/clear.png"))
+                            });
+                            p.image(
+                                tab_close_tex.id(),
+                                close_rect,
+                                Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)),
+                                Color32::WHITE,
                             );
 
                             if close_resp.clicked() {
@@ -219,12 +221,14 @@ impl PixeshApp {
                         let bg = if plus_resp.hovered() { HOVER } else { PANEL };
                         ui.painter().rect_filled(plus_rect, 0.0, bg);
                         ui.painter().rect_stroke(plus_rect, 0.0, Stroke::new(1.0, BORDER), egui::StrokeKind::Inside);
-                        ui.painter().text(
-                            plus_rect.center(),
-                            egui::Align2::CENTER_CENTER,
-                            "+",
-                            egui::FontId::proportional(20.0),
-                            TEXT,
+                        let tab_plus_tex = self.tab_plus_tex.get_or_insert_with(|| {
+                            load_icon_texture(ui, "tab_plus", include_bytes!("../../tex/layers/plus_layer.png"))
+                        });
+                        ui.painter().image(
+                            tab_plus_tex.id(),
+                            plus_rect,
+                            Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)),
+                            Color32::WHITE,
                         );
                         if plus_resp.clicked() {
                             let n = self.docs.len();
