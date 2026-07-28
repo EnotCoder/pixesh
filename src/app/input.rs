@@ -96,6 +96,7 @@ impl PixeshApp {
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::R) { self.tool = Tool::Select; }
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::M) { self.tool = Tool::Move; }
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::T) { self.tool = Tool::Text; }
+
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::G) {
                     self.docs[self.active_tab].grid = !self.docs[self.active_tab].grid;
                 }
@@ -107,7 +108,7 @@ impl PixeshApp {
                     self.rgb_b = b as f32;
                     self.color = egui::Color32::from_rgba_unmultiplied(r, g, b, self.rgb_a as u8);
                 }
-                if i.consume_key(egui::Modifiers::NONE, egui::Key::S) {
+                if i.consume_key(egui::Modifiers::NONE, egui::Key::Period) {
                     self.hsv_v = (self.hsv_v + 5.0).clamp(0.0, 255.0);
                     let (r, g, b) = hsv_to_rgb(self.hsv_h, self.hsv_s, self.hsv_v);
                     self.rgb_r = r as f32;
@@ -136,7 +137,14 @@ impl PixeshApp {
             }
             // Escape
             if i.consume_key(egui::Modifiers::NONE, egui::Key::Escape) {
-                if self.renaming_layer.is_some() {
+                if self.docs[self.active_tab].transforming {
+                    self.docs[self.active_tab].transforming = false;
+                    self.docs[self.active_tab].transform_corner = None;
+                    self.docs[self.active_tab].transform_orig_rect = None;
+                    self.docs[self.active_tab].transform_scale = 1.0;
+                    self.docs[self.active_tab].canvas_dirty = true;
+                    self.tool = Tool::Select;
+                } else if self.renaming_layer.is_some() {
                     self.renaming_layer = None;
                 } else if self.show_text {
                     self.show_text = false;
@@ -204,6 +212,43 @@ impl PixeshApp {
                     self.docs[tab].sel_move_origin = Some(center);
                     self.docs[tab].sel_move_current = Some(center);
                     self.docs[tab].pasting = true;
+                }
+            }
+            // S = toggle transform (when selection exists)
+            if i.consume_key(egui::Modifiers::NONE, egui::Key::S) {
+                let tab = self.active_tab;
+                let has_sel = self.docs[tab].sel.is_some();
+                if has_sel && self.tool != Tool::Transform {
+                    // auto-copy selection to buffer if empty
+                    if self.docs[tab].sel_buffer.is_none() {
+                        if let Some((x0, y0, x1, y1)) = self.docs[tab].sel {
+                            let sw = (x1 - x0 + 1) as usize;
+                            let sh = (y1 - y0 + 1) as usize;
+                            let w = self.docs[tab].width;
+                            let mut buf = Vec::with_capacity(sw * sh);
+                            for yy in y0..=y1 {
+                                for xx in x0..=x1 {
+                                    let idx = (yy * w as i32 + xx) as usize;
+                                    buf.push(self.docs[tab].layers[self.docs[tab].active_layer].pixels[idx]);
+                                }
+                            }
+                            self.docs[tab].sel_buffer = Some(buf);
+                            self.docs[tab].sel_buf_w = sw;
+                            self.docs[tab].sel_buf_h = sh;
+                        }
+                    }
+                    self.tool_saved_shift = Some(self.tool);
+                    self.tool = Tool::Transform;
+                    self.docs[tab].transforming = true;
+                    self.docs[tab].transform_orig_rect = self.docs[tab].sel;
+                    self.docs[tab].transform_scale = 1.0;
+                } else if self.tool == Tool::Transform && self.tool_saved_shift.is_some() {
+                    self.tool = self.tool_saved_shift.take().unwrap();
+                    self.docs[tab].transforming = false;
+                    self.docs[tab].transform_corner = None;
+                    self.docs[tab].transform_orig_rect = None;
+                    self.docs[tab].transform_scale = 1.0;
+                    self.docs[tab].canvas_dirty = true;
                 }
             }
         });

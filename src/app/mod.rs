@@ -90,6 +90,11 @@ pub(crate) struct Document {
     pub(crate) clip_w: usize,
     pub(crate) clip_h: usize,
     pub(crate) pasting: bool,
+
+    pub(crate) transforming: bool,
+    pub(crate) transform_orig_rect: Option<(i32, i32, i32, i32)>,
+    pub(crate) transform_corner: Option<(i32, i32)>,
+    pub(crate) transform_scale: f32,
 }
 
 impl Document {
@@ -134,6 +139,10 @@ impl Document {
             clip_w: 0,
             clip_h: 0,
             pasting: false,
+            transforming: false,
+            transform_orig_rect: None,
+            transform_corner: None,
+            transform_scale: 1.0,
         }
     }
 }
@@ -154,6 +163,7 @@ pub struct PixeshApp {
     pub(crate) brush: f32,
     pub(crate) tool: Tool,
     pub(crate) tool_saved: Option<Tool>,
+    pub(crate) tool_saved_shift: Option<Tool>,
 
     pub(crate) brush_tex: Option<egui::TextureHandle>,
     pub(crate) eraser_tex: Option<egui::TextureHandle>,
@@ -217,6 +227,7 @@ impl PixeshApp {
             brush: 1.0,
             tool: Tool::Brush,
             tool_saved: None,
+            tool_saved_shift: None,
             brush_tex: None, eraser_tex: None, fill_tex: None,
             drop_tex: None, clear_tex: None, logo_tex: None,
             sv_tex: None, sv_tex_h: -1.0,
