@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use eframe::egui::{self, Color32, ColorImage, Pos2, Rect, Sense, Stroke, Vec2};
 
 use crate::constants::*;
@@ -351,7 +352,6 @@ impl PixeshApp {
 
                 match tool {
                     Tool::Transform => {
-                        // draw corner handles for transform
                         if let Some(sel_rect) = self.docs[i].sel {
                             let (x0, y0, x1, y1) = sel_rect;
                             let r = Rect::from_min_size(
@@ -359,6 +359,7 @@ impl PixeshApp {
                                 Vec2::new((x1 - x0 + 1) as f32 * zoom, (y1 - y0 + 1) as f32 * zoom),
                             );
                             let handle_size = 10.0;
+                            let hit_radius = 16.0;
                             let corners = [
                                 r.min,
                                 Pos2::new(r.max.x, r.min.y),
@@ -366,63 +367,126 @@ impl PixeshApp {
                                 Pos2::new(r.min.x, r.max.y),
                             ];
 
-                            for &c in &corners {
-                                let hr = Rect::from_center_size(c, Vec2::splat(handle_size * 2.0));
-                                let hresp = ui.interact(hr, egui::Id::new(("xfm_h", c.x.to_bits(), c.y.to_bits())), Sense::click_and_drag());
+                            let pointer = resp.interact_pointer_pos();
 
-                                if hresp.drag_started() {
-                                    self.docs[i].transform_corner = Some((c.x as i32, c.y as i32));
+                            // grab corner on initial press
+                            if resp.hovered() && self.docs[i].transform_corner.is_none() {
+                                let mut grabbed: Option<(i32, i32)> = None;
+                                ctx.input(|i| {
+                                    if i.pointer.any_pressed() {
+                                        if let Some(pos) = i.pointer.interact_pos() {
+                                            for &c in &corners {
+                                                if (pos - c).length() < hit_radius {
+                                                    grabbed = Some((c.x as i32, c.y as i32));
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    }
+                                });
+                                if let Some((cx, cy)) = grabbed {
+                                    self.docs[i].transform_corner = Some((cx, cy));
                                     self.docs[i].transform_orig_rect = Some(sel_rect);
                                     self.docs[i].transform_scale = 1.0;
                                 }
-                                if hresp.dragged_by(egui::PointerButton::Primary) {
-                                    if let Some(pos) = hresp.interact_pointer_pos() {
-                                        let center = r.center();
-                                        let orig_len = (c - center).length();
-                                        let cur_len = (pos - center).length();
-                                        if orig_len > 1.0 {
-                                            self.docs[i].transform_scale = (cur_len / orig_len).max(0.1).min(10.0);
-                                        }
+                            }
+
+                            // continuous drag — update scale while corner is grabbed
+                            if self.docs[i].transform_corner.is_some() && resp.dragged() {
+                                if let Some(pos) = pointer {
+                                    let center = r.center();
+                                    let corner = self.docs[i].transform_corner.unwrap();
+                                    let corner_pos = Pos2::new(corner.0 as f32, corner.1 as f32);
+                                    let orig_len = (corner_pos - center).length();
+                                    let cur_len = (pos - center).length();
+                                    if orig_len > 1.0 {
+                                        self.docs[i].transform_scale = (cur_len / orig_len).max(0.1).min(10.0);
                                     }
                                     self.docs[i].canvas_dirty = true;
                                 }
-                                if hresp.drag_stopped() && self.docs[i].transform_corner.is_some() {
-                                    if self.docs[i].transforming && self.docs[i].transform_scale != 1.0 {
-                                        let scale = self.docs[i].transform_scale;
-                                        let (sx0, sy0, sx1, sy1) = self.docs[i].transform_orig_rect.unwrap_or(sel_rect);
-                                        let orig_w = (sx1 - sx0 + 1) as usize;
-                                        let orig_h = (sy1 - sy0 + 1) as usize;
-                                        let new_w = (orig_w as f32 * scale).round() as usize;
-                                        let new_h = (orig_h as f32 * scale).round() as usize;
-                                        if new_w > 0 && new_h > 0 {
-                                            self.docs[i].push_undo();
-                                            if let Some(ref buf) = self.docs[i].sel_buffer {
-                                                let mut new_buf = vec![Color32::TRANSPARENT; new_w * new_h];
-                                                for ny in 0..new_h {
-                                                    for nx in 0..new_w {
-                                                        let sx = (nx as f64 / new_w as f64 * orig_w as f64) as usize;
-                                                        let sy = (ny as f64 / new_h as f64 * orig_h as f64) as usize;
-                                                        let sx = sx.min(orig_w - 1);
-                                                        let sy = sy.min(orig_h - 1);
-                                                        new_buf[ny * new_w + nx] = buf[sy * orig_w + sx];
+                            }
+
+                            // apply on release
+                            if resp.drag_stopped() && self.docs[i].transform_corner.is_some() {
+                                if self.docs[i].transforming && self.docs[i].transform_scale != 1.0 {
+                                    let scale = self.docs[i].transform_scale;
+                                    let (sx0, sy0, sx1, sy1) = self.docs[i].transform_orig_rect.unwrap_or(sel_rect);
+                                    let orig_w = (sx1 - sx0 + 1) as usize;
+                                    let orig_h = (sy1 - sy0 + 1) as usize;
+                                    let new_w = (orig_w as f32 * scale).round() as usize;
+                                    let new_h = (orig_h as f32 * scale).round() as usize;
+                                    if new_w > 0 && new_h > 0 {
+                                        self.docs[i].push_undo();
+                                        if let Some(ref buf) = self.docs[i].sel_buffer {
+                                            let mut new_buf = vec![Color32::TRANSPARENT; new_w * new_h];
+                                            for ny in 0..new_h {
+                                                for nx in 0..new_w {
+                                                    let sx = (nx as f64 / new_w as f64 * orig_w as f64) as usize;
+                                                    let sy = (ny as f64 / new_h as f64 * orig_h as f64) as usize;
+                                                    let sx = sx.min(orig_w - 1);
+                                                    let sy = sy.min(orig_h - 1);
+                                                    new_buf[ny * new_w + nx] = buf[sy * orig_w + sx];
+                                                }
+                                            }
+
+                                            // clear original area first, then commit scaled pixels to layer
+                                            let al = self.docs[i].active_layer;
+                                            let lw = self.docs[i].width as i32;
+                                            let lh = self.docs[i].height as i32;
+                                            {
+                                                let pixels = Arc::make_mut(&mut self.docs[i].layers[al].pixels);
+                                                for oy in sy0..=sy1 {
+                                                    for ox in sx0..=sx1 {
+                                                        if ox >= 0 && ox < lw && oy >= 0 && oy < lh {
+                                                            let dst = (oy * lw + ox) as usize;
+                                                            if dst < pixels.len() {
+                                                                pixels[dst] = Color32::TRANSPARENT;
+                                                            }
+                                                        }
                                                     }
                                                 }
-                                                self.docs[i].sel_buffer = Some(new_buf);
-                                                self.docs[i].sel_buf_w = new_w;
-                                                self.docs[i].sel_buf_h = new_h;
                                             }
-                                            let nx0 = sx0;
-                                            let ny0 = sy0;
-                                            self.docs[i].sel = Some((nx0, ny0, nx0 + new_w as i32 - 1, ny0 + new_h as i32 - 1));
-                                        }
-                                    }
-                                    self.docs[i].transforming = false;
-                                    self.docs[i].transform_corner = None;
-                                    self.docs[i].transform_orig_rect = None;
-                                    self.docs[i].transform_scale = 1.0;
-                                    self.docs[i].canvas_dirty = true;
-                                }
+                                            {
+                                                let pixels = Arc::make_mut(&mut self.docs[i].layers[al].pixels);
+                                                for ny in 0..new_h as i32 {
+                                                    for nx in 0..new_w as i32 {
+                                                        let px = sx0 + nx;
+                                                        let py = sy0 + ny;
+                                                        if px >= 0 && px < lw && py >= 0 && py < lh {
+                                                            let dst = (py * lw + px) as usize;
+                                                            let src = (ny * new_w as i32 + nx) as usize;
+                                                            if src < new_buf.len() && dst < pixels.len() {
+                                                                let c = new_buf[src];
+                                                                if c != Color32::TRANSPARENT {
+                                                                    pixels[dst] = c;
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
 
+                                            self.docs[i].sel_buffer = Some(new_buf);
+                                            self.docs[i].sel_buf_w = new_w;
+                                            self.docs[i].sel_buf_h = new_h;
+                                        }
+                                        let nx0 = sx0;
+                                        let ny0 = sy0;
+                                        self.docs[i].sel = Some((nx0, ny0, nx0 + new_w as i32 - 1, ny0 + new_h as i32 - 1));
+                                    }
+                                }
+                                self.docs[i].transforming = false;
+                                self.docs[i].transform_corner = None;
+                                self.docs[i].transform_orig_rect = None;
+                                self.docs[i].transform_scale = 1.0;
+                                self.docs[i].canvas_dirty = true;
+                                // restore original tool
+                                if let Some(saved) = self.tool_saved_shift.take() {
+                                    self.tool = saved;
+                                }
+                            }
+
+                            for &c in &corners {
                                 ui.painter().rect_filled(Rect::from_center_size(c, Vec2::splat(handle_size)), 0.0, ACCENT);
                                 ui.painter().rect_stroke(Rect::from_center_size(c, Vec2::splat(handle_size)), 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
                             }

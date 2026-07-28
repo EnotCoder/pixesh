@@ -143,7 +143,11 @@ impl PixeshApp {
                     self.docs[self.active_tab].transform_orig_rect = None;
                     self.docs[self.active_tab].transform_scale = 1.0;
                     self.docs[self.active_tab].canvas_dirty = true;
-                    self.tool = Tool::Select;
+                    if let Some(saved) = self.tool_saved_shift.take() {
+                        self.tool = saved;
+                    } else {
+                        self.tool = Tool::Select;
+                    }
                 } else if self.renaming_layer.is_some() {
                     self.renaming_layer = None;
                 } else if self.show_text {
