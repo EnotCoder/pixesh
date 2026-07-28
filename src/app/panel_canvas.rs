@@ -359,7 +359,6 @@ impl PixeshApp {
                                 Vec2::new((x1 - x0 + 1) as f32 * zoom, (y1 - y0 + 1) as f32 * zoom),
                             );
                             let handle_size = 10.0;
-                            let hit_radius = 16.0;
                             let corners = [
                                 r.min,
                                 Pos2::new(r.max.x, r.min.y),
@@ -367,74 +366,63 @@ impl PixeshApp {
                                 Pos2::new(r.min.x, r.max.y),
                             ];
 
-                            // drag detection
-                            if resp.drag_started() {
-                                if let Some(pos) = resp.interact_pointer_pos() {
-                                    for &c in &corners {
-                                        if (pos - c).length() < hit_radius {
-                                            self.docs[i].transform_corner = Some((c.x as i32, c.y as i32));
-                                            self.docs[i].transform_orig_rect = Some(sel_rect);
-                                            self.docs[i].transform_scale = 1.0;
-                                            break;
-                                        }
-                                    }
+                            for &c in &corners {
+                                let hr = Rect::from_center_size(c, Vec2::splat(handle_size * 2.0));
+                                let hresp = ui.interact(hr, egui::Id::new(("xfm_h", c.x.to_bits(), c.y.to_bits())), Sense::click_and_drag());
+
+                                if hresp.drag_started() {
+                                    self.docs[i].transform_corner = Some((c.x as i32, c.y as i32));
+                                    self.docs[i].transform_orig_rect = Some(sel_rect);
+                                    self.docs[i].transform_scale = 1.0;
                                 }
-                            }
-                            if resp.dragged_by(egui::PointerButton::Primary) {
-                                if let Some(corner) = self.docs[i].transform_corner {
-                                    if let Some(pos) = resp.interact_pointer_pos() {
+                                if hresp.dragged_by(egui::PointerButton::Primary) {
+                                    if let Some(pos) = hresp.interact_pointer_pos() {
                                         let center = r.center();
-                                        let corner_pos = Pos2::new(corner.0 as f32, corner.1 as f32);
-                                        let orig_vec = corner_pos - center;
-                                        let cur_vec = pos - center;
-                                        let orig_len = orig_vec.length();
-                                        let cur_len = cur_vec.length();
+                                        let orig_len = (c - center).length();
+                                        let cur_len = (pos - center).length();
                                         if orig_len > 1.0 {
                                             self.docs[i].transform_scale = (cur_len / orig_len).max(0.1).min(10.0);
                                         }
                                     }
+                                    self.docs[i].canvas_dirty = true;
                                 }
-                                self.docs[i].canvas_dirty = true;
-                            }
-                            if resp.drag_stopped() && self.docs[i].transform_corner.is_some() {
-                                if self.docs[i].transforming && self.docs[i].transform_scale != 1.0 {
-                                    let scale = self.docs[i].transform_scale;
-                                    let (sx0, sy0, sx1, sy1) = self.docs[i].transform_orig_rect.unwrap_or(sel_rect);
-                                    let orig_w = (sx1 - sx0 + 1) as usize;
-                                    let orig_h = (sy1 - sy0 + 1) as usize;
-                                    let new_w = (orig_w as f32 * scale).round() as usize;
-                                    let new_h = (orig_h as f32 * scale).round() as usize;
-                                    if new_w > 0 && new_h > 0 {
-                                        self.docs[i].push_undo();
-                                        if let Some(ref buf) = self.docs[i].sel_buffer {
-                                            let mut new_buf = vec![Color32::TRANSPARENT; new_w * new_h];
-                                            for ny in 0..new_h {
-                                                for nx in 0..new_w {
-                                                    let sx = (nx as f64 / new_w as f64 * orig_w as f64) as usize;
-                                                    let sy = (ny as f64 / new_h as f64 * orig_h as f64) as usize;
-                                                    let sx = sx.min(orig_w - 1);
-                                                    let sy = sy.min(orig_h - 1);
-                                                    new_buf[ny * new_w + nx] = buf[sy * orig_w + sx];
+                                if hresp.drag_stopped() && self.docs[i].transform_corner.is_some() {
+                                    if self.docs[i].transforming && self.docs[i].transform_scale != 1.0 {
+                                        let scale = self.docs[i].transform_scale;
+                                        let (sx0, sy0, sx1, sy1) = self.docs[i].transform_orig_rect.unwrap_or(sel_rect);
+                                        let orig_w = (sx1 - sx0 + 1) as usize;
+                                        let orig_h = (sy1 - sy0 + 1) as usize;
+                                        let new_w = (orig_w as f32 * scale).round() as usize;
+                                        let new_h = (orig_h as f32 * scale).round() as usize;
+                                        if new_w > 0 && new_h > 0 {
+                                            self.docs[i].push_undo();
+                                            if let Some(ref buf) = self.docs[i].sel_buffer {
+                                                let mut new_buf = vec![Color32::TRANSPARENT; new_w * new_h];
+                                                for ny in 0..new_h {
+                                                    for nx in 0..new_w {
+                                                        let sx = (nx as f64 / new_w as f64 * orig_w as f64) as usize;
+                                                        let sy = (ny as f64 / new_h as f64 * orig_h as f64) as usize;
+                                                        let sx = sx.min(orig_w - 1);
+                                                        let sy = sy.min(orig_h - 1);
+                                                        new_buf[ny * new_w + nx] = buf[sy * orig_w + sx];
+                                                    }
                                                 }
+                                                self.docs[i].sel_buffer = Some(new_buf);
+                                                self.docs[i].sel_buf_w = new_w;
+                                                self.docs[i].sel_buf_h = new_h;
                                             }
-                                            self.docs[i].sel_buffer = Some(new_buf);
-                                            self.docs[i].sel_buf_w = new_w;
-                                            self.docs[i].sel_buf_h = new_h;
+                                            let nx0 = sx0;
+                                            let ny0 = sy0;
+                                            self.docs[i].sel = Some((nx0, ny0, nx0 + new_w as i32 - 1, ny0 + new_h as i32 - 1));
                                         }
-                                        let nx0 = sx0;
-                                        let ny0 = sy0;
-                                        self.docs[i].sel = Some((nx0, ny0, nx0 + new_w as i32 - 1, ny0 + new_h as i32 - 1));
                                     }
+                                    self.docs[i].transforming = false;
+                                    self.docs[i].transform_corner = None;
+                                    self.docs[i].transform_orig_rect = None;
+                                    self.docs[i].transform_scale = 1.0;
+                                    self.docs[i].canvas_dirty = true;
                                 }
-                                self.docs[i].transforming = false;
-                                self.docs[i].transform_corner = None;
-                                self.docs[i].transform_orig_rect = None;
-                                self.docs[i].transform_scale = 1.0;
-                                self.docs[i].canvas_dirty = true;
-                            }
 
-                            // draw handles ON TOP (after logic)
-                            for &c in &corners {
                                 ui.painter().rect_filled(Rect::from_center_size(c, Vec2::splat(handle_size)), 0.0, ACCENT);
                                 ui.painter().rect_stroke(Rect::from_center_size(c, Vec2::splat(handle_size)), 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
                             }
