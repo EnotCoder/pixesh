@@ -150,38 +150,20 @@ impl PixeshApp {
                             }
                         }
 
-                        // transform preview: render scaled sel_buffer
+                        // transform preview: render scaled sel_buffer into current sel rect
                         if self.docs[i].transforming && self.docs[i].sel_buffer.is_some() {
-                            if let (Some(sel_rect), scale) = (self.docs[i].sel, self.docs[i].transform_scale) {
+                            if let (Some(sel_rect), Some(orig_rect)) = (self.docs[i].sel, self.docs[i].transform_orig_rect) {
                                 let buf_clone = self.docs[i].sel_buffer.clone();
-                                let orig_clone = self.docs[i].transform_orig_rect;
-                                if let (Some(buf), Some(orig)) = (buf_clone, orig_clone) {
-                                    let w = self.docs[i].width as i32;
-                                    let cw = w;
+                                if let Some(buf) = buf_clone {
+                                    let cw = self.docs[i].width as i32;
                                     let ch = self.docs[i].height as i32;
-                                    let (ox0, oy0, ox1, oy1) = orig;
+                                    let (ox0, oy0, ox1, oy1) = orig_rect;
                                     let ow = (ox1 - ox0 + 1) as usize;
                                     let oh = (oy1 - oy0 + 1) as usize;
-                                    let nw = (ow as f32 * scale).round() as usize;
-                                    let nh = (oh as f32 * scale).round() as usize;
-                                    if nw > 0 && nh > 0 {
-                                        // draw checkerboard under scaled area
-                                        let (x0, y0, _x1, _y1) = sel_rect;
-                                        for yy in 0..nh as i32 {
-                                            for xx in 0..nw as i32 {
-                                                let px = x0 + xx;
-                                                let py = y0 + yy;
-                                                if px >= 0 && px < cw && py >= 0 && py < ch {
-                                                    let idx = (py * cw + px) as usize;
-                                                    if idx < self.docs[i].display_buf.len() {
-                                                        let ck_a = Color32::from_gray(200);
-                                                        let ck_b = Color32::from_gray(180);
-                                                        self.docs[i].display_buf[idx] = if (xx + yy) % 2 == 0 { ck_a } else { ck_b };
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        // draw scaled pixels
+                                    let (x0, y0, x1, y1) = sel_rect;
+                                    let nw = (x1 - x0 + 1) as usize;
+                                    let nh = (y1 - y0 + 1) as usize;
+                                    if nw > 0 && nh > 0 && ow > 0 && oh > 0 {
                                         for ny in 0..nh {
                                             for nx in 0..nw {
                                                 let sx = (nx as f64 / nw as f64 * ow as f64) as usize;
@@ -361,61 +343,81 @@ impl PixeshApp {
                             let handle_size = 10.0;
                             let hit_radius = 16.0;
                             let corners = [
-                                r.min,
-                                Pos2::new(r.max.x, r.min.y),
-                                r.max,
-                                Pos2::new(r.min.x, r.max.y),
+                                r.min,                               // 0: top-left
+                                Pos2::new(r.max.x, r.min.y),        // 1: top-right
+                                r.max,                              // 2: bottom-right
+                                Pos2::new(r.min.x, r.max.y),        // 3: bottom-left
                             ];
-
-                            let pointer = resp.interact_pointer_pos();
 
                             // grab corner on initial press
                             if resp.hovered() && self.docs[i].transform_corner.is_none() {
-                                let mut grabbed: Option<(i32, i32)> = None;
+                                let mut grabbed: Option<usize> = None;
                                 ctx.input(|i| {
                                     if i.pointer.any_pressed() {
                                         if let Some(pos) = i.pointer.interact_pos() {
-                                            for &c in &corners {
+                                            for (idx, &c) in corners.iter().enumerate() {
                                                 if (pos - c).length() < hit_radius {
-                                                    grabbed = Some((c.x as i32, c.y as i32));
+                                                    grabbed = Some(idx);
                                                     break;
                                                 }
                                             }
                                         }
                                     }
                                 });
-                                if let Some((cx, cy)) = grabbed {
-                                    self.docs[i].transform_corner = Some((cx, cy));
+                                if let Some(idx) = grabbed {
+                                    self.docs[i].transform_corner = Some(idx);
                                     self.docs[i].transform_orig_rect = Some(sel_rect);
-                                    self.docs[i].transform_scale = 1.0;
                                 }
                             }
 
-                            // continuous drag — update scale while corner is grabbed
-                            if self.docs[i].transform_corner.is_some() && resp.dragged() {
-                                if let Some(pos) = pointer {
-                                    let center = r.center();
-                                    let corner = self.docs[i].transform_corner.unwrap();
-                                    let corner_pos = Pos2::new(corner.0 as f32, corner.1 as f32);
-                                    let orig_len = (corner_pos - center).length();
-                                    let cur_len = (pos - center).length();
-                                    if orig_len > 1.0 {
-                                        self.docs[i].transform_scale = (cur_len / orig_len).max(0.1).min(10.0);
+                            // continuous drag — compute new rect from pointer position
+                            if let (Some(idx), Some(orig)) = (self.docs[i].transform_corner, self.docs[i].transform_orig_rect) {
+                                if resp.dragged() {
+                                    if let Some(pos) = resp.interact_pointer_pos() {
+                                        // convert screen pos to pixel coords
+                                        let px = ((pos.x - canvas_rect.min.x) / zoom).round() as i32;
+                                        let py = ((pos.y - canvas_rect.min.y) / zoom).round() as i32;
+                                        let (ox0, oy0, ox1, oy1) = orig;
+                                        // compute new rect based on which corner is dragged
+                                        // corners[0]=TL, [1]=TR, [2]=BR, [3]=BL
+                                        let (nx0, ny0, nx1, ny1) = match idx {
+                                            0 => (px.min(ox1), py.min(oy1), ox1, oy1),               // TL: moves top-left
+                                            1 => (ox0, py.min(oy1), px.max(ox0), oy1),               // TR: moves top-right
+                                            2 => (ox0, oy0, px.max(ox0), py.max(oy0)),               // BR: moves bottom-right
+                                            3 => (px.min(ox1), oy0, ox1, py.max(oy0)),               // BL: moves bottom-left
+                                            _ => (ox0, oy0, ox1, oy1),
+                                        };
+                                        // clamp to canvas
+                                        let lw = self.docs[i].width as i32;
+                                        let lh = self.docs[i].height as i32;
+                                        let nx0 = nx0.clamp(0, lw - 1);
+                                        let ny0 = ny0.clamp(0, lh - 1);
+                                        let nx1 = nx1.clamp(0, lw - 1);
+                                        let ny1 = ny1.clamp(0, lh - 1);
+                                        // ensure min <= max
+                                        let nx0 = nx0.min(nx1);
+                                        let ny0 = ny0.min(ny1);
+                                        let nx1 = nx1.max(nx0);
+                                        let ny1 = ny1.max(ny0);
+                                        // at least 1x1
+                                        let nx1 = nx1.max(nx0);
+                                        let ny1 = ny1.max(ny0);
+                                        self.docs[i].sel = Some((nx0, ny0, nx1, ny1));
+                                        self.docs[i].canvas_dirty = true;
                                     }
-                                    self.docs[i].canvas_dirty = true;
                                 }
                             }
 
                             // apply on release
                             if resp.drag_stopped() && self.docs[i].transform_corner.is_some() {
-                                if self.docs[i].transforming && self.docs[i].transform_scale != 1.0 {
-                                    let scale = self.docs[i].transform_scale;
-                                    let (sx0, sy0, sx1, sy1) = self.docs[i].transform_orig_rect.unwrap_or(sel_rect);
-                                    let orig_w = (sx1 - sx0 + 1) as usize;
-                                    let orig_h = (sy1 - sy0 + 1) as usize;
-                                    let new_w = (orig_w as f32 * scale).round() as usize;
-                                    let new_h = (orig_h as f32 * scale).round() as usize;
-                                    if new_w > 0 && new_h > 0 {
+                                if self.docs[i].transforming {
+                                    let (sx0, sy0, sx1, sy1) = self.docs[i].sel.unwrap_or(sel_rect);
+                                    let (ox0, oy0, _ox1, _oy1) = self.docs[i].transform_orig_rect.unwrap_or(sel_rect);
+                                    let new_w = (sx1 - sx0 + 1) as usize;
+                                    let new_h = (sy1 - sy0 + 1) as usize;
+                                    let orig_w = self.docs[i].sel_buf_w;
+                                    let orig_h = self.docs[i].sel_buf_h;
+                                    if new_w > 0 && new_h > 0 && orig_w > 0 && orig_h > 0 {
                                         self.docs[i].push_undo();
                                         if let Some(ref buf) = self.docs[i].sel_buffer {
                                             let mut new_buf = vec![Color32::TRANSPARENT; new_w * new_h];
@@ -429,14 +431,14 @@ impl PixeshApp {
                                                 }
                                             }
 
-                                            // clear original area first, then commit scaled pixels to layer
+                                            // clear original area first
                                             let al = self.docs[i].active_layer;
                                             let lw = self.docs[i].width as i32;
                                             let lh = self.docs[i].height as i32;
                                             {
                                                 let pixels = Arc::make_mut(&mut self.docs[i].layers[al].pixels);
-                                                for oy in sy0..=sy1 {
-                                                    for ox in sx0..=sx1 {
+                                                for oy in oy0..=oy0 + orig_h as i32 - 1 {
+                                                    for ox in ox0..=ox0 + orig_w as i32 - 1 {
                                                         if ox >= 0 && ox < lw && oy >= 0 && oy < lh {
                                                             let dst = (oy * lw + ox) as usize;
                                                             if dst < pixels.len() {
@@ -446,6 +448,7 @@ impl PixeshApp {
                                                     }
                                                 }
                                             }
+                                            // commit scaled pixels to layer
                                             {
                                                 let pixels = Arc::make_mut(&mut self.docs[i].layers[al].pixels);
                                                 for ny in 0..new_h as i32 {
@@ -470,17 +473,12 @@ impl PixeshApp {
                                             self.docs[i].sel_buf_w = new_w;
                                             self.docs[i].sel_buf_h = new_h;
                                         }
-                                        let nx0 = sx0;
-                                        let ny0 = sy0;
-                                        self.docs[i].sel = Some((nx0, ny0, nx0 + new_w as i32 - 1, ny0 + new_h as i32 - 1));
                                     }
                                 }
                                 self.docs[i].transforming = false;
                                 self.docs[i].transform_corner = None;
                                 self.docs[i].transform_orig_rect = None;
-                                self.docs[i].transform_scale = 1.0;
                                 self.docs[i].canvas_dirty = true;
-                                // restore original tool
                                 if let Some(saved) = self.tool_saved_shift.take() {
                                     self.tool = saved;
                                 }

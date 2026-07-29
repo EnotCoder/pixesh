@@ -93,8 +93,7 @@ pub(crate) struct Document {
 
     pub(crate) transforming: bool,
     pub(crate) transform_orig_rect: Option<(i32, i32, i32, i32)>,
-    pub(crate) transform_corner: Option<(i32, i32)>,
-    pub(crate) transform_scale: f32,
+    pub(crate) transform_corner: Option<usize>,
 }
 
 impl Document {
@@ -142,7 +141,6 @@ impl Document {
             transforming: false,
             transform_orig_rect: None,
             transform_corner: None,
-            transform_scale: 1.0,
         }
     }
 }

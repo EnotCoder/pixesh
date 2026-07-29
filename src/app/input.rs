@@ -141,7 +141,6 @@ impl PixeshApp {
                     self.docs[self.active_tab].transforming = false;
                     self.docs[self.active_tab].transform_corner = None;
                     self.docs[self.active_tab].transform_orig_rect = None;
-                    self.docs[self.active_tab].transform_scale = 1.0;
                     self.docs[self.active_tab].canvas_dirty = true;
                     if let Some(saved) = self.tool_saved_shift.take() {
                         self.tool = saved;
@@ -245,13 +244,12 @@ impl PixeshApp {
                     self.tool = Tool::Transform;
                     self.docs[tab].transforming = true;
                     self.docs[tab].transform_orig_rect = self.docs[tab].sel;
-                    self.docs[tab].transform_scale = 1.0;
+                    self.docs[tab].transform_corner = None;
                 } else if self.tool == Tool::Transform && self.tool_saved_shift.is_some() {
                     self.tool = self.tool_saved_shift.take().unwrap();
                     self.docs[tab].transforming = false;
                     self.docs[tab].transform_corner = None;
                     self.docs[tab].transform_orig_rect = None;
-                    self.docs[tab].transform_scale = 1.0;
                     self.docs[tab].canvas_dirty = true;
                 }
             }
