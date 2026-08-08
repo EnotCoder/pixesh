@@ -43,6 +43,32 @@ pub fn btn_min_w(ui: &mut egui::Ui, label: &str, min_w: f32) -> bool {
     resp.clicked()
 }
 
+// ── toggle button (segmented selection) ──────────────
+pub fn toggle_btn(ui: &mut egui::Ui, label: &str, active: bool) -> bool {
+    let font_id = ui.style().text_styles.get(&egui::TextStyle::Button)
+        .cloned()
+        .unwrap_or(egui::FontId::proportional(FONT_SZ));
+    let font_sz = font_id.size;
+    let label_w = label.len() as f32 * CHAR_W * (font_sz / FONT_SZ);
+    let pad = Vec2::new(14.0, 6.0);
+    let size = Vec2::new(label_w + pad.x * 2.0, font_sz + pad.y * 2.0);
+    let (rect, resp) = ui.allocate_exact_size(size, Sense::click());
+
+    let bg = if active {
+        ACCENT
+    } else if resp.hovered() {
+        HOVER
+    } else {
+        PANEL
+    };
+    let p = ui.painter();
+    p.rect_filled(rect, 0.0, bg);
+    p.rect_stroke(rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
+    p.text(rect.center(), egui::Align2::CENTER_CENTER, label, font_id, TEXT);
+
+    resp.clicked()
+}
+
 // ── icon_btn with tooltip ────────────────────────────
 pub fn icon_btn_tip(ui: &mut egui::Ui, tex_id: egui::TextureId, active: bool, tip: &str) -> bool {
     let size = Vec2::splat(ROW_H + 16.0);

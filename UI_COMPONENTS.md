@@ -136,7 +136,7 @@
 | "Apply" | `btn_min_w` | Применяет размер |
 | "Cancel" | `btn_min_w` | Закрывает диалог |
 
-### Export PNG (export.rs) — 380×260px
+### Export PNG (export.rs) — 380×440px
 
 | Элемент | Тип | Описание |
 |---------|-----|----------|
@@ -145,6 +145,9 @@
 | "File:" | Текст | Подпись |
 | Имя файла | `TextEdit::singleline` | Редактируемое поле |
 | "..." | Кастомная кнопка | Выбор папки через `rfd::FileDialog` |
+| "Scale:" | Текст + `toggle_btn` | x1 / x2 / x4 / x8 / x16 (nearest-neighbour upscale) |
+| "Background:" | Текст + `toggle_btn` | None / White / Black / Check (шахматка) |
+| "Out: {W}x{H} px" | Текст | Итоговый размер экспорта (DIM) |
 | "Save" | Кастомная кнопка | Экспорт PNG |
 | "Cancel" | Кастомная кнопка | Закрывает диалог |
 

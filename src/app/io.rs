@@ -3,6 +3,7 @@ use std::sync::Arc;
 use eframe::egui::Color32;
 
 use super::{Document, Layer};
+use crate::constants::ExportBg;
 
 impl Document {
     pub(crate) fn add_layer(&mut self) {
@@ -26,13 +27,34 @@ impl Document {
         self.canvas_dirty = true;
     }
 
-    pub(crate) fn save_png(&self, path: &str) -> Result<(), String> {
+    pub(crate) fn save_png(&self, path: &str, scale: u32, bg: ExportBg) -> Result<(), String> {
         let flat = self.composite();
-        let mut img = image::RgbaImage::new(self.width as u32, self.height as u32);
-        for y in 0..self.height {
-            for x in 0..self.width {
-                let c = flat[y * self.width + x];
-                img.put_pixel(x as u32, y as u32, image::Rgba([c.r(), c.g(), c.b(), c.a()]));
+        let ow = self.width;
+        let oh = self.height;
+        let w = ow * scale.max(1) as usize;
+        let h = oh * scale.max(1) as usize;
+        let s = scale.max(1) as usize;
+        let ck_a = [200, 200, 200];
+        let ck_b = [180, 180, 180];
+        let mut img = image::RgbaImage::new(w as u32, h as u32);
+        for y in 0..h {
+            for x in 0..w {
+                let c = flat[(y / s) * ow + (x / s)];
+                let a = c.a();
+                let (r, g, b, a) = match bg {
+                    ExportBg::Transparent => (c.r(), c.g(), c.b(), a),
+                    ExportBg::White => blended(c.r(), c.g(), c.b(), a, 255, 255, 255),
+                    ExportBg::Black => blended(c.r(), c.g(), c.b(), a, 0, 0, 0),
+                    ExportBg::Checker => {
+                        if a == 0 {
+                            let cb = if (x / s + y / s) % 2 == 0 { ck_a } else { ck_b };
+                            (cb[0], cb[1], cb[2], 255)
+                        } else {
+                            blended(c.r(), c.g(), c.b(), a, 255, 255, 255)
+                        }
+                    }
+                };
+                img.put_pixel(x as u32, y as u32, image::Rgba([r, g, b, a]));
             }
         }
         img.save(path).map_err(|e| format!("Failed to save: {}", e))
@@ -167,4 +189,12 @@ impl Document {
         self.tex = None;
         self.canvas_dirty = true;
     }
+}
+
+fn blended(r: u8, g: u8, b: u8, a: u8, br: u8, bg: u8, bb: u8) -> (u8, u8, u8, u8) {
+    let a = a as u32;
+    if a == 0 { return (br, bg, bb, 255); }
+    let ia = 255 - a;
+    let mix = |c: u32, bc: u32| ((c * a + bc * ia) / 255) as u8;
+    (mix(r as u32, br as u32), mix(g as u32, bg as u32), mix(b as u32, bb as u32), 255)
 }

@@ -11,7 +11,7 @@ impl PixeshApp {
             .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
             .order(egui::Order::Foreground)
             .show(ctx, |ui| {
-                let size = Vec2::new(380.0, 260.0);
+                let size = Vec2::new(380.0, 440.0);
                 let (rect, _) = ui.allocate_exact_size(size, egui::Sense::hover());
                 let pad = 10.0;
                 let btn_h = 44.0;
@@ -34,6 +34,8 @@ impl PixeshApp {
 
                 let body_font = egui::FontId::proportional(28.0);
                 let title_font = egui::FontId::proportional(32.0);
+                let small_font = egui::FontId::proportional(22.0);
+                let toggle_font = egui::FontId::proportional(18.0);
 
                 {
                     let p = ui.painter();
@@ -52,28 +54,42 @@ impl PixeshApp {
                     );
 
                     p.text(
-                        egui::pos2(rect.min.x + pad, rect.min.y + 56.0),
+                        egui::pos2(rect.min.x + pad, rect.min.y + 56.0 + 8.0),
                         egui::Align2::LEFT_TOP,
                         &folder_text,
                         body_font.clone(),
                         TEXT,
                     );
 
-                    let file_row_y = rect.min.y + 56.0 + 60.0;
+                    let file_row_y = rect.min.y + 116.0 + 8.0;
                     p.text(
-                        egui::pos2(rect.min.x + pad, file_row_y + 8.0),
+                        egui::pos2(rect.min.x + pad, file_row_y),
                         egui::Align2::LEFT_TOP,
                         "File:",
                         body_font.clone(),
+                        TEXT,
+                    );
+
+                    p.text(
+                        egui::pos2(rect.min.x + pad, rect.min.y + 172.0),
+                        egui::Align2::LEFT_TOP,
+                        "Scale:",
+                        small_font.clone(),
+                        TEXT,
+                    );
+                    p.text(
+                        egui::pos2(rect.min.x + pad, rect.min.y + 250.0),
+                        egui::Align2::LEFT_TOP,
+                        "Background:",
+                        small_font.clone(),
                         TEXT,
                     );
                 }
 
                 let file_edit_x = rect.min.x + pad + 80.0;
                 let file_edit_w = rect.max.x - pad - file_edit_x;
-                let file_row_y = rect.min.y + 56.0 + 60.0;
                 let file_edit_rect = egui::Rect::from_min_size(
-                    egui::pos2(file_edit_x, file_row_y),
+                    egui::pos2(file_edit_x, rect.min.y + 116.0),
                     Vec2::new(file_edit_w, btn_h),
                 );
                 ui.put(file_edit_rect, egui::TextEdit::singleline(&mut self.docs[i].export_name).desired_width(file_edit_w));
@@ -95,6 +111,62 @@ impl PixeshApp {
                     p.rect_filled(dot_btn_rect, 0.0, dot_bg);
                     p.rect_stroke(dot_btn_rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
                     p.text(dot_btn_rect.center(), egui::Align2::CENTER_CENTER, "...", body_font.clone(), TEXT);
+                }
+
+                // scale buttons
+                let mut new_scale = self.export_scale;
+                {
+                    let btn_rect = egui::Rect::from_min_size(
+                        egui::pos2(rect.min.x + pad, rect.min.y + 192.0),
+                        Vec2::new(rect.width() - pad * 2.0, btn_h),
+                    );
+                    let mut row_ui = ui.new_child(
+                        egui::UiBuilder::new()
+                            .layout(egui::Layout::left_to_right(egui::Align::Center))
+                            .max_rect(btn_rect),
+                    );
+                    row_ui.style_mut().text_styles.insert(egui::TextStyle::Button, toggle_font.clone());
+                    for s in [1, 2, 4, 8, 16] {
+                        if toggle_btn(&mut row_ui, &format!("x{}", s), self.export_scale == s) {
+                            new_scale = s;
+                        }
+                    }
+                }
+                self.export_scale = new_scale;
+
+                // background buttons
+                let mut new_bg = self.export_bg;
+                {
+                    let btn_rect = egui::Rect::from_min_size(
+                        egui::pos2(rect.min.x + pad, rect.min.y + 270.0),
+                        Vec2::new(rect.width() - pad * 2.0, btn_h),
+                    );
+                    let mut row_ui = ui.new_child(
+                        egui::UiBuilder::new()
+                            .layout(egui::Layout::left_to_right(egui::Align::Center))
+                            .max_rect(btn_rect),
+                    );
+                    row_ui.style_mut().text_styles.insert(egui::TextStyle::Button, toggle_font.clone());
+                    for (on, bg) in [("None", ExportBg::Transparent), ("White", ExportBg::White), ("Black", ExportBg::Black), ("Check", ExportBg::Checker)] {
+                        if toggle_btn(&mut row_ui, on, self.export_bg == bg) {
+                            new_bg = bg;
+                        }
+                    }
+                }
+                self.export_bg = new_bg;
+
+                // size preview
+                {
+                    let s = self.export_scale.max(1) as usize;
+                    let out = format!("Out: {}x{} px", self.docs[i].width * s, self.docs[i].height * s);
+                    let p = ui.painter();
+                    p.text(
+                        egui::pos2(rect.min.x + pad, rect.min.y + 344.0),
+                        egui::Align2::LEFT_TOP,
+                        out,
+                        small_font.clone(),
+                        DIM,
+                    );
                 }
 
                 let mut save_clicked = false;
@@ -128,7 +200,7 @@ impl PixeshApp {
                     let dir = if self.docs[i].export_path.is_empty() { home.clone() } else { self.docs[i].export_path.clone() };
                     let name = if self.docs[i].export_name.ends_with(".png") { self.docs[i].export_name.clone() } else { format!("{}.png", self.docs[i].export_name) };
                     let path = format!("{}/{}", dir, name);
-                    let _ = self.docs[i].save_png(&path);
+                    let _ = self.docs[i].save_png(&path, self.export_scale.max(1) as u32, self.export_bg);
                     self.docs[i].unsaved = false;
                     self.show_export = false;
                 }
