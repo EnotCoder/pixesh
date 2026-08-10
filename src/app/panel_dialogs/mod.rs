@@ -8,9 +8,11 @@ mod panels;
 mod settings;
 mod scale;
 mod text;
+mod welcome;
 
 impl PixeshApp {
     pub(crate) fn ui_dialogs(&mut self, ctx: &egui::Context) {
+        self.ui_welcome_dialog(ctx);
         self.ui_resize_dialog(ctx);
         self.ui_export_dialog(ctx);
         self.ui_brush_dialog(ctx);

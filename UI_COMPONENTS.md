@@ -126,6 +126,19 @@
 
 Все диалоги: `egui::Area`, `anchor(CENTER_CENTER)`, `order(Foreground)`
 
+### Welcome (welcome.rs) — 480×440px
+
+| Элемент | Тип | Описание |
+|---------|-----|----------|
+| Логотип | Текстура | `logo.png`, 72px, по центру |
+| "Welcome to Pixesh" | Заголовок | 34pt |
+| Подзаголовок | Текст | 20pt (DIM) |
+| Quick-actions | Сетка 3×2 | New File / Open... / 16x16 / 32x32 / 64x64 / 128x128 |
+| Чекбокс | Кастомный | 26px, текст "Show this window on startup" |
+| "Close" | Кастомная кнопка | Закрывает, сохраняет конфиг |
+
+Показывается при запуске, если в `~/.config/pixesh/settings.txt` `welcome_show_again=1`.
+
 ### Resize Canvas (resize.rs) — 300×300px
 
 | Элемент | Тип | Описание |

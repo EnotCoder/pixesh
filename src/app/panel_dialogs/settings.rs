@@ -9,7 +9,7 @@ impl PixeshApp {
             .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
             .order(egui::Order::Foreground)
             .show(ctx, |ui| {
-                let size = Vec2::new(300.0, 320.0);
+                let size = Vec2::new(300.0, 360.0);
                 let (rect, _) = ui.allocate_exact_size(size, egui::Sense::hover());
                 let p = ui.painter();
                 p.rect_filled(rect, 0.0, PANEL);
@@ -63,6 +63,46 @@ impl PixeshApp {
                         egui::Slider::new(&mut self.zoom_speed, 0.005..=1.0)
                             .show_value(true),
                     );
+                });
+
+                // ── Show Welcome ──
+                child_ui.add_space(8.0);
+                child_ui.vertical_centered(|ui| {
+                    ui.label(egui::RichText::new("Show Welcome").size(24.0).color(TEXT));
+                });
+                child_ui.add_space(4.0);
+                child_ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                    let cbs = 26.0;
+                    let sz = 24.0;
+                    let row_h = sz + 12.0;
+                    let (row_rect, _) = ui.allocate_exact_size(Vec2::new(200.0, row_h), egui::Sense::click());
+                    let p = ui.painter();
+                    p.text(
+                        Pos2::new(row_rect.min.x + 4.0, row_rect.center().y),
+                        egui::Align2::LEFT_CENTER,
+                        "at startup",
+                        egui::FontId::proportional(sz),
+                        TEXT,
+                    );
+                    let cb_rect = Rect::from_min_size(
+                        Pos2::new(row_rect.max.x - cbs - 4.0, row_rect.center().y - cbs * 0.5),
+                        Vec2::splat(cbs),
+                    );
+                    p.rect_filled(cb_rect, 0.0, PANEL);
+                    p.rect_stroke(cb_rect, 0.0, egui::Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
+                    if self.welcome_show_again {
+                        let inner = cb_rect.shrink(5.0);
+                        p.rect_filled(inner, 0.0, ACCENT);
+                    }
+                    if ui.interact(row_rect, egui::Id::new("row_welcome"), egui::Sense::click()).clicked()
+                        || ui.interact(cb_rect, egui::Id::new("cb_welcome"), egui::Sense::click()).clicked()
+                    {
+                        self.welcome_show_again = !self.welcome_show_again;
+                        crate::app::config::save_welcome_show_again(self.welcome_show_again);
+                        if self.welcome_show_again {
+                            self.show_welcome = true;
+                        }
+                    }
                 });
 
                 // ── Enter / Escape ──

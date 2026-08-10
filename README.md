@@ -13,6 +13,7 @@ A minimal pixel art editor built with Rust and egui.
 - **Canvas resize / scale** — Change dimensions or scale the image
 - **Crop to selection** — Crop canvas to selection bounds
 - **Export PNG** — Save your artwork (scale x1–x16, background: none/white/black/checker)
+- **Welcome dialog** — Quick-start window at launch (New / Open / canvas presets), "show on startup" is remembered between runs
 - **Grid overlay** — Toggle pixel grid
 - **Zoom & pan** — Scroll to zoom, arrows/middle-mouse to pan
 - **Zoom to fit** — Auto-zoom on image load

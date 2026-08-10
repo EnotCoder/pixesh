@@ -16,12 +16,13 @@ pixesh/
 │   ├── main.rs              — точка входа, настройка шрифта/темы, запуск окна
 │   ├── constants.rs         — цвета PANEL/BG/TEXT/ACCENT/HOVER/BORDER,
 │   │                         размеры FONT_SZ/CHAR_W/ROW_H,
-│   │                         enum Tool { Brush, Eraser, Fill, Eyedropper }
+│   │                         enum Tool, enum ExportBg
 │   ├── color.rs             — hsv_to_rgb() / rgb_to_hsv()
-│   ├── ui.rs                — виджеты btn/icon_btn/checkbox/slider/separator
+│   ├── ui.rs                — виджеты btn/icon_btn/checkbox/slider/separator/toggle_btn
 │   └── app/
-│       ├── mod.rs           — Layer, Snapshot, PixeshApp (все поля + new()),
+│       ├── mod.rs           — Layer, Snapshot, Document, PixeshApp (все поля + new()),
 │       │                     impl eframe::App (update() диспатчит)
+│       ├── config.rs        — загрузка/сохранение настроек (~/.config/pixesh/settings.txt)
 │       ├── canvas.rs        — brush_i, pixels_mut, composite, composite_display,
 │       │                     paint_pixel, paint_line, flood_fill, screen_to_pixel
 │       ├── history.rs       — push_undo, undo, redo

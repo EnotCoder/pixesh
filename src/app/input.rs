@@ -161,6 +161,8 @@ impl PixeshApp {
                     self.show_settings = false;
                     self.show_scale = false;
                     self.show_quit_dialog = false;
+                    self.show_welcome = false;
+                    crate::app::config::save_welcome_show_again(self.welcome_show_again);
                 } else {
                     self.docs[self.active_tab].deselect();
                 }

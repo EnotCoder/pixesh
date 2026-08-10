@@ -1,4 +1,5 @@
 pub mod canvas;
+pub mod config;
 pub mod history;
 pub mod input;
 pub mod io;
@@ -97,6 +98,14 @@ pub(crate) struct Document {
 }
 
 impl Document {
+    pub(crate) fn new_sized(name: &str, w: usize, h: usize) -> Self {
+        let mut doc = Document::new(name);
+        doc.width = w;
+        doc.height = h;
+        doc.layers[0].pixels = Arc::new(vec![Color32::TRANSPARENT; w * h]);
+        doc
+    }
+
     pub(crate) fn new(name: &str) -> Self {
         Self {
             name: name.into(),
@@ -199,6 +208,8 @@ pub struct PixeshApp {
     pub(crate) show_right_panel: bool,
     pub(crate) show_status_bar: bool,
     pub(crate) show_quit_dialog: bool,
+    pub(crate) show_welcome: bool,
+    pub(crate) welcome_show_again: bool,
 
     pub(crate) arrow_speed: f32,
     pub(crate) zoom_speed: f32,
@@ -218,6 +229,7 @@ pub struct PixeshApp {
 
 impl PixeshApp {
     pub fn new() -> Self {
+        let welcome_show_again = config::load_welcome_show_again();
         Self {
             docs: vec![Document::new("Untitled")],
             active_tab: 0,
@@ -243,6 +255,8 @@ impl PixeshApp {
             show_panels: false, show_settings: false,
             show_top_panel: true, show_right_panel: true, show_status_bar: true,
             show_quit_dialog: false,
+            welcome_show_again,
+            show_welcome: welcome_show_again,
             arrow_speed: 5.0,             zoom_speed: 0.5,
             color_history: Vec::new(),
             renaming_layer: None, rename_buf: String::new(),
@@ -260,7 +274,7 @@ impl PixeshApp {
     pub(crate) fn dialog_open(&self) -> bool {
         self.show_resize || self.show_export || self.show_brush
             || self.show_panels || self.show_settings || self.show_scale
-            || self.show_quit_dialog || self.show_text
+            || self.show_quit_dialog || self.show_text || self.show_welcome
     }
 
     pub(crate) fn any_unsaved(&self) -> bool {
