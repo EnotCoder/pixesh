@@ -12,7 +12,7 @@ impl PixeshApp {
             .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
             .order(egui::Order::Foreground)
             .show(ctx, |ui| {
-                let size = Vec2::splat(300.0);
+                let size = Vec2::new(300.0, 340.0);
                 let (rect, _) = ui.allocate_exact_size(size, egui::Sense::hover());
                 let p = ui.painter();
                 p.rect_filled(rect, 0.0, PANEL);
@@ -42,6 +42,23 @@ impl PixeshApp {
                 });
                 let enter = ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Enter));
                 if enter { self.show_brush = false; }
+                child_ui.add_space(30.0);
+                child_ui.vertical_centered(|ui| {
+                    ui.label(egui::RichText::new("Shape").size(26.0).color(TEXT));
+                });
+                child_ui.add_space(8.0);
+                child_ui.horizontal_centered(|ui| {
+                    ui.style_mut().text_styles.insert(
+                        egui::TextStyle::Button,
+                        egui::FontId::proportional(22.0),
+                    );
+                    if toggle_btn(ui, "Round", self.brush_shape == BrushShape::Round) {
+                        self.brush_shape = BrushShape::Round;
+                    }
+                    if toggle_btn(ui, "Square", self.brush_shape == BrushShape::Square) {
+                        self.brush_shape = BrushShape::Square;
+                    }
+                });
                 child_ui.add_space(child_ui.available_height() - 44.0);
                 let w = child_ui.available_width();
                 if btn_min_w(&mut child_ui, "OK", w) {

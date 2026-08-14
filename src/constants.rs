@@ -8,6 +8,10 @@ pub enum Tool { Brush, Eraser, Fill, Eyedropper, Select, Move, Text, Transform }
 #[derive(PartialEq, Clone, Copy)]
 pub enum ExportBg { Transparent, White, Black, Checker }
 
+// форма (маска) кисти
+#[derive(PartialEq, Clone, Copy)]
+pub enum BrushShape { Round, Square }
+
 // ── цвета темы ──
 pub const BG: Color32 = Color32::from_rgb(24, 24, 24);          // самый тёмный (фон холста)
 pub const PANEL: Color32 = Color32::from_rgb(32, 32, 32);       // панели

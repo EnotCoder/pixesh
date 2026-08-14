@@ -1,19 +1,20 @@
 use eframe::egui::Color32;
 
 use super::Document;
+use crate::constants::BrushShape;
 
 impl Document {
-    pub(crate) fn handle_brush_press(&mut self, px: i32, py: i32, color: Color32, brush: f32) {
+    pub(crate) fn handle_brush_press(&mut self, px: i32, py: i32, color: Color32, brush: f32, shape: BrushShape) {
         self.push_undo();
-        self.paint_pixel(px, py, color, brush);
+        self.paint_pixel(px, py, color, brush, shape);
         self.last_px_primary = Some((px, py));
     }
 
-    pub(crate) fn handle_brush_drag(&mut self, px: i32, py: i32, color: Color32, brush: f32) {
+    pub(crate) fn handle_brush_drag(&mut self, px: i32, py: i32, color: Color32, brush: f32, shape: BrushShape) {
         if let Some(last) = self.last_px_primary {
-            self.paint_line(last.0, last.1, px, py, color, brush);
+            self.paint_line(last.0, last.1, px, py, color, brush, shape);
         } else {
-            self.paint_pixel(px, py, color, brush);
+            self.paint_pixel(px, py, color, brush, shape);
         }
         self.last_px_primary = Some((px, py));
     }

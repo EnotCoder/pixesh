@@ -164,12 +164,14 @@
 | "Save" | Кастомная кнопка | Экспорт PNG |
 | "Cancel" | Кастомная кнопка | Закрывает диалог |
 
-### Brush Size (brush.rs) — 300×300px
+### Brush Size (brush.rs) — 300×340px
 
 | Элемент | Тип | Описание |
 |---------|-----|----------|
 | "Brush Size" | Заголовок | 32pt |
 | Размер | `DragValue` | Диапазон 1-max(width,height) |
+| "Shape" | Заголовок | 26pt |
+| Round / Square | `toggle_btn` | Маска кисти (`BrushShape`) |
 | "OK" | `btn_min_w` | Закрывает диалог |
 
 ### Panels (panels.rs) — 250×250px

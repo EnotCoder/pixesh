@@ -18,6 +18,7 @@ impl PixeshApp {
             .show(ctx, |ui| {
                 let i = self.active_tab;
                 let brush = self.brush;
+                let shape = self.brush_shape;
                 let tool = self.tool;
                 let color = self.color;
                 let dialog_open = self.dialog_open();
@@ -291,8 +292,15 @@ impl PixeshApp {
                                 Pos2::new(canvas_rect.min.x + bx0 * zoom, canvas_rect.min.y + by0 * zoom),
                                 Vec2::new((bx1 - bx0) * zoom, (by1 - by0) * zoom),
                             );
-                            p.rect_filled(cr, 0.0, Color32::from_black_alpha(60));
-                            p.rect_stroke(cr, 0.0, Stroke::new(2.0, Color32::WHITE.linear_multiply(0.4)), egui::StrokeKind::Inside);
+                            if shape == BrushShape::Round {
+                                let c = cr.center();
+                                let r = cr.width().min(cr.height()) / 2.0;
+                                p.circle_filled(c, r, Color32::from_black_alpha(60));
+                                p.circle_stroke(c, r, Stroke::new(2.0, Color32::WHITE.linear_multiply(0.4)));
+                            } else {
+                                p.rect_filled(cr, 0.0, Color32::from_black_alpha(60));
+                                p.rect_stroke(cr, 0.0, Stroke::new(2.0, Color32::WHITE.linear_multiply(0.4)), egui::StrokeKind::Inside);
+                            }
                         } else {
                             self.cursor_px = None;
                         }
@@ -562,13 +570,13 @@ impl PixeshApp {
                         if self.docs[i].last_px_primary.is_none() {
                             if ctx.input(|i| i.pointer.primary_down()) {
                                 if let Some(p) = cp(&resp) {
-                                    self.docs[i].handle_brush_press(p.0, p.1, paint_color, brush);
+                                    self.docs[i].handle_brush_press(p.0, p.1, paint_color, brush, shape);
                                 }
                             }
                         }
                         if resp.dragged_by(egui::PointerButton::Primary) {
                             if let Some(p) = cp(&resp) {
-                                self.docs[i].handle_brush_drag(p.0, p.1, paint_color, brush);
+                                self.docs[i].handle_brush_drag(p.0, p.1, paint_color, brush, shape);
                             } else {
                                 self.docs[i].last_px_primary = None;
                             }
@@ -582,9 +590,9 @@ impl PixeshApp {
                     if let Some(p) = cp(&resp) {
                         if self.docs[i].last_px_secondary.is_none() { self.docs[i].push_undo(); }
                         if let Some(last) = self.docs[i].last_px_secondary {
-                            self.docs[i].paint_line(last.0, last.1, p.0, p.1, Color32::TRANSPARENT, brush);
+                            self.docs[i].paint_line(last.0, last.1, p.0, p.1, Color32::TRANSPARENT, brush, shape);
                         } else {
-                            self.docs[i].paint_pixel(p.0, p.1, Color32::TRANSPARENT, brush);
+                            self.docs[i].paint_pixel(p.0, p.1, Color32::TRANSPARENT, brush, shape);
                         }
                         self.docs[i].last_px_secondary = Some(p);
                     } else {
@@ -595,7 +603,7 @@ impl PixeshApp {
                     self.docs[i].commit_pending_paste();
                     if let Some(p) = cp(&resp) {
                         self.docs[i].push_undo();
-                        self.docs[i].paint_pixel(p.0, p.1, Color32::TRANSPARENT, brush);
+                        self.docs[i].paint_pixel(p.0, p.1, Color32::TRANSPARENT, brush, shape);
                     }
                 }
 

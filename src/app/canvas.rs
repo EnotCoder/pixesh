@@ -3,6 +3,19 @@ use std::sync::Arc;
 use eframe::egui::{Color32, Pos2};
 
 use super::Document;
+use crate::constants::BrushShape;
+
+fn brush_mask(dx: i32, dy: i32, b: i32, shape: BrushShape) -> bool {
+    match shape {
+        BrushShape::Square => true,
+        BrushShape::Round => {
+            let r = b as f32 / 2.0;
+            let ox = dx as f32 + 0.5 - r;
+            let oy = dy as f32 + 0.5 - r;
+            ox * ox + oy * oy <= r * r
+        }
+    }
+}
 
 impl Document {
     pub(crate) fn pixels_mut(&mut self, layer_idx: usize) -> &mut Vec<Color32> {
@@ -54,7 +67,7 @@ impl Document {
         &self.display_buf
     }
 
-    pub(crate) fn paint_pixel(&mut self, px: i32, py: i32, color: Color32, brush: f32) {
+    pub(crate) fn paint_pixel(&mut self, px: i32, py: i32, color: Color32, brush: f32, shape: BrushShape) {
         let idx = self.active_layer;
         if idx >= self.layers.len() { return; }
         let w = self.width as i32;
@@ -65,6 +78,7 @@ impl Document {
         let pixels = self.pixels_mut(idx);
         for dy in 0..b {
             for dx in 0..b {
+                if !brush_mask(dx, dy, b, shape) { continue; }
                 let x = px + dx - half;
                 let y = py + dy - half;
                 let in_sel = match sel {
@@ -79,7 +93,7 @@ impl Document {
         self.canvas_dirty = true;
     }
 
-    pub(crate) fn paint_line(&mut self, x0: i32, y0: i32, x1: i32, y1: i32, color: Color32, brush: f32) {
+    pub(crate) fn paint_line(&mut self, x0: i32, y0: i32, x1: i32, y1: i32, color: Color32, brush: f32, shape: BrushShape) {
         let idx = self.active_layer;
         if idx >= self.layers.len() { return; }
         let w = self.width as i32;
@@ -98,6 +112,7 @@ impl Document {
         loop {
             for dy2 in 0..b {
                 for dx2 in 0..b {
+                    if !brush_mask(dx2, dy2, b, shape) { continue; }
                     let x = cx + dx2 - half;
                     let y = cy + dy2 - half;
                     let in_sel = match sel {

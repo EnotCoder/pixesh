@@ -7,6 +7,7 @@ A minimal pixel art editor built with Rust and egui.
 ## Features
 
 - **Drawing tools** — Brush, Eraser, Fill, Eyedropper, Select, Move
+- **Brush shapes** — Round / Square mask (Brush Size dialog, Ctrl+B)
 - **Copy / Paste** — Copy selection, paste at center, move pasted pixels
 - **Layers** — Add/remove layers, toggle visibility
 - **HSV color picker** — Saturation/Value field + Hue strip
