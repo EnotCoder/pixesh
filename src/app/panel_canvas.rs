@@ -12,6 +12,25 @@ fn click_pixel(resp: &egui::Response, canvas_rect: &Rect, zoom: f32) -> Option<(
     Some(((r.x / zoom).round() as i32, (r.y / zoom).round() as i32))
 }
 
+// marching ants: dashed line along an edge in screen space, phase-animated
+fn dashes_rect(p: &egui::Painter, edges: &[[Pos2; 2]; 4], off: f32, dash: f32, gap: f32, stroke: Stroke) {
+    let period = dash + gap;
+    for edge in edges {
+        let a = edge[0];
+        let b = edge[1];
+        let len = a.distance(b);
+        let mut d = -off;
+        while d < len {
+            let d0 = d.max(0.0);
+            let d1 = (d + dash).min(len);
+            if d1 > d0 {
+                p.line_segment([a + (b - a) * (d0 / len), a + (b - a) * (d1 / len)], stroke);
+            }
+            d += period;
+        }
+    }
+}
+
 impl PixeshApp {
     pub(crate) fn ui_canvas(&mut self, ctx: &egui::Context) {
         egui::CentralPanel::default()
@@ -238,26 +257,23 @@ impl PixeshApp {
                             Pos2::new(canvas_rect.min.x + x0 as f32 * zoom, canvas_rect.min.y + y0 as f32 * zoom),
                             Vec2::new((x1 - x0 + 1) as f32 * zoom, (y1 - y0 + 1) as f32 * zoom),
                         );
-                        let white = Color32::from_rgb(255, 255, 255);
-                        let black = Color32::from_rgb(0, 0, 0);
-                        let segments = 8;
-                        let phase = ctx.input(|i| i.time) as f32 * 3.0;
-                        for ii in 0..segments {
-                            let t0 = ii as f32 / segments as f32;
-                            let t1 = (ii + 1) as f32 / segments as f32;
-                            let c = if ((ii as f32 + phase) % 2.0) < 1.0 { white } else { black };
-                            let s = Stroke::new(6.0, c);
-                            p.line_segment([Pos2::new(r.min.x + r.width() * t0, r.min.y), Pos2::new(r.min.x + r.width() * t1, r.min.y)], s);
-                            p.line_segment([Pos2::new(r.min.x + r.width() * t0, r.max.y), Pos2::new(r.min.x + r.width() * t1, r.max.y)], s);
-                        }
-                        for ii in 0..segments {
-                            let t0 = ii as f32 / segments as f32;
-                            let t1 = (ii + 1) as f32 / segments as f32;
-                            let c = if (((ii as f32 + phase) % 2.0) < 1.0) ^ true { white } else { black };
-                            let s = Stroke::new(6.0, c);
-                            p.line_segment([Pos2::new(r.min.x, r.min.y + r.height() * t0), Pos2::new(r.min.x, r.min.y + r.height() * t1)], s);
-                            p.line_segment([Pos2::new(r.max.x, r.min.y + r.height() * t0), Pos2::new(r.max.x, r.min.y + r.height() * t1)], s);
-                        }
+
+                        // keep marching ants animating even without pointer movement
+                        ctx.request_repaint();
+
+                        let dash = 6.0;
+                        let gap = 7.0;
+                        let off = ctx.input(|i| i.time) as f32 * 90.0 % (dash + gap);
+                        let edges = [
+                            [Pos2::new(r.min.x, r.min.y), Pos2::new(r.max.x, r.min.y)],
+                            [Pos2::new(r.max.x, r.min.y), Pos2::new(r.max.x, r.max.y)],
+                            [Pos2::new(r.max.x, r.max.y), Pos2::new(r.min.x, r.max.y)],
+                            [Pos2::new(r.min.x, r.max.y), Pos2::new(r.min.x, r.min.y)],
+                        ];
+
+                        // dark base pass (shadow), then white core pass — classic ants
+                        dashes_rect(p, &edges, off, dash, gap, Stroke::new(5.0, Color32::BLACK));
+                        dashes_rect(p, &edges, off, dash, gap, Stroke::new(2.5, Color32::WHITE));
                     }
 
                     // grid
