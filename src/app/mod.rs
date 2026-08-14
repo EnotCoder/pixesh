@@ -58,6 +58,7 @@ pub(crate) struct Document {
     pub(crate) redo_stack: Vec<Snapshot>,
 
     pub(crate) canvas_dirty: bool,
+    pub(crate) display_cell: i32,
     pub(crate) display_buf: Vec<Color32>,
     pub(crate) tex: Option<egui::TextureHandle>,
 
@@ -120,6 +121,7 @@ impl Document {
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
             canvas_dirty: true,
+            display_cell: 0,
             display_buf: Vec::new(),
             tex: None,
             sel: None,

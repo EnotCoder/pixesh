@@ -2,6 +2,7 @@ use std::sync::Arc;
 use eframe::egui::{self, Color32, ColorImage, Pos2, Rect, Sense, Stroke, Vec2};
 
 use crate::constants::*;
+use super::canvas::checker_cell;
 use super::PixeshApp;
 
 fn click_pixel(resp: &egui::Response, canvas_rect: &Rect, zoom: f32) -> Option<(i32, i32)> {
@@ -57,7 +58,7 @@ impl PixeshApp {
 
                 // ── render canvas texture ──
                 if ui.is_rect_visible(canvas_rect) {
-                    if self.docs[i].canvas_dirty || self.docs[i].sel_move_current.is_some() || self.docs[i].canvas_move_current.is_some() || self.docs[i].transforming {
+                    if self.docs[i].canvas_dirty || checker_cell(self.docs[i].zoom) != self.docs[i].display_cell || self.docs[i].sel_move_current.is_some() || self.docs[i].canvas_move_current.is_some() || self.docs[i].transforming {
                         self.docs[i].composite_display();
 
                         // clone sel_buffer to avoid borrow conflict with display_buf
@@ -71,13 +72,14 @@ impl PixeshApp {
                         if let (Some(buf), Some(origin), Some(current)) = (sel_buf_clone, sel_origin, sel_current) {
                             if let Some((x0, y0, x1, y1)) = sel_rect {
                                 let w = self.docs[i].width as i32;
+                                let cell = checker_cell(self.docs[i].zoom);
+                                let ck_a = Color32::from_gray(200);
+                                let ck_b = Color32::from_gray(180);
                                 for yy in y0..=y1 {
                                     for xx in x0..=x1 {
                                         let idx = (yy * w + xx) as usize;
                                         if idx < self.docs[i].display_buf.len() {
-                                            let ck_a = Color32::from_gray(200);
-                                            let ck_b = Color32::from_gray(180);
-                                            self.docs[i].display_buf[idx] = if (xx + yy) % 2 == 0 { ck_a } else { ck_b };
+                                            self.docs[i].display_buf[idx] = if ((xx / cell) + (yy / cell)) % 2 == 0 { ck_a } else { ck_b };
                                         }
                                     }
                                 }
@@ -115,6 +117,7 @@ impl PixeshApp {
                                 let hi = h as i32;
                                 let ck_a = Color32::from_gray(200);
                                 let ck_b = Color32::from_gray(180);
+                                let cell = checker_cell(self.docs[i].zoom) as usize;
                                 let active = self.docs[i].active_layer;
                                 for yy in 0..h {
                                     for xx in 0..w {
@@ -132,7 +135,7 @@ impl PixeshApp {
                                                 if p != Color32::TRANSPARENT { c = p; break; }
                                             }
                                         }
-                                        let cb = if (xx + yy) % 2 == 0 { ck_a } else { ck_b };
+                                        let cb = if ((xx / cell) + (yy / cell)) % 2 == 0 { ck_a } else { ck_b };
                                         if c == Color32::TRANSPARENT {
                                             c = cb;
                                         } else if c.a() < 255 {
@@ -194,6 +197,7 @@ impl PixeshApp {
                             ui.ctx().load_texture("canvas", img.clone(), egui::TextureOptions::NEAREST)
                         });
                         tex.set(img, egui::TextureOptions::NEAREST);
+                        self.docs[i].display_cell = checker_cell(self.docs[i].zoom);
                         if self.docs[i].sel_move_current.is_none() && self.docs[i].canvas_move_current.is_none() {
                             self.docs[i].canvas_dirty = false;
                         }

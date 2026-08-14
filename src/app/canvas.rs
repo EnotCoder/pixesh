@@ -3,7 +3,11 @@ use std::sync::Arc;
 use eframe::egui::{Color32, Pos2};
 
 use super::Document;
-use crate::constants::BrushShape;
+use crate::constants::{BrushShape, CHECKER_PX};
+
+pub(crate) fn checker_cell(zoom: f32) -> i32 {
+    ((CHECKER_PX / zoom.max(0.1)).round() as i32).max(1)
+}
 
 fn brush_mask(dx: i32, dy: i32, b: i32, shape: BrushShape) -> bool {
     match shape {
@@ -36,7 +40,8 @@ impl Document {
     pub(crate) fn composite_display(&mut self) -> &Vec<Color32> {
         let ck_a = Color32::from_gray(200);
         let ck_b = Color32::from_gray(180);
-        let n = self.width * self.height;
+let cell = checker_cell(self.zoom) as usize;
+                let n = self.width * self.height;
         self.display_buf.clear();
         self.display_buf.reserve(n);
         for y in 0..self.height {
@@ -48,7 +53,7 @@ impl Document {
                     let p = layer.pixels[idx];
                     if p != Color32::TRANSPARENT { c = p; break; }
                 }
-                let cb = if (x + y) % 2 == 0 { ck_a } else { ck_b };
+                let cb = if ((x / cell) + (y / cell)) % 2 == 0 { ck_a } else { ck_b };
                 if c == Color32::TRANSPARENT {
                     c = cb;
                 } else if c.a() < 255 {
