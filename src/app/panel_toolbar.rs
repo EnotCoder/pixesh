@@ -202,6 +202,11 @@ impl PixeshApp {
                         separator(ui);
                         ui.add_space(6.0);
 
+                        ui.style_mut().text_styles.insert(
+                            egui::TextStyle::Button,
+                            egui::FontId::proportional(22.0),
+                        );
+
                         if toggle_btn(ui, "Round", self.brush_shape == BrushShape::Round) {
                             self.brush_shape = BrushShape::Round;
                         }

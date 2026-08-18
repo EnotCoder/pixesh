@@ -65,6 +65,7 @@ impl PixeshApp {
                         || self.resize_h as usize != self.docs[i].height
                     {
                         self.docs[i].resize_canvas(self.resize_w as usize, self.resize_h as usize);
+                        self.docs[i].needs_zoom_fit = true;
                     }
                     self.show_resize = false;
                 }
@@ -78,6 +79,7 @@ impl PixeshApp {
                             || self.resize_h as usize != self.docs[i].height
                         {
                             self.docs[i].resize_canvas(self.resize_w as usize, self.resize_h as usize);
+                            self.docs[i].needs_zoom_fit = true;
                         }
                         self.show_resize = false;
                     }

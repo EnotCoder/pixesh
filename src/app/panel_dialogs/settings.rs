@@ -60,7 +60,7 @@ impl PixeshApp {
                     ui.add_space(ui.available_width() - 200.0 - PANEL_PAD);
                     ui.add_sized(
                         Vec2::new(200.0, 32.0),
-                        egui::Slider::new(&mut self.zoom_speed, 0.005..=1.0)
+                        egui::Slider::new(&mut self.zoom_speed, 0.005..=5.0)
                             .show_value(true),
                     );
                 });

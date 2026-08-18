@@ -154,7 +154,8 @@ impl PixeshApp {
             });
     }
 
-    fn new_tab(&mut self, doc: Document) {
+    fn new_tab(&mut self, mut doc: Document) {
+        doc.needs_zoom_fit = true;
         self.docs.push(doc);
         self.active_tab = self.docs.len() - 1;
     }
