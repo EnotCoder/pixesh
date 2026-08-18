@@ -3,6 +3,7 @@ use std::sync::Arc;
 use eframe::egui::{self, Color32, Pos2, Rect, Sense, Stroke, Vec2};
 
 use crate::constants::*;
+use crate::color::lerp_color;
 use crate::ui::*;
 use super::PixeshApp;
 
@@ -22,8 +23,10 @@ impl PixeshApp {
                         load_icon_texture(ui, "logo", include_bytes!("../../logo.png"))
                     });
                     let logo_sz = Vec2::splat((ROW_H + 6.0) * 1.5);
-                    let (lr, _) = ui.allocate_exact_size(logo_sz, Sense::hover());
-                    ui.painter().image(logo_tex.id(), lr.translate(Vec2::new(0.0, 4.0)),
+                    let (lr, lresp) = ui.allocate_exact_size(logo_sz, Sense::hover());
+                    let t_logo = ui.ctx().animate_bool(lresp.id, lresp.hovered());
+                    let logo_rect = lr.translate(Vec2::new(0.0, 4.0 - t_logo * 4.0));
+                    ui.painter().image(logo_tex.id(), logo_rect,
                         Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
 
                     separator(ui);
@@ -63,11 +66,25 @@ impl PixeshApp {
                     // Text tool
                     {
                         let sz = ROW_H + 16.0;
-                        let (r, resp) = ui.allocate_exact_size(Vec2::splat(sz), Sense::click());
-                        let bg = if self.tool == Tool::Text { ACCENT } else if resp.hovered() { HOVER } else { PANEL };
-                        ui.painter().rect_filled(r, 0.0, bg);
-                        ui.painter().text(r.center(), egui::Align2::CENTER_CENTER, "T", egui::FontId::proportional(24.0), TEXT);
-                        ui.painter().rect_stroke(r, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Inside);
+                        let (rect, resp) = ui.allocate_exact_size(Vec2::splat(sz), Sense::click());
+                        let t_hover = ui.ctx().animate_bool(resp.id.with("hover"), resp.hovered());
+                        let t_active = ui.ctx().animate_bool(resp.id.with("active"), self.tool == Tool::Text);
+                        
+                        let mut bg = PANEL;
+                        bg = lerp_color(bg, HOVER, t_hover);
+                        bg = lerp_color(bg, ACCENT, t_active);
+
+                        let offset = if resp.is_pointer_button_down_on() { 2.0 } else { 0.0 };
+                        let draw_rect = rect.translate(Vec2::new(0.0, offset));
+
+                        let p = ui.painter();
+                        if offset == 0.0 {
+                            p.rect_filled(rect.translate(Vec2::new(0.0, 2.0)), 0.0, BORDER);
+                        }
+                        p.rect_filled(draw_rect, 0.0, bg);
+                        p.text(draw_rect.center(), egui::Align2::CENTER_CENTER, "T", egui::FontId::proportional(24.0), TEXT);
+                        p.rect_stroke(draw_rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Inside);
+                        
                         let resp = resp.on_hover_text("Text (T)");
                         if resp.clicked() { self.tool = Tool::Text; }
                     }
@@ -101,11 +118,18 @@ impl PixeshApp {
                         Pos2::new(grid_rect.min.x, grid_rect.center().y - cbs * 0.5),
                         Vec2::splat(cbs),
                     );
+                    
+                    let is_grid = self.docs[self.active_tab].grid;
+                    let t_grid = ui.ctx().animate_bool(grid_resp.id.with("grid_anim"), is_grid);
+
                     p.rect_filled(cb_rect, 0.0, PANEL);
                     p.rect_stroke(cb_rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
-                    if self.docs[self.active_tab].grid {
-                        p.rect_filled(cb_rect.shrink(4.0), 0.0, ACCENT);
+                    
+                    if t_grid > 0.0 {
+                        let inner = cb_rect.shrink(4.0 * (1.0 - t_grid));
+                        p.rect_filled(inner, 0.0, lerp_color(PANEL, ACCENT, t_grid));
                     }
+                    
                     p.text(
                         Pos2::new(cb_rect.max.x + 8.0, grid_rect.center().y),
                         egui::Align2::LEFT_CENTER,
@@ -113,11 +137,8 @@ impl PixeshApp {
                         egui::FontId::proportional(FONT_SZ),
                         TEXT,
                     );
-                    let cb_resp = ui.interact(cb_rect, egui::Id::new("grid_cb"), Sense::click());
-                    if cb_resp.clicked() {
-                        self.docs[self.active_tab].grid = !self.docs[self.active_tab].grid;
-                    }
-                    if grid_resp.clicked() && !cb_resp.clicked() {
+                    
+                    if grid_resp.clicked() {
                         self.docs[self.active_tab].grid = !self.docs[self.active_tab].grid;
                     }
                     ui.add_space(6.0);
@@ -162,27 +183,29 @@ impl PixeshApp {
 
                         ui.add_space(6.0);
                         separator(ui);
-                        ui.add_space(6.0);
+                        ui.add_space(10.0);
 
-                        let slider_w = 150.0;
+                        // Label "Size"
+                        ui.label(egui::RichText::new("Size:").size(18.0).color(DIM));
+                        
+                        let slider_w = 100.0;
                         ui.add_sized(
                             Vec2::new(slider_w, btn_h),
                             egui::Slider::new(&mut self.brush, 1.0..=max).show_value(false),
                         );
 
+                        // Current size value
                         let val_text = format!("{}", self.brush.round() as i32);
-                        let val_w = val_text.len() as f32 * CHAR_W + 16.0;
-                        let (val_rect, _) = ui.allocate_exact_size(Vec2::new(val_w, btn_h), Sense::hover());
-                        let p = ui.painter();
-                        p.rect_filled(val_rect, 0.0, PANEL);
-                        p.rect_stroke(val_rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
-                        p.text(val_rect.center(), egui::Align2::CENTER_CENTER, &val_text, egui::FontId::proportional(FONT_SZ), TEXT);
+                        ui.add_sized(Vec2::new(30.0, btn_h), egui::Label::new(egui::RichText::new(val_text).size(20.0).color(TEXT)));
 
+                        ui.add_space(6.0);
+                        separator(ui);
                         ui.add_space(6.0);
 
                         if toggle_btn(ui, "Round", self.brush_shape == BrushShape::Round) {
                             self.brush_shape = BrushShape::Round;
                         }
+                        ui.add_space(-4.0); // Сближаем кнопки для вида сегментированного контрола
                         if toggle_btn(ui, "Square", self.brush_shape == BrushShape::Square) {
                             self.brush_shape = BrushShape::Square;
                         }
@@ -208,8 +231,9 @@ impl PixeshApp {
                             let tab_w = label_w + close_w;
 
                             let (tab_rect, tab_resp) = ui.allocate_exact_size(Vec2::new(tab_w, tab_h), Sense::click());
+                            let t_active = ui.ctx().animate_bool(tab_resp.id.with("tab_anim"), is_active);
 
-                            let bg = if is_active { HOVER } else { PANEL };
+                            let bg = lerp_color(PANEL, HOVER, t_active);
                             let p = ui.painter();
                             p.rect_filled(tab_rect, 0.0, bg);
                             p.rect_stroke(tab_rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Inside);
@@ -229,7 +253,9 @@ impl PixeshApp {
                                 Vec2::new(close_w, tab_h),
                             );
                             let close_resp = ui.interact(close_rect, egui::Id::new(("tab_close", ti)), Sense::click());
-                            let close_bg = if close_resp.hovered() { ACCENT } else { PANEL };
+                            let t_close = ui.ctx().animate_bool(close_resp.id.with("close_anim"), close_resp.hovered());
+                            let close_bg = lerp_color(PANEL, ACCENT, t_close);
+                            
                             p.rect_filled(close_rect, 0.0, close_bg);
                             let tab_close_tex = self.tab_close_tex.get_or_insert_with(|| {
                                 load_icon_texture(ui, "tab_close", include_bytes!("../../tex/tools/clear.png"))
@@ -253,7 +279,9 @@ impl PixeshApp {
                         // "+" button to create new tab
                         let plus_w = 28.0;
                         let (plus_rect, plus_resp) = ui.allocate_exact_size(Vec2::new(plus_w, tab_h), Sense::click());
-                        let bg = if plus_resp.hovered() { HOVER } else { PANEL };
+                        let t_plus = ui.ctx().animate_bool(plus_resp.id.with("plus_anim"), plus_resp.hovered());
+                        let bg = lerp_color(PANEL, HOVER, t_plus);
+                        
                         ui.painter().rect_filled(plus_rect, 0.0, bg);
                         ui.painter().rect_stroke(plus_rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Inside);
                         let tab_plus_tex = self.tab_plus_tex.get_or_insert_with(|| {

@@ -7,8 +7,8 @@ use super::PixeshApp;
 
 impl PixeshApp {
     pub(crate) fn ui_layers(&mut self, ctx: &egui::Context) {
-                egui::SidePanel::right("layers")
-                    .resizable(false)
+        egui::SidePanel::right("layers")
+            .resizable(false)
             .default_width(280.0)
             .frame(egui::Frame::new().fill(PANEL))
             .show_separator_line(false)
@@ -43,7 +43,10 @@ impl PixeshApp {
                     let (rect, resp) =
                         ui.allocate_exact_size(Vec2::new(ui.available_size().x, row_h), Sense::click());
 
-                    let bg = if is_active { HOVER } else { PANEL };
+                    let t_active = ui.ctx().animate_bool(resp.id.with("lay_act"), is_active);
+                    let t_hover = ui.ctx().animate_bool(resp.id.with("lay_hov"), resp.hovered());
+                    let bg = lerp_color(PANEL, HOVER, t_hover.max(t_active));
+                    
                     ui.painter().rect_filled(rect, 0.0, bg);
 
                     let cbs = 14.0;
@@ -51,12 +54,16 @@ impl PixeshApp {
                         Pos2::new(rect.min.x + PANEL_PAD, rect.center().y - cbs * 0.5),
                         Vec2::splat(cbs),
                     );
+                    
+                    let t_visible = ui.ctx().animate_bool(egui::Id::new(("vis_anim", li)), cb);
+                    
                     let p = ui.painter();
                     p.rect_filled(cb_rect, 0.0, PANEL_LIGHT);
                     p.rect_stroke(cb_rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
-                    if cb {
-                        let inner = cb_rect.shrink(3.0);
-                        p.rect_filled(inner, 0.0, ACCENT);
+                    
+                    if t_visible > 0.0 {
+                        let inner = cb_rect.shrink(3.0 * (1.0 - t_visible));
+                        p.rect_filled(inner, 0.0, lerp_color(PANEL_LIGHT, ACCENT, t_visible));
                     }
 
                     let cb_resp =
@@ -95,12 +102,13 @@ impl PixeshApp {
                             self.renaming_layer = None;
                         }
                     } else {
+                        let text_color = lerp_color(TEXT, Color32::WHITE, t_hover);
                         p.text(
                             Pos2::new(text_x, rect.min.y + 8.0),
                             egui::Align2::LEFT_TOP,
                             &self.docs[i].layers[li].name,
                             egui::FontId::proportional(FONT_SZ * 1.5),
-                            TEXT,
+                            text_color,
                         );
                         if resp.double_clicked() && !cb_resp.clicked() {
                             self.rename_buf = self.docs[i].layers[li].name.clone();
@@ -179,11 +187,15 @@ impl PixeshApp {
                 ui.horizontal(|ui| {
                     ui.add_space(PANEL_PAD);
                     let ps = 100.0;
-                    let (pr, _) = ui.allocate_exact_size(Vec2::new(ps, ps), Sense::hover());
+                    let (pr, pr_resp) = ui.allocate_exact_size(Vec2::new(ps, ps), Sense::hover());
                     let pv = pr.translate(Vec2::new(0.0, -4.0));
                     let pc = Color32::from_rgba_unmultiplied(self.rgb_r as u8, self.rgb_g as u8, self.rgb_b as u8, self.rgb_a as u8);
+                    
+                    let t_hover = ui.ctx().animate_bool(pr_resp.id, pr_resp.hovered());
+                    
                     ui.painter().rect_filled(pv, 0.0, pc);
-                    ui.painter().rect_stroke(pv, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
+                    let border_color = lerp_color(BORDER, Color32::WHITE, t_hover);
+                    ui.painter().rect_stroke(pv, 0.0, Stroke::new(4.0, border_color), egui::StrokeKind::Outside);
 
                     ui.add_space(PANEL_PAD);
                     ui.vertical(|ui| {
@@ -245,8 +257,16 @@ impl PixeshApp {
                         for row in &rows {
                             for &c in row {
                                 let (r, resp) = ui.allocate_exact_size(Vec2::splat(sw), Sense::click());
-                                ui.painter().rect_filled(r, 0.0, c);
-                                ui.painter().rect_stroke(r, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
+                                let t_hov = ui.ctx().animate_bool(resp.id, resp.hovered());
+                                let draw_r = if resp.is_pointer_button_down_on() { r.translate(Vec2::new(0.0, 2.0)) } else { r };
+                                
+                                if !resp.is_pointer_button_down_on() {
+                                    ui.painter().rect_filled(r.translate(Vec2::new(0.0, 2.0)), 0.0, BORDER);
+                                }
+                                
+                                ui.painter().rect_filled(draw_r, 0.0, c);
+                                let b_col = lerp_color(BORDER, Color32::WHITE, t_hov);
+                                ui.painter().rect_stroke(draw_r, 0.0, Stroke::new(2.0, b_col), egui::StrokeKind::Outside);
                                 if resp.clicked() {
                                     self.color = c;
                                     self.rgb_r = c.r() as f32;

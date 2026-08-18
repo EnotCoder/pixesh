@@ -321,10 +321,19 @@ impl eframe::App for PixeshApp {
                 .order(egui::Order::Foreground)
                 .show(ctx, |ui| {
                     let size = Vec2::splat(260.0);
+                    
+                    let t = ui.ctx().animate_bool(ui.make_persistent_id("quit_anim"), self.show_quit_dialog);
+                    let size = size * (0.8 + 0.2 * t);
+                    
                     let (rect, _) = ui.allocate_exact_size(size, egui::Sense::hover());
                     let p = ui.painter();
-                    p.rect_filled(rect, 0.0, PANEL);
-                    p.rect_stroke(rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
+                    
+                    let _alpha = (t * 255.0) as u8;
+                    let bg = PANEL.gamma_multiply(t);
+                    let brd = BORDER.gamma_multiply(t);
+                    
+                    p.rect_filled(rect, 0.0, bg);
+                    p.rect_stroke(rect, 0.0, Stroke::new(4.0, brd), egui::StrokeKind::Outside);
                     let mut child = ui.new_child(
                         egui::UiBuilder::new()
                             .layout(egui::Layout::top_down(egui::Align::Center))

@@ -315,11 +315,11 @@ impl PixeshApp {
                             if shape == BrushShape::Round {
                                 let c = cr.center();
                                 let r = cr.width().min(cr.height()) / 2.0;
-                                p.circle_filled(c, r, Color32::from_black_alpha(60));
-                                p.circle_stroke(c, r, Stroke::new(2.0, Color32::WHITE.linear_multiply(0.4)));
+                                p.circle_stroke(c, r, Stroke::new(3.0, Color32::from_black_alpha(180)));
+                                p.circle_stroke(c, r, Stroke::new(1.5, Color32::WHITE));
                             } else {
-                                p.rect_filled(cr, 0.0, Color32::from_black_alpha(60));
-                                p.rect_stroke(cr, 0.0, Stroke::new(2.0, Color32::WHITE.linear_multiply(0.4)), egui::StrokeKind::Inside);
+                                p.rect_stroke(cr, 0.0, Stroke::new(3.0, Color32::from_black_alpha(180)), egui::StrokeKind::Outside);
+                                p.rect_stroke(cr, 0.0, Stroke::new(1.5, Color32::WHITE), egui::StrokeKind::Outside);
                             }
                         } else {
                             self.cursor_px = None;

@@ -1,3 +1,5 @@
+use eframe::egui::Color32;
+
 // ── HSV → RGB ────────────────────────────────────────
 // конвертирует Hue/Saturation/Value в красный/зелёный/синий (0–255 каждый)
 // h: 0–360, s: 0–255, v: 0–255
@@ -48,4 +50,12 @@ pub fn rgb_to_hsv(r: u8, g: u8, b: u8) -> (f32, f32, f32) {
     // насыщенность = размах / максимум
     let s = if mx == 0.0 { 0.0 } else { d / mx * 255.0 };
     (if h < 0.0 { h + 360.0 } else { h }, s, mx * 255.0)
+}
+
+pub fn lerp_color(a: Color32, b: Color32, t: f32) -> Color32 {
+    let r = (a.r() as f32 + (b.r() as f32 - a.r() as f32) * t) as u8;
+    let g = (a.g() as f32 + (b.g() as f32 - a.g() as f32) * t) as u8;
+    let bl = (a.b() as f32 + (b.b() as f32 - a.b() as f32) * t) as u8;
+    let al = (a.a() as f32 + (b.a() as f32 - a.a() as f32) * t) as u8;
+    Color32::from_rgba_unmultiplied(r, g, bl, al)
 }
