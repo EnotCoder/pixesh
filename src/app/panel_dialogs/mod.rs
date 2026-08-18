@@ -3,7 +3,6 @@ use super::PixeshApp;
 
 mod resize;
 mod export;
-mod brush;
 mod panels;
 mod settings;
 mod scale;
@@ -15,7 +14,6 @@ impl PixeshApp {
         self.ui_welcome_dialog(ctx);
         self.ui_resize_dialog(ctx);
         self.ui_export_dialog(ctx);
-        self.ui_brush_dialog(ctx);
         self.ui_panels_dialog(ctx);
         self.ui_settings_dialog(ctx);
         self.ui_scale_dialog(ctx);

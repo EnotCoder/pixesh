@@ -7,7 +7,7 @@ A minimal pixel art editor built with Rust and egui.
 ## Features
 
 - **Drawing tools** — Brush, Eraser, Fill, Eyedropper, Select, Move
-- **Brush shapes** — Round / Square mask (Brush Size dialog, Ctrl+B)
+- **Brush shapes** — Round / Square mask (toolbar size slider + shape buttons)
 - **Copy / Paste** — Copy selection, paste at center, move pasted pixels
 - **Layers** — Add/remove layers, toggle visibility
 - **HSV color picker** — Saturation/Value field + Hue strip
@@ -60,7 +60,7 @@ A minimal pixel art editor built with Rust and egui.
 | Key | Action |
 |-----|--------|
 | `Scroll` | Zoom in/out |
-| `Shift+Scroll` | Brush size (or scroll in brush size dialog) |
+| `Shift+Scroll` | Brush size |
 | `Arrow keys` | Pan canvas |
 | `Shift+Arrow` | Pan canvas (4x speed) |
 | `Middle mouse drag` | Pan canvas |
@@ -73,7 +73,6 @@ A minimal pixel art editor built with Rust and egui.
 | `Ctrl+L` | Load image (opens in new tab) |
 | `Ctrl+R` | Resize canvas dialog |
 | `Ctrl+I` | Scale canvas dialog |
-| `Ctrl+B` | Brush size dialog |
 | `Ctrl+H` | Settings dialog |
 | `Ctrl+W` | Toggle panels visibility |
 | `Ctrl+D` | Deselect |
@@ -104,7 +103,7 @@ Run with:
   - `input.rs` — Keyboard shortcuts, zoom, pan, copy/paste
   - `io.rs` — Save/load PNG, layer management, canvas resize/scale/crop
   - `panel_canvas.rs` — Canvas rendering, tool dispatch
-  - `panel_dialogs/` — Resize, Export, Brush Size, Panels, Settings, Scale dialogs
+  - `panel_dialogs/` — Resize, Export, Panels, Settings, Scale dialogs
   - `panel_layers.rs` — Layers panel, HSV color picker
   - `panel_toolbar.rs` — Toolbar with tool icons, grid toggle, tab bar
   - `tools.rs` — Tool handlers (brush, fill, eyedropper, selection, move, paste)

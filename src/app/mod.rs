@@ -204,7 +204,6 @@ pub struct PixeshApp {
     pub(crate) show_export: bool,
     pub(crate) export_scale: i32,
     pub(crate) export_bg: ExportBg,
-    pub(crate) show_brush: bool,
     pub(crate) show_panels: bool,
     pub(crate) show_settings: bool,
     pub(crate) show_top_panel: bool,
@@ -255,7 +254,6 @@ impl PixeshApp {
             show_resize: false, resize_w: 64.0, resize_h: 64.0,
             show_scale: false, scale_w: 64.0, scale_h: 64.0,
             show_export: false, export_scale: 1, export_bg: ExportBg::Transparent,
-            show_brush: false,
             show_panels: false, show_settings: false,
             show_top_panel: true, show_right_panel: true, show_status_bar: true,
             show_quit_dialog: false,
@@ -276,7 +274,7 @@ impl PixeshApp {
 
 impl PixeshApp {
     pub(crate) fn dialog_open(&self) -> bool {
-        self.show_resize || self.show_export || self.show_brush
+        self.show_resize || self.show_export
             || self.show_panels || self.show_settings || self.show_scale
             || self.show_quit_dialog || self.show_text || self.show_welcome
     }

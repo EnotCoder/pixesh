@@ -47,12 +47,6 @@ impl PixeshApp {
                     self.show_settings = !self.show_settings;
                 }
             }
-            // Ctrl+B = brush size dialog
-            if i.consume_key(egui::Modifiers::CTRL, egui::Key::B) {
-                if !self.dialog_open() {
-                    self.show_brush = true;
-                }
-            }
             // Ctrl+I = scale dialog
             if i.consume_key(egui::Modifiers::CTRL, egui::Key::I) {
                 if !self.dialog_open() {
@@ -156,7 +150,6 @@ impl PixeshApp {
                 } else if self.dialog_open() {
                     self.show_resize = false;
                     self.show_export = false;
-                    self.show_brush = false;
                     self.show_panels = false;
                     self.show_settings = false;
                     self.show_scale = false;
@@ -261,7 +254,7 @@ impl PixeshApp {
         let scroll = ctx.input(|i| i.raw_scroll_delta.y);
         if scroll != 0.0 {
             let scroll_norm = scroll.signum();
-            if self.show_brush || ctx.input(|i| i.modifiers.shift) {
+            if ctx.input(|i| i.modifiers.shift) {
                 let tab = self.active_tab;
                 let max = self.docs[tab].width.max(self.docs[tab].height) as f32;
                 self.brush = (self.brush + scroll_norm).clamp(1.0, max);

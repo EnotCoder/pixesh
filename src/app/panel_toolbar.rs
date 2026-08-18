@@ -154,6 +154,40 @@ impl PixeshApp {
                         TEXT,
                     );
                     ui.add_space(6.0);
+
+                    // ── brush size + shape (only for Brush/Eraser) ──
+                    if self.tool == Tool::Brush || self.tool == Tool::Eraser {
+                        let max = self.docs[self.active_tab].width.max(self.docs[self.active_tab].height) as f32;
+                        self.brush = self.brush.clamp(1.0, max);
+
+                        ui.add_space(6.0);
+                        separator(ui);
+                        ui.add_space(6.0);
+
+                        let slider_w = 150.0;
+                        ui.add_sized(
+                            Vec2::new(slider_w, btn_h),
+                            egui::Slider::new(&mut self.brush, 1.0..=max).show_value(false),
+                        );
+
+                        let val_text = format!("{}", self.brush.round() as i32);
+                        let val_w = val_text.len() as f32 * CHAR_W + 16.0;
+                        let (val_rect, _) = ui.allocate_exact_size(Vec2::new(val_w, btn_h), Sense::hover());
+                        let p = ui.painter();
+                        p.rect_filled(val_rect, 0.0, PANEL);
+                        p.rect_stroke(val_rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
+                        p.text(val_rect.center(), egui::Align2::CENTER_CENTER, &val_text, egui::FontId::proportional(FONT_SZ), TEXT);
+
+                        ui.add_space(6.0);
+
+                        if toggle_btn(ui, "Round", self.brush_shape == BrushShape::Round) {
+                            self.brush_shape = BrushShape::Round;
+                        }
+                        if toggle_btn(ui, "Square", self.brush_shape == BrushShape::Square) {
+                            self.brush_shape = BrushShape::Square;
+                        }
+                    }
+                    ui.add_space(6.0);
                 });
                 ui.add_space(6.0);
 
