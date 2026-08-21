@@ -1,4 +1,4 @@
-use eframe::egui::{self, Stroke, Vec2};
+use eframe::egui::{self, Rect, Sense, Stroke, Vec2};
 use crate::app::PixeshApp;
 use crate::constants::*;
 use crate::ui::*;
@@ -11,7 +11,7 @@ impl PixeshApp {
             .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
             .order(egui::Order::Foreground)
             .show(ctx, |ui| {
-                let size = Vec2::new(380.0, 440.0);
+                let size = Vec2::new(380.0, 484.0);
                 let (rect, _) = ui.allocate_exact_size(size, egui::Sense::hover());
                 let pad = 10.0;
                 let btn_h = 44.0;
@@ -126,7 +126,7 @@ impl PixeshApp {
                             .max_rect(btn_rect),
                     );
                     row_ui.style_mut().text_styles.insert(egui::TextStyle::Button, toggle_font.clone());
-                    for s in [1, 2, 4, 8, 16] {
+                    for s in [1, 2, 4, 8] {
                         if toggle_btn(&mut row_ui, &format!("x{}", s), self.export_scale == s) {
                             new_scale = s;
                         }
@@ -155,13 +155,44 @@ impl PixeshApp {
                 }
                 self.export_bg = new_bg;
 
+                // layers checkbox
+                {
+                    let cb_row = Rect::from_min_size(
+                        egui::pos2(rect.min.x + pad, rect.min.y + 340.0),
+                        Vec2::new(rect.width() - pad * 2.0, 32.0),
+                    );
+                    let cb_sz = 26.0;
+                    let cb_rect = Rect::from_center_size(
+                        egui::pos2(cb_row.min.x + cb_sz * 0.5, cb_row.center().y),
+                        Vec2::splat(cb_sz),
+                    );
+                    let cb_resp = ui.interact(cb_rect, egui::Id::new("export_layers_cb"), Sense::click());
+                    let row_resp = ui.interact(cb_row, egui::Id::new("export_layers_cb_row"), Sense::click());
+                    if cb_resp.clicked() || row_resp.clicked() {
+                        self.export_layers = !self.export_layers;
+                    }
+                    let p = ui.painter();
+                    p.rect_filled(cb_rect, 0.0, PANEL);
+                    p.rect_stroke(cb_rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
+                    if self.export_layers {
+                        p.rect_filled(cb_rect.shrink(5.0), 0.0, ACCENT);
+                    }
+                    p.text(
+                        egui::pos2(cb_row.min.x + cb_sz + 10.0, cb_row.center().y),
+                        egui::Align2::LEFT_CENTER,
+                        "Each layer",
+                        small_font.clone(),
+                        TEXT,
+                    );
+                }
+
                 // size preview
                 {
                     let s = self.export_scale.max(1) as usize;
                     let out = format!("Out: {}x{} px", self.docs[i].width * s, self.docs[i].height * s);
                     let p = ui.painter();
                     p.text(
-                        egui::pos2(rect.min.x + pad, rect.min.y + 344.0),
+                        egui::pos2(rect.min.x + pad, rect.min.y + 388.0),
                         egui::Align2::LEFT_TOP,
                         out,
                         small_font.clone(),
@@ -201,6 +232,9 @@ impl PixeshApp {
                     let name = if self.docs[i].export_name.ends_with(".png") { self.docs[i].export_name.clone() } else { format!("{}.png", self.docs[i].export_name) };
                     let path = format!("{}/{}", dir, name);
                     let _ = self.docs[i].save_png(&path, self.export_scale.max(1) as u32, self.export_bg);
+                    if self.export_layers {
+                        let _ = self.docs[i].save_layer_pngs(&dir, self.export_scale.max(1) as u32, self.export_bg);
+                    }
                     self.docs[i].unsaved = false;
                     self.show_export = false;
                 }

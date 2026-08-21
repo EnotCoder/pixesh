@@ -29,35 +29,19 @@ impl Document {
 
     pub(crate) fn save_png(&self, path: &str, scale: u32, bg: ExportBg) -> Result<(), String> {
         let flat = self.composite();
-        let ow = self.width;
-        let oh = self.height;
-        let w = ow * scale.max(1) as usize;
-        let h = oh * scale.max(1) as usize;
-        let s = scale.max(1) as usize;
-        let ck_a = [200, 200, 200];
-        let ck_b = [180, 180, 180];
-        let mut img = image::RgbaImage::new(w as u32, h as u32);
-        for y in 0..h {
-            for x in 0..w {
-                let c = flat[(y / s) * ow + (x / s)];
-                let a = c.a();
-                let (r, g, b, a) = match bg {
-                    ExportBg::Transparent => (c.r(), c.g(), c.b(), a),
-                    ExportBg::White => blended(c.r(), c.g(), c.b(), a, 255, 255, 255),
-                    ExportBg::Black => blended(c.r(), c.g(), c.b(), a, 0, 0, 0),
-                    ExportBg::Checker => {
-                        if a == 0 {
-                            let cb = if (x / s + y / s) % 2 == 0 { ck_a } else { ck_b };
-                            (cb[0], cb[1], cb[2], 255)
-                        } else {
-                            blended(c.r(), c.g(), c.b(), a, 255, 255, 255)
-                        }
-                    }
-                };
-                img.put_pixel(x as u32, y as u32, image::Rgba([r, g, b, a]));
-            }
+        write_png(&flat, self.width, self.height, path, scale, bg)
+    }
+
+    pub(crate) fn save_layer_pngs(&self, dir: &str, scale: u32, bg: ExportBg) -> Result<(), String> {
+        for layer in &self.layers {
+            let safe: String = layer.name.chars().map(|c| match c {
+                '/' | '\\' | ':' => '-',
+                c => c,
+            }).collect();
+            let path = format!("{}/{}.png", dir, safe);
+            write_png(&layer.pixels, self.width, self.height, &path, scale, bg)?;
         }
-        img.save(path).map_err(|e| format!("Failed to save: {}", e))
+        Ok(())
     }
 
     pub(crate) fn load_png(&mut self, path: &str) {
@@ -189,6 +173,36 @@ impl Document {
         self.tex = None;
         self.canvas_dirty = true;
     }
+}
+
+fn write_png(buf: &[Color32], ow: usize, oh: usize, path: &str, scale: u32, bg: ExportBg) -> Result<(), String> {
+    let w = ow * scale.max(1) as usize;
+    let h = oh * scale.max(1) as usize;
+    let s = scale.max(1) as usize;
+    let ck_a = [200, 200, 200];
+    let ck_b = [180, 180, 180];
+    let mut img = image::RgbaImage::new(w as u32, h as u32);
+    for y in 0..h {
+        for x in 0..w {
+            let c = buf[(y / s) * ow + (x / s)];
+            let a = c.a();
+            let (r, g, b, a) = match bg {
+                ExportBg::Transparent => (c.r(), c.g(), c.b(), a),
+                ExportBg::White => blended(c.r(), c.g(), c.b(), a, 255, 255, 255),
+                ExportBg::Black => blended(c.r(), c.g(), c.b(), a, 0, 0, 0),
+                ExportBg::Checker => {
+                    if a == 0 {
+                        let cb = if (x / s + y / s) % 2 == 0 { ck_a } else { ck_b };
+                        (cb[0], cb[1], cb[2], 255)
+                    } else {
+                        blended(c.r(), c.g(), c.b(), a, 255, 255, 255)
+                    }
+                }
+            };
+            img.put_pixel(x as u32, y as u32, image::Rgba([r, g, b, a]));
+        }
+    }
+    img.save(path).map_err(|e| format!("Failed to save: {}", e))
 }
 
 fn blended(r: u8, g: u8, b: u8, a: u8, br: u8, bg: u8, bb: u8) -> (u8, u8, u8, u8) {
