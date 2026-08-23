@@ -83,6 +83,16 @@ impl Document {
         img.save(path).map_err(|e| format!("Failed to save: {}", e))
     }
 
+    pub(crate) fn save_frame_pngs(&self, dir: &str, base: &str, scale: u32, bg: ExportBg) -> Result<(), String> {
+        for fr in 0..self.frames {
+            let name = format!("{}_{:03}.png", base, fr + 1);
+            let path = format!("{}/{}", dir, name);
+            let flat = self.composite_at(fr);
+            write_png(&flat, self.width, self.height, &path, scale, bg)?;
+        }
+        Ok(())
+    }
+
     pub(crate) fn load_png(&mut self, path: &str) {
         let img = match image::open(path) {
             Ok(i) => i.to_rgba8(),

@@ -257,16 +257,27 @@ impl PixeshApp {
                 let enter = ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Enter));
                 if enter || save_clicked {
                     let dir = if self.docs[i].export_path.is_empty() { home.clone() } else { self.docs[i].export_path.clone() };
-                    let name = if self.docs[i].export_name.ends_with(".png") { self.docs[i].export_name.clone() } else { format!("{}.png", self.docs[i].export_name) };
-                    let path = format!("{}/{}", dir, name);
-                    if self.export_sheet && self.docs[i].frames > 1 {
-                        let _ = self.docs[i].save_png_sheet(&path, self.export_scale.max(1) as u32, self.export_bg);
+                    let scale = self.export_scale.max(1) as u32;
+                    let base = if let Some(p) = self.docs[i].export_name.rfind('.') {
+                        self.docs[i].export_name[..p].to_string()
                     } else {
-                        let _ = self.docs[i].save_png(&path, self.export_scale.max(1) as u32, self.export_bg);
+                        self.docs[i].export_name.clone()
+                    };
+                    
+                    if self.export_sheet && self.docs[i].frames > 1 {
+                        let path = format!("{}/{}.png", dir, base);
+                        let _ = self.docs[i].save_png_sheet(&path, scale, self.export_bg);
+                    } else if self.docs[i].frames > 1 {
+                        // Auto-export to multiple PNGs if animation exists and not sheet
+                        let _ = self.docs[i].save_frame_pngs(&dir, &base, scale, self.export_bg);
+                    } else {
+                        let path = format!("{}/{}.png", dir, base);
+                        let _ = self.docs[i].save_png(&path, scale, self.export_bg);
                         if self.export_layers {
-                            let _ = self.docs[i].save_layer_pngs(&dir, self.export_scale.max(1) as u32, self.export_bg);
+                            let _ = self.docs[i].save_layer_pngs(&dir, scale, self.export_bg);
                         }
                     }
+                    
                     self.docs[i].unsaved = false;
                     self.show_export = false;
                 }
