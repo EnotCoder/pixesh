@@ -118,6 +118,29 @@ impl PixeshApp {
                     self.rgb_a = (self.rgb_a + 5.0).clamp(0.0, 255.0);
                     self.color = egui::Color32::from_rgba_unmultiplied(self.rgb_r as u8, self.rgb_g as u8, self.rgb_b as u8, self.rgb_a as u8);
                 }
+                // [ / ] = previous / next frame
+                if i.consume_key(egui::Modifiers::NONE, egui::Key::OpenBracket) {
+                    let tab = self.active_tab;
+                    let af = self.docs[tab].active_frame;
+                    if af > 0 {
+                        self.docs[tab].set_active_frame(af - 1);
+                    }
+                }
+                if i.consume_key(egui::Modifiers::NONE, egui::Key::CloseBracket) {
+                    let tab = self.active_tab;
+                    let af = self.docs[tab].active_frame;
+                    let frames = self.docs[tab].frames;
+                    if af + 1 < frames {
+                        self.docs[tab].set_active_frame(af + 1);
+                    }
+                }
+                // Space = play / pause animation
+                if i.consume_key(egui::Modifiers::NONE, egui::Key::Space) {
+                    let tab = self.active_tab;
+                    let doc = &mut self.docs[tab];
+                    doc.playing = !doc.playing;
+                    doc.canvas_dirty = true;
+                }
             }
             // Delete
             if i.consume_key(egui::Modifiers::NONE, egui::Key::Delete) {
@@ -181,7 +204,7 @@ impl PixeshApp {
                     for yy in y0..=y1 {
                         for xx in x0..=x1 {
                             let idx = (yy * w as i32 + xx) as usize;
-                            buf.push(self.docs[tab].layers[self.docs[tab].active_layer].pixels[idx]);
+                            buf.push(self.docs[tab].layers[self.docs[tab].active_layer].cels[self.docs[tab].active_frame][idx]);
                         }
                     }
                     self.docs[tab].clipboard = Some(buf);
@@ -227,7 +250,7 @@ impl PixeshApp {
                             for yy in y0..=y1 {
                                 for xx in x0..=x1 {
                                     let idx = (yy * w as i32 + xx) as usize;
-                                    buf.push(self.docs[tab].layers[self.docs[tab].active_layer].pixels[idx]);
+                                    buf.push(self.docs[tab].layers[self.docs[tab].active_layer].cels[self.docs[tab].active_frame][idx]);
                                 }
                             }
                             self.docs[tab].sel_buffer = Some(buf);
@@ -302,7 +325,7 @@ impl PixeshApp {
         let mut c = egui::Color32::TRANSPARENT;
         for layer in self.docs[tab].layers.iter().rev() {
             if !layer.visible { continue; }
-            let p = layer.pixels[idx];
+            let p = layer.cels[self.docs[tab].active_frame][idx];
             if p != egui::Color32::TRANSPARENT {
                 c = p;
                 break;

@@ -9,7 +9,7 @@ impl PixeshApp {
             .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
             .order(egui::Order::Foreground)
             .show(ctx, |ui| {
-                let size = Vec2::new(250.0, 280.0);
+                let size = Vec2::new(250.0, 320.0);
                 let (rect, _) = ui.allocate_exact_size(size, egui::Sense::hover());
                 let p = ui.painter();
                 p.rect_filled(rect, 0.0, PANEL);
@@ -117,6 +117,34 @@ impl PixeshApp {
                         || ui.interact(cb_rect, egui::Id::new("cb_status"), egui::Sense::click()).clicked()
                     {
                         self.show_status_bar = !self.show_status_bar;
+                    }
+
+                    let line = ui.allocate_exact_size(Vec2::new(160.0, 1.0), egui::Sense::hover()).0;
+                    ui.painter().hline(line.x_range(), line.center().y, egui::Stroke::new(2.0, BORDER));
+
+                    let (row_rect, _) = ui.allocate_exact_size(Vec2::new(160.0, row_h), egui::Sense::click());
+                    let p = ui.painter();
+                    p.text(
+                        Pos2::new(row_rect.min.x + 4.0, row_rect.center().y),
+                        egui::Align2::LEFT_CENTER,
+                        "Timeline",
+                        egui::FontId::proportional(sz),
+                        TEXT,
+                    );
+                    let cb_rect = Rect::from_min_size(
+                        Pos2::new(row_rect.max.x - cbs - 4.0, row_rect.center().y - cbs * 0.5),
+                        Vec2::splat(cbs),
+                    );
+                    p.rect_filled(cb_rect, 0.0, PANEL);
+                    p.rect_stroke(cb_rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
+                    if self.show_timeline {
+                        let inner = cb_rect.shrink(4.0);
+                        p.rect_filled(inner, 0.0, ACCENT);
+                    }
+                    if ui.interact(row_rect, egui::Id::new("row_timeline"), egui::Sense::click()).clicked()
+                        || ui.interact(cb_rect, egui::Id::new("cb_timeline"), egui::Sense::click()).clicked()
+                    {
+                        self.show_timeline = !self.show_timeline;
                     }
                 });
                 let enter = ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Enter));

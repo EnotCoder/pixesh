@@ -99,7 +99,7 @@ impl PixeshApp {
                         let doc = &mut self.docs[self.active_tab];
                         doc.push_undo();
                         for layer in &mut doc.layers {
-                            layer.pixels = Arc::new(vec![Color32::TRANSPARENT; doc.width * doc.height]);
+                            layer.cels[doc.active_frame] = Arc::new(vec![Color32::TRANSPARENT; doc.width * doc.height]);
                         }
                         doc.canvas_dirty = true;
                     }

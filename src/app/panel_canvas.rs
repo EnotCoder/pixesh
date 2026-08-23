@@ -150,7 +150,7 @@ impl PixeshApp {
                                                 (xx as i32, yy as i32)
                                             };
                                             if sx >= 0 && sx < wi && sy >= 0 && sy < hi {
-                                                let p = layer.pixels[sy as usize * w + sx as usize];
+                                                let p = layer.cels[self.docs[i].active_frame][sy as usize * w + sx as usize];
                                                 if p != Color32::TRANSPARENT { c = p; break; }
                                             }
                                         }
@@ -461,10 +461,11 @@ impl PixeshApp {
 
                                             // clear original area first
                                             let al = self.docs[i].active_layer;
+                                            let af = self.docs[i].active_frame;
                                             let lw = self.docs[i].width as i32;
                                             let lh = self.docs[i].height as i32;
                                             {
-                                                let pixels = Arc::make_mut(&mut self.docs[i].layers[al].pixels);
+                                                let pixels = Arc::make_mut(&mut self.docs[i].layers[al].cels[af]);
                                                 for oy in oy0..=oy0 + orig_h as i32 - 1 {
                                                     for ox in ox0..=ox0 + orig_w as i32 - 1 {
                                                         if ox >= 0 && ox < lw && oy >= 0 && oy < lh {
@@ -478,7 +479,7 @@ impl PixeshApp {
                                             }
                                             // commit scaled pixels to layer
                                             {
-                                                let pixels = Arc::make_mut(&mut self.docs[i].layers[al].pixels);
+                                                let pixels = Arc::make_mut(&mut self.docs[i].layers[al].cels[af]);
                                                 for ny in 0..new_h as i32 {
                                                     for nx in 0..new_w as i32 {
                                                         let px = sx0 + nx;

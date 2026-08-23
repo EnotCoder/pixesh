@@ -23,14 +23,14 @@ fn brush_mask(dx: i32, dy: i32, b: i32, shape: BrushShape) -> bool {
 
 impl Document {
     pub(crate) fn pixels_mut(&mut self, layer_idx: usize) -> &mut Vec<Color32> {
-        Arc::make_mut(&mut self.layers[layer_idx].pixels)
+        Arc::make_mut(&mut self.layers[layer_idx].cels[self.active_frame])
     }
 
     pub(crate) fn composite(&self) -> Vec<Color32> {
         let mut out = vec![Color32::TRANSPARENT; self.width * self.height];
         for layer in self.layers.iter().rev() {
             if !layer.visible { continue; }
-            for (i, &p) in layer.pixels.iter().enumerate() {
+            for (i, &p) in layer.cels[self.active_frame].iter().enumerate() {
                 if p != Color32::TRANSPARENT { out[i] = p; }
             }
         }
@@ -50,7 +50,7 @@ let cell = checker_cell(self.zoom) as usize;
                 let mut c = Color32::TRANSPARENT;
                 for layer in self.layers.iter().rev() {
                     if !layer.visible { continue; }
-                    let p = layer.pixels[idx];
+                    let p = layer.cels[self.active_frame][idx];
                     if p != Color32::TRANSPARENT { c = p; break; }
                 }
                 let cb = if ((x / cell) + (y / cell)) % 2 == 0 { ck_a } else { ck_b };
@@ -149,7 +149,7 @@ let cell = checker_cell(self.zoom) as usize;
             None => true,
         };
         if !in_sel { return; }
-        let target = self.layers[idx].pixels[(py * w + px) as usize];
+        let target = self.layers[idx].cels[self.active_frame][(py * w + px) as usize];
         if target == new { return; }
         let pixels = self.pixels_mut(idx);
         let mut stack = vec![(px, py)];

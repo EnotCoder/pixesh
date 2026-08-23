@@ -6,10 +6,12 @@ impl Document {
         self.undo_stack.push(Snapshot {
             layers: self.layers.iter().map(|l| SnapshotLayer {
                 name: l.name.clone(),
-                pixels: l.pixels.clone(),
+                cels: l.cels.clone(),
                 visible: l.visible,
             }).collect(),
             active: self.active_layer,
+            frames: self.frames,
+            active_frame: self.active_frame,
             width: self.width,
             height: self.height,
             sel: self.sel,
@@ -32,10 +34,12 @@ impl Document {
             self.redo_stack.push(Snapshot {
                 layers: self.layers.iter().map(|l| SnapshotLayer {
                     name: l.name.clone(),
-                    pixels: l.pixels.clone(),
+                    cels: l.cels.clone(),
                     visible: l.visible,
                 }).collect(),
                 active: self.active_layer,
+            frames: self.frames,
+            active_frame: self.active_frame,
                 width: self.width,
                 height: self.height,
                 sel: self.sel,
@@ -56,10 +60,12 @@ impl Document {
             self.undo_stack.push(Snapshot {
                 layers: self.layers.iter().map(|l| SnapshotLayer {
                     name: l.name.clone(),
-                    pixels: l.pixels.clone(),
+                    cels: l.cels.clone(),
                     visible: l.visible,
                 }).collect(),
                 active: self.active_layer,
+            frames: self.frames,
+            active_frame: self.active_frame,
                 width: self.width,
                 height: self.height,
                 sel: self.sel,
@@ -79,9 +85,11 @@ impl Document {
         use super::Layer;
         self.width = state.width;
         self.height = state.height;
+        self.frames = state.frames;
+        self.active_frame = state.active_frame.min(state.frames.saturating_sub(1));
         self.layers = state.layers.into_iter().map(|sl| Layer {
             name: sl.name,
-            pixels: sl.pixels,
+            cels: sl.cels,
             visible: sl.visible,
         }).collect();
         self.active_layer = state.active.min(self.layers.len().saturating_sub(1));

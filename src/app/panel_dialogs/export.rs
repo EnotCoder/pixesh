@@ -155,10 +155,33 @@ impl PixeshApp {
                 }
                 self.export_bg = new_bg;
 
+                // frames mode (current vs all frames as sprite sheet)
+                let mut new_sheet = self.export_sheet;
+                {
+                    let btn_rect = egui::Rect::from_min_size(
+                        egui::pos2(rect.min.x + pad, rect.min.y + 318.0),
+                        Vec2::new(rect.width() - pad * 2.0, btn_h),
+                    );
+                    let mut row_ui = ui.new_child(
+                        egui::UiBuilder::new()
+                            .layout(egui::Layout::left_to_right(egui::Align::Center))
+                            .max_rect(btn_rect),
+                    );
+                    row_ui.style_mut().text_styles.insert(egui::TextStyle::Button, toggle_font.clone());
+                    let sheet_on = self.docs[i].frames > 1 && self.export_sheet;
+                    if toggle_btn(&mut row_ui, "Current", !sheet_on) {
+                        new_sheet = false;
+                    }
+                    if self.docs[i].frames > 1 && toggle_btn(&mut row_ui, "Sheet", sheet_on) {
+                        new_sheet = true;
+                    }
+                }
+                self.export_sheet = new_sheet;
+
                 // layers checkbox
                 {
                     let cb_row = Rect::from_min_size(
-                        egui::pos2(rect.min.x + pad, rect.min.y + 340.0),
+                        egui::pos2(rect.min.x + pad, rect.min.y + 366.0),
                         Vec2::new(rect.width() - pad * 2.0, 32.0),
                     );
                     let cb_sz = 26.0;
@@ -189,10 +212,15 @@ impl PixeshApp {
                 // size preview
                 {
                     let s = self.export_scale.max(1) as usize;
-                    let out = format!("Out: {}x{} px", self.docs[i].width * s, self.docs[i].height * s);
+                    let (ow, oh) = if self.export_sheet && self.docs[i].frames > 1 {
+                        (self.docs[i].width * self.docs[i].frames, self.docs[i].height)
+                    } else {
+                        (self.docs[i].width, self.docs[i].height)
+                    };
+                    let out = format!("Out: {}x{} px", ow * s, oh * s);
                     let p = ui.painter();
                     p.text(
-                        egui::pos2(rect.min.x + pad, rect.min.y + 388.0),
+                        egui::pos2(rect.min.x + pad, rect.min.y + 406.0),
                         egui::Align2::LEFT_TOP,
                         out,
                         small_font.clone(),
@@ -231,9 +259,13 @@ impl PixeshApp {
                     let dir = if self.docs[i].export_path.is_empty() { home.clone() } else { self.docs[i].export_path.clone() };
                     let name = if self.docs[i].export_name.ends_with(".png") { self.docs[i].export_name.clone() } else { format!("{}.png", self.docs[i].export_name) };
                     let path = format!("{}/{}", dir, name);
-                    let _ = self.docs[i].save_png(&path, self.export_scale.max(1) as u32, self.export_bg);
-                    if self.export_layers {
-                        let _ = self.docs[i].save_layer_pngs(&dir, self.export_scale.max(1) as u32, self.export_bg);
+                    if self.export_sheet && self.docs[i].frames > 1 {
+                        let _ = self.docs[i].save_png_sheet(&path, self.export_scale.max(1) as u32, self.export_bg);
+                    } else {
+                        let _ = self.docs[i].save_png(&path, self.export_scale.max(1) as u32, self.export_bg);
+                        if self.export_layers {
+                            let _ = self.docs[i].save_layer_pngs(&dir, self.export_scale.max(1) as u32, self.export_bg);
+                        }
                     }
                     self.docs[i].unsaved = false;
                     self.show_export = false;

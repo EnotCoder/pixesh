@@ -1,3 +1,4 @@
+pub mod anim;
 pub mod canvas;
 pub mod config;
 pub mod history;
@@ -6,8 +7,9 @@ pub mod io;
 pub mod panel_canvas;
 pub mod panel_dialogs;
 pub mod panel_layers;
-pub mod panel_status;
-pub mod panel_toolbar;
+    pub mod panel_status;
+    pub mod panel_timeline;
+    pub mod panel_toolbar;
 pub mod text;
 pub mod tools;
 
@@ -21,19 +23,22 @@ use crate::ui::btn_min_w;
 // ── Layer / Snapshot ─────────────────────────────────
 pub(crate) struct Layer {
     pub(crate) name: String,
-    pub(crate) pixels: Arc<Vec<Color32>>,
+    // one pixel buffer ("cel") per animation frame
+    pub(crate) cels: Vec<Arc<Vec<Color32>>>,
     pub(crate) visible: bool,
 }
 
 pub(crate) struct SnapshotLayer {
     pub(crate) name: String,
-    pub(crate) pixels: Arc<Vec<Color32>>,
+    pub(crate) cels: Vec<Arc<Vec<Color32>>>,
     pub(crate) visible: bool,
 }
 
 pub(crate) struct Snapshot {
     pub(crate) layers: Vec<SnapshotLayer>,
     pub(crate) active: usize,
+    pub(crate) frames: usize,
+    pub(crate) active_frame: usize,
     pub(crate) width: usize,
     pub(crate) height: usize,
     pub(crate) sel: Option<(i32, i32, i32, i32)>,
@@ -53,6 +58,12 @@ pub(crate) struct Document {
     pub(crate) active_layer: usize,
     pub(crate) width: usize,
     pub(crate) height: usize,
+
+    pub(crate) frames: usize,
+    pub(crate) active_frame: usize,
+    pub(crate) playing: bool,
+    pub(crate) fps: f32,
+    pub(crate) last_play: f64,
 
     pub(crate) undo_stack: Vec<Snapshot>,
     pub(crate) redo_stack: Vec<Snapshot>,
@@ -103,7 +114,7 @@ impl Document {
         let mut doc = Document::new(name);
         doc.width = w;
         doc.height = h;
-        doc.layers[0].pixels = Arc::new(vec![Color32::TRANSPARENT; w * h]);
+        doc.layers[0].cels = vec![Arc::new(vec![Color32::TRANSPARENT; w * h])];
         doc
     }
 
@@ -112,12 +123,17 @@ impl Document {
             name: name.into(),
             layers: vec![Layer {
                 name: "Background".into(),
-                pixels: Arc::new(vec![Color32::TRANSPARENT; 16 * 16]),
+                cels: vec![Arc::new(vec![Color32::TRANSPARENT; 16 * 16])],
                 visible: true,
             }],
             active_layer: 0,
             width: 16,
             height: 16,
+            frames: 1,
+            active_frame: 0,
+            playing: false,
+            fps: 12.0,
+            last_play: 0.0,
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
             canvas_dirty: true,
@@ -205,11 +221,13 @@ pub struct PixeshApp {
     pub(crate) export_scale: i32,
     pub(crate) export_bg: ExportBg,
     pub(crate) export_layers: bool,
+    pub(crate) export_sheet: bool,
     pub(crate) show_panels: bool,
     pub(crate) show_settings: bool,
     pub(crate) show_top_panel: bool,
     pub(crate) show_right_panel: bool,
     pub(crate) show_status_bar: bool,
+    pub(crate) show_timeline: bool,
     pub(crate) show_quit_dialog: bool,
     pub(crate) show_welcome: bool,
     pub(crate) welcome_show_again: bool,
@@ -255,9 +273,9 @@ impl PixeshApp {
             show_resize: false, resize_w: 64.0, resize_h: 64.0,
             show_scale: false, scale_w: 64.0, scale_h: 64.0,
             show_export: false, export_scale: 1, export_bg: ExportBg::Transparent,
-            export_layers: false,
+            export_layers: false, export_sheet: false,
             show_panels: false, show_settings: false,
-            show_top_panel: true, show_right_panel: true, show_status_bar: true,
+            show_top_panel: true, show_right_panel: true, show_status_bar: true, show_timeline: true,
             show_quit_dialog: false,
             welcome_show_again,
             show_welcome: welcome_show_again,
@@ -285,6 +303,25 @@ impl PixeshApp {
         self.docs.iter().any(|d| d.unsaved)
     }
 
+    pub(crate) fn update_playback(&mut self, ctx: &egui::Context) {
+        let t = ctx.input(|i| i.time);
+        for doc in &mut self.docs {
+            if doc.playing {
+                let interval = 1.0 / (doc.fps as f64).max(0.1);
+                if doc.last_play == 0.0 {
+                    doc.last_play = t;
+                } else if t - doc.last_play >= interval {
+                    doc.last_play = t;
+                    let next = (doc.active_frame + 1) % doc.frames;
+                    doc.set_active_frame(next);
+                    ctx.request_repaint();
+                }
+            } else {
+                doc.last_play = 0.0;
+            }
+        }
+    }
+
     pub(crate) fn close_tab(&mut self, idx: usize) {
         if self.docs.len() <= 1 {
             self.docs[0] = Document::new("Untitled");
@@ -304,10 +341,12 @@ impl PixeshApp {
 impl eframe::App for PixeshApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.handle_input(ctx);
+        self.update_playback(ctx);
         if self.show_top_panel { self.ui_toolbar(ctx); }
         if self.show_right_panel { self.ui_layers(ctx); }
         self.ui_canvas(ctx);
         if self.show_status_bar { self.ui_status(ctx); }
+        if self.show_timeline { self.ui_timeline(ctx); }
         self.ui_dialogs(ctx);
 
         if ctx.input(|i| i.viewport().close_requested()) && self.any_unsaved() && !self.show_quit_dialog && !self.close_handled {

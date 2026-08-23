@@ -45,6 +45,15 @@ impl PixeshApp {
 
                     separator(ui);
 
+                    // frame
+                    ui.label(
+                        egui::RichText::new(format!("Frame: {}/{}", doc.active_frame + 1, doc.frames))
+                            .size(FONT_SZ)
+                            .color(TEXT),
+                    );
+
+                    separator(ui);
+
                     // cursor position
                     if let Some((px, py)) = self.cursor_px {
                         ui.label(

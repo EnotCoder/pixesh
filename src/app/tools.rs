@@ -40,7 +40,7 @@ impl Document {
                 for yy in y0..=y1 {
                     for xx in x0..=x1 {
                         let idx = (yy * w as i32 + xx) as usize;
-                        buf.push(self.layers[self.active_layer].pixels[idx]);
+                        buf.push(self.layers[self.active_layer].cels[self.active_frame][idx]);
                     }
                 }
                 self.sel_buffer = Some(buf);
@@ -192,7 +192,7 @@ impl Document {
                 for yy in y0..=y1 {
                     for xx in x0..=x1 {
                         let idx = (yy * w as i32 + xx) as usize;
-                        buf.push(self.layers[self.active_layer].pixels[idx]);
+                        buf.push(self.layers[self.active_layer].cels[self.active_frame][idx]);
                     }
                 }
                 self.sel_buffer = Some(buf);
