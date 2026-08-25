@@ -2,7 +2,7 @@
 
 A minimal pixel art editor built with Rust and egui.
 
-![screenshot](screenshots/s_1.png)
+![screenshot](img/s_1.png)
 
 ## Features
 
@@ -111,4 +111,4 @@ Run with:
 - `src/constants.rs` — Colors, sizes, Tool enum
 - `src/ui.rs` — Custom widgets (button, icon button, checkbox, slider)
 - `tex/` — Tool icons
-- `screenshots/` — Screenshots
+- `img/` — Screenshots
