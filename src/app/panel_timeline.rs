@@ -37,7 +37,7 @@ impl PixeshApp {
 
                     // header
                     ui.painter().text(
-                        Pos2::new(ui.cursor().min.x, ui.cursor().min.y + 2.0),
+                        Pos2::new(ui.cursor().min.x + 10.0, ui.cursor().min.y + 10.0),
                         egui::Align2::LEFT_TOP,
                         "Frames",
                         egui::FontId::proportional(FONT_SZ * 1.3),
@@ -49,13 +49,17 @@ impl PixeshApp {
                     ui.add_space(8.0);
 
                     // play / pause
+                    ui.style_mut().text_styles.insert(
+                        egui::TextStyle::Button,
+                        egui::FontId::proportional(FONT_SZ * 1.3),
+                    );
                     let play_label = if doc.playing { "Pause" } else { "Play" };
                     if toggle_btn(ui, play_label, doc.playing) {
                         doc.playing = !doc.playing;
                         doc.canvas_dirty = true;
                     }
 
-                    if btn_min_w(ui, "Stop", 56.0) {
+                    if toggle_btn(ui, "Stop", false) {
                         doc.playing = false;
                         doc.set_active_frame(0);
                     }
@@ -65,7 +69,7 @@ impl PixeshApp {
                     // fps
                     ui.style_mut().text_styles.insert(
                         egui::TextStyle::Button,
-                        egui::FontId::proportional(FONT_SZ),
+                        egui::FontId::proportional(FONT_SZ * 1.3),
                     );
                     ui.label(egui::RichText::new("FPS").size(FONT_SZ).color(TEXT));
                     ui.add_sized(
@@ -101,15 +105,15 @@ impl PixeshApp {
                             doc.add_frame_blank();
                         }
                         ui.add_space(4.0);
-                        if btn_min_w(ui, "<", 32.0) {
-                            if doc.active_frame > 0 {
-                                doc.move_frame(doc.active_frame, doc.active_frame - 1);
-                            }
-                        }
-                        ui.add_space(4.0);
                         if btn_min_w(ui, ">", 32.0) {
                             if doc.active_frame + 1 < doc.frames {
                                 doc.move_frame(doc.active_frame, doc.active_frame + 1);
+                            }
+                        }
+                        ui.add_space(4.0);
+                        if btn_min_w(ui, "<", 32.0) {
+                            if doc.active_frame > 0 {
+                                doc.move_frame(doc.active_frame, doc.active_frame - 1);
                             }
                         }
                     });
