@@ -35,7 +35,7 @@ impl PixeshApp {
                 child_ui.add_space(20.0);
                 child_ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
                     let cbs = 20.0;
-                    let sz = 24.0;
+                    let sz = 30.0;
                     let row_h = sz + 12.0;
 
                     let (row_rect, _) = ui.allocate_exact_size(Vec2::new(160.0, row_h), egui::Sense::click());
@@ -164,7 +164,7 @@ impl PixeshApp {
                 let bg = if btn_resp.clicked() { ACCENT } else if btn_resp.hovered() { HOVER } else { PANEL };
                 p.rect_filled(btn_rect, 0.0, bg);
                 p.rect_stroke(btn_rect, 0.0, egui::Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
-                p.text(btn_rect.center(), egui::Align2::CENTER_CENTER, "OK", egui::FontId::proportional(FONT_SZ), TEXT);
+                p.text(btn_rect.center(), egui::Align2::CENTER_CENTER, "OK", egui::FontId::proportional(FONT_SZ * 1.5), TEXT);
                 if btn_resp.clicked() {
                     self.show_panels = false;
                 }
