@@ -217,30 +217,6 @@ impl PixeshApp {
                     });
                 });
 
-                // alpha slider
-                ui.add_space(4.0);
-                ui.style_mut().text_styles.insert(
-                    egui::TextStyle::Body,
-                    egui::FontId::proportional(28.0),
-                );
-                ui.style_mut().text_styles.insert(
-                    egui::TextStyle::Button,
-                    egui::FontId::proportional(28.0),
-                );
-                ui.horizontal(|ui| {
-                    ui.add_space(PANEL_PAD);
-                    ui.add(egui::Label::new(egui::RichText::new("a").size(28.0)));
-                    ui.add_sized(
-                        Vec2::new(ui.available_width() - 100.0, 48.0),
-                        egui::Slider::new(&mut self.rgb_a, 0.0..=255.0).show_value(false),
-                    );
-                    ui.add_sized(
-                        Vec2::new(60.0, 30.0),
-                        egui::DragValue::new(&mut self.rgb_a)
-                            .range(0..=255)
-                            .speed(1.0),
-                    );
-                });
                 self.color = Color32::from_rgba_unmultiplied(self.rgb_r as u8, self.rgb_g as u8, self.rgb_b as u8, self.rgb_a as u8);
 
                 // color history
@@ -372,6 +348,41 @@ impl PixeshApp {
                             self.rgb_g = g as f32;
                             self.rgb_b = b as f32;
                             self.color = Color32::from_rgba_unmultiplied(r, g, b, self.rgb_a as u8);
+                        }
+                    }
+
+                    // alpha strip
+                    let (arect, aresp) = ui.allocate_exact_size(Vec2::new(strip_w, fsize), Sense::click_and_drag());
+
+                    let ts = 64;
+                    let (cr, cg, cb) = (self.rgb_r as u8, self.rgb_g as u8, self.rgb_b as u8);
+                    let mut apix = Vec::with_capacity(ts);
+                    for y in 0..ts {
+                        let a = ((ts - 1 - y) as f32 / (ts - 1) as f32 * 255.0) as u8;
+                        let checker = if (y / 4 + 0) % 2 == 0 { Color32::from_gray(200) } else { Color32::from_gray(160) };
+                        let alpha = a as f32 / 255.0;
+                        let r = (cr as f32 * alpha + checker.r() as f32 * (1.0 - alpha)) as u8;
+                        let g = (cg as f32 * alpha + checker.g() as f32 * (1.0 - alpha)) as u8;
+                        let b = (cb as f32 * alpha + checker.b() as f32 * (1.0 - alpha)) as u8;
+                        apix.push(Color32::from_rgb(r, g, b));
+                    }
+                    let aimg = ColorImage { size: [1, ts], pixels: apix };
+                    let atex = ui.ctx().load_texture("astrip", aimg, egui::TextureOptions::LINEAR);
+
+                    let ap = ui.painter();
+                    ap.image(atex.id(), arect, Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
+                    ap.rect_stroke(arect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
+
+                    let ay = arect.min.y + (1.0 - self.rgb_a / 255.0) * arect.height();
+                    ap.hline(arect.x_range(), ay, Stroke::new(4.0, Color32::WHITE));
+
+                    let apick = aresp.dragged_by(egui::PointerButton::Primary)
+                        || aresp.clicked_by(egui::PointerButton::Primary);
+                    if apick {
+                        if let Some(pos) = aresp.interact_pointer_pos() {
+                            let rel_y = (pos.y - arect.min.y) / arect.height();
+                            self.rgb_a = ((1.0 - rel_y) * 255.0).clamp(0.0, 255.0);
+                            self.color = Color32::from_rgba_unmultiplied(cr, cg, cb, self.rgb_a as u8);
                         }
                     }
                 });
