@@ -204,6 +204,6 @@ let cell = checker_cell(self.zoom) as usize;
 
     pub(crate) fn screen_to_pixel(&self, pos: Pos2, origin: Pos2) -> (i32, i32) {
         let r = pos - origin;
-        ((r.x / self.zoom).round() as i32, (r.y / self.zoom).round() as i32)
+        ((r.x / self.zoom).floor() as i32, (r.y / self.zoom).floor() as i32)
     }
 }

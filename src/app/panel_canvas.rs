@@ -9,7 +9,7 @@ fn click_pixel(resp: &egui::Response, canvas_rect: &Rect, zoom: f32) -> Option<(
     let pos = resp.interact_pointer_pos()?;
     if !canvas_rect.contains(pos) { return None; }
     let r = pos - canvas_rect.min;
-    Some(((r.x / zoom).round() as i32, (r.y / zoom).round() as i32))
+    Some(((r.x / zoom).floor() as i32, (r.y / zoom).floor() as i32))
 }
 
 // marching ants: dashed line along an edge in screen space, phase-animated
@@ -403,8 +403,9 @@ impl PixeshApp {
                                 if resp.dragged() {
                                     if let Some(pos) = resp.interact_pointer_pos() {
                                         // convert screen pos to pixel coords
-                                        let px = ((pos.x - canvas_rect.min.x) / zoom).round() as i32;
-                                        let py = ((pos.y - canvas_rect.min.y) / zoom).round() as i32;
+                                        let r = pos - canvas_rect.min;
+                                        let px = (r.x / zoom).floor() as i32;
+                                        let py = (r.y / zoom).floor() as i32;
                                         let (ox0, oy0, ox1, oy1) = orig;
                                         // compute new rect based on which corner is dragged
                                         // corners[0]=TL, [1]=TR, [2]=BR, [3]=BL
