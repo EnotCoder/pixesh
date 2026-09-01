@@ -344,9 +344,9 @@ impl eframe::App for PixeshApp {
         self.update_playback(ctx);
         if self.show_top_panel { self.ui_toolbar(ctx); }
         if self.show_right_panel { self.ui_layers(ctx); }
-        self.ui_canvas(ctx);
         if self.show_status_bar { self.ui_status(ctx); }
         if self.show_timeline { self.ui_timeline(ctx); }
+        self.ui_canvas(ctx);
         self.ui_dialogs(ctx);
 
         if ctx.input(|i| i.viewport().close_requested()) && self.any_unsaved() && !self.show_quit_dialog && !self.close_handled {
