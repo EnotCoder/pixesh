@@ -246,6 +246,8 @@ pub struct PixeshApp {
 
     pub(crate) cursor_px: Option<(i32, i32)>,
     pub(crate) close_handled: bool,
+
+    pub(crate) logo_easter_egg: f32,
 }
 
 impl PixeshApp {
@@ -288,6 +290,7 @@ impl PixeshApp {
             text_scale: 2,
             cursor_px: None,
             close_handled: false,
+            logo_easter_egg: 0.0,
         }
     }
 }

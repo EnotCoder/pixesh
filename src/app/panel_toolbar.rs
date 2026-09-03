@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
-use eframe::egui::{self, Color32, Pos2, Rect, Sense, Stroke, Vec2};
+use eframe::egui::{self, Color32, Pos2, Rect, Sense, Stroke, Vec2, epaint};
+use eframe::egui::epaint::Vertex;
 
 use crate::constants::*;
 use crate::color::lerp_color;
@@ -23,11 +24,48 @@ impl PixeshApp {
                         load_icon_texture(ui, "logo", include_bytes!("../../logo.png"))
                     });
                     let logo_sz = Vec2::splat((ROW_H + 6.0) * 1.5);
-                    let (lr, lresp) = ui.allocate_exact_size(logo_sz, Sense::hover());
+                    let (lr, lresp) = ui.allocate_exact_size(logo_sz, Sense::click());
                     let t_logo = ui.ctx().animate_bool(lresp.id, lresp.hovered());
                     let logo_rect = lr.translate(Vec2::new(0.0, 4.0 - t_logo * 4.0));
-                    ui.painter().image(logo_tex.id(), logo_rect,
-                        Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
+
+                    if lresp.clicked() {
+                        self.logo_easter_egg = 1.0;
+                    }
+
+                    if self.logo_easter_egg > 0.0 {
+                        self.logo_easter_egg -= ui.input(|i| i.unstable_dt) * 2.0;
+                        if self.logo_easter_egg < 0.0 { self.logo_easter_egg = 0.0; }
+                        ui.ctx().request_repaint();
+                    }
+
+                    let p = ui.painter();
+                    let angle = self.logo_easter_egg * self.logo_easter_egg * 12.0;
+
+                    if angle.abs() > 0.01 {
+                        let center = logo_rect.center();
+                        let hs = logo_rect.size() / 2.0;
+                        let cos = angle.cos();
+                        let sin = angle.sin();
+                        let rotate = |dx: f32, dy: f32| -> Pos2 {
+                            Pos2::new(center.x + dx * cos - dy * sin, center.y + dx * sin + dy * cos)
+                        };
+                        let tl = rotate(-hs.x, -hs.y);
+                        let tr = rotate(hs.x, -hs.y);
+                        let br = rotate(hs.x, hs.y);
+                        let bl = rotate(-hs.x, hs.y);
+
+                        let mut mesh = epaint::Mesh::with_texture(logo_tex.id());
+                        let c = Color32::WHITE;
+                        mesh.vertices.push(Vertex { pos: tl, uv: Pos2::new(0.0, 0.0), color: c });
+                        mesh.vertices.push(Vertex { pos: tr, uv: Pos2::new(1.0, 0.0), color: c });
+                        mesh.vertices.push(Vertex { pos: br, uv: Pos2::new(1.0, 1.0), color: c });
+                        mesh.vertices.push(Vertex { pos: bl, uv: Pos2::new(0.0, 1.0), color: c });
+                        mesh.indices = vec![0, 1, 2, 0, 2, 3];
+                        p.add(egui::Shape::mesh(mesh));
+                    } else {
+                        p.image(logo_tex.id(), logo_rect,
+                            Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
+                    }
 
                     separator(ui);
                     ui.add_space(4.0);
