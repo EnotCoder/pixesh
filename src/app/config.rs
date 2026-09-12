@@ -3,6 +3,13 @@ use std::path::PathBuf;
 
 // ── конфиг приложения (~/.config/pixesh/settings.txt) ──
 
+/// Safe home-directory helper: works on Linux, Android, and anywhere else.
+pub(crate) fn default_dir() -> String {
+    std::env::var("HOME")
+        .or_else(|_| std::env::var("EXTERNAL_STORAGE")) // Android fallback
+        .unwrap_or_else(|_| "/".into())
+}
+
 fn config_path() -> PathBuf {
     let home = std::env::var("HOME").unwrap_or_else(|_| "/".into());
     PathBuf::from(home).join(".config").join("pixesh").join("settings.txt")

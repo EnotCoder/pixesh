@@ -93,6 +93,42 @@ Run with:
 ./target/release/pixesh
 ```
 
+---
+
+## Android build (mobile)
+
+The mobile UI (tools top, layers+toolbars bottom, vertical center panel, no
+timeline) is gated behind the `mobile` crate feature. It never compiles `rfd`
+(GTK file dialogs can't build on Android).
+
+Requirements (already on this machine):
+
+- Android SDK + NDK 25.2.9519653, JDK 21, `cargo-ndk` / `cargo-apk`
+- Android target installed: `rustup target add aarch64-linux-android`
+
+### 1. Check the mobile build (no NDK required)
+
+```bash
+cargo check --target aarch64-linux-android --no-default-features --features mobile
+```
+
+### 2. Build the APK
+
+```bash
+./build_android.sh
+```
+
+Writes `android/pixesh-debug.apk`. The script finds the NDK toolchain, sets the
+Android linker, builds the `aarch64-linux-android` release with the `mobile`
+feature and packages it with `cargo apk` (cargo-apk is available on this box).
+
+The Android entry point lives in [`android_main`](android/AndroidManifest.xml);
+winit's `android-native-activity` provides the native activity. `res/mipmap-*`
+holds the launcher icon at all densities and `res/values/strings.xml` the app
+name, so `aapt2` never needs a Gradle project.
+
+
+
 ## Project Structure
 
 - `src/main.rs` — Entry point, font & style setup

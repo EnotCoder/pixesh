@@ -16,7 +16,7 @@ impl PixeshApp {
                 let pad = 10.0;
                 let btn_h = 44.0;
 
-                let home = std::env::var("HOME").unwrap_or_else(|_| "/".into());
+                let home = crate::app::config::default_dir();
                 let display = if self.docs[i].export_path.is_empty() || self.docs[i].export_path == home {
                     "home".to_string()
                 } else {
@@ -94,18 +94,19 @@ impl PixeshApp {
                 );
                 ui.put(file_edit_rect, egui::TextEdit::singleline(&mut self.docs[i].export_name).desired_width(file_edit_w));
 
-                let dot_btn_rect = egui::Rect::from_min_size(
-                    egui::pos2(rect.max.x - pad - btn_h, rect.min.y + 56.0),
-                    Vec2::splat(btn_h),
-                );
-                let dot_resp = ui.interact(dot_btn_rect, egui::Id::new("export_dot"), egui::Sense::click());
-                if dot_resp.clicked() {
-                    if let Some(path) = rfd::FileDialog::new().set_directory(&home).pick_folder() {
-                        self.docs[i].export_path = path.to_string_lossy().into();
-                    }
-                }
-
+                #[cfg(feature = "rfd")]
                 {
+                    let dot_btn_rect = egui::Rect::from_min_size(
+                        egui::pos2(rect.max.x - pad - btn_h, rect.min.y + 56.0),
+                        Vec2::splat(btn_h),
+                    );
+                    let dot_resp = ui.interact(dot_btn_rect, egui::Id::new("export_dot"), egui::Sense::click());
+                    if dot_resp.clicked() {
+                        if let Some(path) = rfd::FileDialog::new().set_directory(&home).pick_folder() {
+                            self.docs[i].export_path = path.to_string_lossy().into();
+                        }
+                    }
+
                     let p = ui.painter();
                     let dot_bg = if dot_resp.clicked() { ACCENT } else if dot_resp.hovered() { HOVER } else { PANEL };
                     p.rect_filled(dot_btn_rect, 0.0, dot_bg);

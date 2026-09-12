@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.pixesh.app">
+
+    <!-- Hardware rendering (egui/eframe needs OpenGL ES 2+). -->
+    <uses-feature android:glEsVersion="0x00020000" android:required="true" />
+
+    <!-- Touch screen is the only input we target on mobile. -->
+    <uses-feature android:name="android.hardware.touchscreen" android:required="true" />
+
+    <!-- No audio, no camera, no sensors: keep the permission list empty. -->
+
+    <application
+        android:label="Pixesh"
+        android:icon="@mipmap/ic_launcher"
+        android:hasCode="true"
+        android:allowBackup="false"
+        android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
+        <activity
+            android:name="android.app.NativeActivity"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|keyboardHidden|screenLayout|smallestScreenSize|uiMode"
+            android:label="Pixesh"
+            android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="pixesh" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

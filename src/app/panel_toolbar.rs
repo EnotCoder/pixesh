@@ -14,336 +14,28 @@ impl PixeshApp {
             .frame(egui::Frame::new().fill(PANEL))
             .show_separator_line(false)
             .show(ctx, |ui| {
-                // ── main toolbar row ──
                 ui.add_space(6.0);
-                ui.horizontal(|ui| {
-                    ui.add_space(6.0);
-
-                    // logo
-                    let logo_tex = self.logo_tex.get_or_insert_with(|| {
-                        load_icon_texture(ui, "logo", include_bytes!("../../logo.png"))
-                    });
-                    let logo_sz = Vec2::splat((ROW_H + 6.0) * 1.5);
-                    let (lr, lresp) = ui.allocate_exact_size(logo_sz, Sense::click());
-                    let t_logo = ui.ctx().animate_bool(lresp.id, lresp.hovered());
-                    let logo_rect = lr.translate(Vec2::new(0.0, 4.0 - t_logo * 4.0));
-
-                    if lresp.clicked() {
-                        self.logo_easter_egg = 1.0;
-                    }
-
-                    if self.logo_easter_egg > 0.0 {
-                        self.logo_easter_egg -= ui.input(|i| i.unstable_dt) * 2.0;
-                        if self.logo_easter_egg < 0.0 { self.logo_easter_egg = 0.0; }
-                        ui.ctx().request_repaint();
-                    }
-
-                    let p = ui.painter();
-                    let angle = self.logo_easter_egg * self.logo_easter_egg * 12.0;
-
-                    if angle.abs() > 0.01 {
-                        let center = logo_rect.center();
-                        let hs = logo_rect.size() / 2.0;
-                        let cos = angle.cos();
-                        let sin = angle.sin();
-                        let rotate = |dx: f32, dy: f32| -> Pos2 {
-                            Pos2::new(center.x + dx * cos - dy * sin, center.y + dx * sin + dy * cos)
-                        };
-                        let tl = rotate(-hs.x, -hs.y);
-                        let tr = rotate(hs.x, -hs.y);
-                        let br = rotate(hs.x, hs.y);
-                        let bl = rotate(-hs.x, hs.y);
-
-                        let mut mesh = epaint::Mesh::with_texture(logo_tex.id());
-                        let c = Color32::WHITE;
-                        mesh.vertices.push(Vertex { pos: tl, uv: Pos2::new(0.0, 0.0), color: c });
-                        mesh.vertices.push(Vertex { pos: tr, uv: Pos2::new(1.0, 0.0), color: c });
-                        mesh.vertices.push(Vertex { pos: br, uv: Pos2::new(1.0, 1.0), color: c });
-                        mesh.vertices.push(Vertex { pos: bl, uv: Pos2::new(0.0, 1.0), color: c });
-                        mesh.indices = vec![0, 1, 2, 0, 2, 3];
-                        p.add(egui::Shape::mesh(mesh));
-                    } else {
-                        p.image(logo_tex.id(), logo_rect,
-                            Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
-                    }
-
-                    separator(ui);
-                    ui.add_space(4.0);
-
-                    // tool icons
-                    let brush_tex = self.brush_tex.get_or_insert_with(|| {
-                        load_icon_texture(ui, "brush_icon", include_bytes!("../../tex/tools/brush.png"))
-                    });
-                    if icon_btn_tip(ui, brush_tex.id(), self.tool == Tool::Brush, "Brush (B)") { self.tool = Tool::Brush; }
-
-                    let eraser_tex = self.eraser_tex.get_or_insert_with(|| {
-                        load_icon_texture(ui, "eraser_icon", include_bytes!("../../tex/tools/eraser.png"))
-                    });
-                    if icon_btn_tip(ui, eraser_tex.id(), self.tool == Tool::Eraser, "Eraser (E)") { self.tool = Tool::Eraser; }
-
-                    let fill_tex = self.fill_tex.get_or_insert_with(|| {
-                        load_icon_texture(ui, "fill_icon", include_bytes!("../../tex/tools/fill.png"))
-                    });
-                    if icon_btn_tip(ui, fill_tex.id(), self.tool == Tool::Fill, "Fill (F)") { self.tool = Tool::Fill; }
-
-                    let drop_tex = self.drop_tex.get_or_insert_with(|| {
-                        load_icon_texture(ui, "drop_icon", include_bytes!("../../tex/tools/drop.png"))
-                    });
-                    if icon_btn_tip(ui, drop_tex.id(), self.tool == Tool::Eyedropper, "Eyedropper (A)") { self.tool = Tool::Eyedropper; }
-
-                    let select_tex = self.select_tex.get_or_insert_with(|| {
-                        load_icon_texture(ui, "select_icon", include_bytes!("../../tex/tools/select.png"))
-                    });
-                    if icon_btn_tip(ui, select_tex.id(), self.tool == Tool::Select, "Select (R)") { self.tool = Tool::Select; }
-
-                    let move_tex = self.move_tex.get_or_insert_with(|| {
-                        load_icon_texture(ui, "move_icon", include_bytes!("../../tex/tools/move.png"))
-                    });
-                    if icon_btn_tip(ui, move_tex.id(), self.tool == Tool::Move, "Move (M)") { self.tool = Tool::Move; }
-
-                    // Text tool
-                    {
-                        let sz = ROW_H + 16.0;
-                        let (rect, resp) = ui.allocate_exact_size(Vec2::splat(sz), Sense::click());
-                        let t_hover = ui.ctx().animate_bool(resp.id.with("hover"), resp.hovered());
-                        let t_active = ui.ctx().animate_bool(resp.id.with("active"), self.tool == Tool::Text);
-                        
-                        let mut bg = PANEL;
-                        bg = lerp_color(bg, HOVER, t_hover);
-                        bg = lerp_color(bg, ACCENT, t_active);
-
-                        let offset = if resp.is_pointer_button_down_on() { 2.0 } else { 0.0 };
-                        let draw_rect = rect.translate(Vec2::new(0.0, offset));
-
-                        let p = ui.painter();
-                        if offset == 0.0 {
-                            p.rect_filled(rect.translate(Vec2::new(0.0, 2.0)), 0.0, BORDER);
-                        }
-                        p.rect_filled(draw_rect, 0.0, bg);
-                        p.text(draw_rect.center(), egui::Align2::CENTER_CENTER, "T", egui::FontId::proportional(24.0), TEXT);
-                        p.rect_stroke(draw_rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Inside);
-                        
-                        let resp = resp.on_hover_text("Text (T)");
-                        if resp.clicked() { self.tool = Tool::Text; }
-                    }
-
-                    // clear
-                    separator(ui);
-
-                    let clear_tex = self.clear_tex.get_or_insert_with(|| {
-                        load_icon_texture(ui, "clear_icon", include_bytes!("../../tex/tools/clear.png"))
-                    });
-                    if icon_btn_tip(ui, clear_tex.id(), false, "Clear All Layers") {
-                        let doc = &mut self.docs[self.active_tab];
-                        doc.push_undo();
-                        for layer in &mut doc.layers {
-                            layer.cels[doc.active_frame] = Arc::new(vec![Color32::TRANSPARENT; doc.width * doc.height]);
-                        }
-                        doc.canvas_dirty = true;
-                    }
-
-                    // grid + zoom
-                    ui.add_space(6.0);
-                    separator(ui);
-                    ui.add_space(6.0);
-
-                    let cbs = 18.0;
-                    let btn_h = ROW_H + 16.0;
-                    let grid_w = cbs + 8.0 + "Grid".len() as f32 * CHAR_W;
-                    let (grid_rect, grid_resp) = ui.allocate_exact_size(Vec2::new(grid_w, btn_h), Sense::click());
-                    let p = ui.painter();
-                    let cb_rect = Rect::from_min_size(
-                        Pos2::new(grid_rect.min.x, grid_rect.center().y - cbs * 0.5),
-                        Vec2::splat(cbs),
-                    );
-                    
-                    let is_grid = self.docs[self.active_tab].grid;
-                    let t_grid = ui.ctx().animate_bool(grid_resp.id.with("grid_anim"), is_grid);
-
-                    p.rect_filled(cb_rect, 0.0, PANEL);
-                    p.rect_stroke(cb_rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
-                    
-                    if t_grid > 0.0 {
-                        let inner = cb_rect.shrink(4.0 * (1.0 - t_grid));
-                        p.rect_filled(inner, 0.0, lerp_color(PANEL, ACCENT, t_grid));
-                    }
-                    
-                    p.text(
-                        Pos2::new(cb_rect.max.x + 8.0, grid_rect.center().y),
-                        egui::Align2::LEFT_CENTER,
-                        "Grid",
-                        egui::FontId::proportional(FONT_SZ),
-                        TEXT,
-                    );
-                    
-                    if grid_resp.clicked() {
-                        self.docs[self.active_tab].grid = !self.docs[self.active_tab].grid;
-                    }
-                    ui.add_space(6.0);
-
-                    let mh_tex = self.mirror_h_tex.get_or_insert_with(|| {
-                        load_icon_texture(ui, "mirror_h", include_bytes!("../../tex/transform/mirror_h.png"))
-                    });
-                    if icon_btn_tip(ui, mh_tex.id(), false, "Mirror Horizontal") {
-                        let doc = &mut self.docs[self.active_tab];
-                        doc.push_undo();
-                        doc.mirror_horizontal();
-                    }
-
-                    let mv_tex = self.mirror_v_tex.get_or_insert_with(|| {
-                        load_icon_texture(ui, "mirror_v", include_bytes!("../../tex/transform/mirror_v.png"))
-                    });
-                    if icon_btn_tip(ui, mv_tex.id(), false, "Mirror Vertical") {
-                        let doc = &mut self.docs[self.active_tab];
-                        doc.push_undo();
-                        doc.mirror_vertical();
-                    }
-
-                    ui.add_space(6.0);
-
-                    // zoom text
-                    let zoom_text = format!("Zoom: {:.2}", self.docs[self.active_tab].zoom);
-                    let zoom_w = zoom_text.len() as f32 * CHAR_W * (20.0 / FONT_SZ) + 10.0;
-                    let (zoom_rect, _) = ui.allocate_exact_size(Vec2::new(zoom_w, btn_h), Sense::hover());
-                    ui.painter().text(
-                        Pos2::new(zoom_rect.min.x, zoom_rect.center().y),
-                        egui::Align2::LEFT_CENTER,
-                        &zoom_text,
-                        egui::FontId::proportional(20.0),
-                        TEXT,
-                    );
-                    ui.add_space(6.0);
-
-                    // ── brush size + shape (only for Brush/Eraser) ──
-                    if self.tool == Tool::Brush || self.tool == Tool::Eraser {
-                        let max = self.docs[self.active_tab].width.max(self.docs[self.active_tab].height) as f32;
-                        self.brush = self.brush.clamp(1.0, max);
-
-                        ui.add_space(6.0);
-                        separator(ui);
-                        ui.add_space(10.0);
-
-                        // Label "Size"
-                        ui.label(egui::RichText::new("Size:").size(18.0).color(DIM));
-                        
-                        let slider_w = 100.0;
-                        ui.add_sized(
-                            Vec2::new(slider_w, btn_h),
-                            egui::Slider::new(&mut self.brush, 1.0..=max).show_value(false),
-                        );
-
-                        // Current size value
-                        let val_text = format!("{}", self.brush.round() as i32);
-                        ui.add_sized(Vec2::new(30.0, btn_h), egui::Label::new(egui::RichText::new(val_text).size(20.0).color(TEXT)));
-
-                        ui.add_space(6.0);
-                        separator(ui);
-                        ui.add_space(6.0);
-
-                        ui.style_mut().text_styles.insert(
-                            egui::TextStyle::Button,
-                            egui::FontId::proportional(22.0),
-                        );
-
-                        if toggle_btn(ui, "Round", self.brush_shape == BrushShape::Round) {
-                            self.brush_shape = BrushShape::Round;
-                        }
-                        ui.add_space(-4.0); // Сближаем кнопки для вида сегментированного контрола
-                        if toggle_btn(ui, "Square", self.brush_shape == BrushShape::Square) {
-                            self.brush_shape = BrushShape::Square;
-                        }
-                    }
-                    ui.add_space(6.0);
-                });
+                if self.mobile {
+                    egui::ScrollArea::horizontal()
+                        .id_salt("mobile_tools")
+                        .auto_shrink([false, false])
+                        .show(ui, |ui| self.toolbar_row(ui));
+                } else {
+                    self.toolbar_row(ui);
+                }
                 ui.add_space(6.0);
 
                 // ── tab bar row ──
                 if self.docs.len() > 0 {
                     ui.add_space(2.0);
-                    ui.horizontal(|ui| {
-                        ui.add_space(6.0);
-                        let tab_h = 28.0;
-
-                        for ti in 0..self.docs.len() {
-                            let is_active = ti == self.active_tab;
-                            let unsaved = self.docs[ti].unsaved;
-                            let name = &self.docs[ti].name;
-                            let label = if unsaved { format!("*{}", name) } else { name.clone() };
-                            let label_w = label.len() as f32 * CHAR_W * (18.0 / FONT_SZ) + 24.0;
-                            let close_w = tab_h;
-                            let tab_w = label_w + close_w;
-
-                            let (tab_rect, tab_resp) = ui.allocate_exact_size(Vec2::new(tab_w, tab_h), Sense::click());
-                            let t_active = ui.ctx().animate_bool(tab_resp.id.with("tab_anim"), is_active);
-
-                            let bg = lerp_color(PANEL, HOVER, t_active);
-                            let p = ui.painter();
-                            p.rect_filled(tab_rect, 0.0, bg);
-                            p.rect_stroke(tab_rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Inside);
-
-                            // tab label
-                            p.text(
-                                Pos2::new(tab_rect.min.x + 8.0, tab_rect.center().y),
-                                egui::Align2::LEFT_CENTER,
-                                &label,
-                                egui::FontId::proportional(18.0),
-                                TEXT,
-                            );
-
-                            // close button
-                            let close_rect = Rect::from_min_size(
-                                Pos2::new(tab_rect.max.x - close_w, tab_rect.min.y),
-                                Vec2::new(close_w, tab_h),
-                            );
-                            let close_resp = ui.interact(close_rect, egui::Id::new(("tab_close", ti)), Sense::click());
-                            let t_close = ui.ctx().animate_bool(close_resp.id.with("close_anim"), close_resp.hovered());
-                            let close_bg = lerp_color(PANEL, ACCENT, t_close);
-                            
-                            p.rect_filled(close_rect, 0.0, close_bg);
-                            let tab_close_tex = self.tab_close_tex.get_or_insert_with(|| {
-                                load_icon_texture(ui, "tab_close", include_bytes!("../../tex/tools/clear.png"))
-                            });
-                            p.image(
-                                tab_close_tex.id(),
-                                close_rect,
-                                Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)),
-                                Color32::WHITE,
-                            );
-
-                            if close_resp.clicked() {
-                                self.close_tab(ti);
-                                break;
-                            }
-                            if tab_resp.clicked() && !close_resp.clicked() {
-                                self.active_tab = ti;
-                            }
-                        }
-
-                        // "+" button to create new tab
-                        let plus_w = 28.0;
-                        let (plus_rect, plus_resp) = ui.allocate_exact_size(Vec2::new(plus_w, tab_h), Sense::click());
-                        let t_plus = ui.ctx().animate_bool(plus_resp.id.with("plus_anim"), plus_resp.hovered());
-                        let bg = lerp_color(PANEL, HOVER, t_plus);
-                        
-                        ui.painter().rect_filled(plus_rect, 0.0, bg);
-                        ui.painter().rect_stroke(plus_rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Inside);
-                        let tab_plus_tex = self.tab_plus_tex.get_or_insert_with(|| {
-                            load_icon_texture(ui, "tab_plus", include_bytes!("../../tex/layers/plus_layer.png"))
-                        });
-                        ui.painter().image(
-                            tab_plus_tex.id(),
-                            plus_rect,
-                            Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)),
-                            Color32::WHITE,
-                        );
-                        if plus_resp.clicked() {
-                            let n = self.docs.len();
-                            self.docs.push(super::Document::new(&format!("Untitled {}", n)));
-                            self.active_tab = self.docs.len() - 1;
-                        }
-
-                        ui.add_space(6.0);
-                    });
+                    if self.mobile {
+                        egui::ScrollArea::horizontal()
+                            .id_salt("mobile_tabs")
+                            .auto_shrink([false, false])
+                            .show(ui, |ui| self.tab_bar_ui(ui));
+                    } else {
+                        self.tab_bar_ui(ui);
+                    }
                     ui.add_space(4.0);
                 }
 
@@ -352,5 +44,336 @@ impl PixeshApp {
                 let panel_right = ui.max_rect().right();
                 ui.painter().hline(panel_left..=panel_right, panel_bottom, Stroke::new(8.0, BORDER));
             });
+    }
+
+    /// Main tool row (logo + tools + grid + zoom + brush controls).
+    fn toolbar_row(&mut self, ui: &mut egui::Ui) {
+        ui.horizontal(|ui| {
+            ui.add_space(6.0);
+
+            // logo
+            let logo_tex = self.logo_tex.get_or_insert_with(|| {
+                load_icon_texture(ui, "logo", include_bytes!("../../logo.png"))
+            });
+            let logo_sz = Vec2::splat((ROW_H + 6.0) * 1.5);
+            let (lr, lresp) = ui.allocate_exact_size(logo_sz, Sense::click());
+            let t_logo = ui.ctx().animate_bool(lresp.id, lresp.hovered());
+            let logo_rect = lr.translate(Vec2::new(0.0, 4.0 - t_logo * 4.0));
+
+            if lresp.clicked() {
+                self.logo_easter_egg = 1.0;
+            }
+
+            if self.logo_easter_egg > 0.0 {
+                self.logo_easter_egg -= ui.input(|i| i.unstable_dt) * 2.0;
+                if self.logo_easter_egg < 0.0 { self.logo_easter_egg = 0.0; }
+                ui.ctx().request_repaint();
+            }
+
+            let p = ui.painter();
+            let angle = self.logo_easter_egg * self.logo_easter_egg * 12.0;
+
+            if angle.abs() > 0.01 {
+                let center = logo_rect.center();
+                let hs = logo_rect.size() / 2.0;
+                let cos = angle.cos();
+                let sin = angle.sin();
+                let rotate = |dx: f32, dy: f32| -> Pos2 {
+                    Pos2::new(center.x + dx * cos - dy * sin, center.y + dx * sin + dy * cos)
+                };
+                let tl = rotate(-hs.x, -hs.y);
+                let tr = rotate(hs.x, -hs.y);
+                let br = rotate(hs.x, hs.y);
+                let bl = rotate(-hs.x, hs.y);
+
+                let mut mesh = epaint::Mesh::with_texture(logo_tex.id());
+                let c = Color32::WHITE;
+                mesh.vertices.push(Vertex { pos: tl, uv: Pos2::new(0.0, 0.0), color: c });
+                mesh.vertices.push(Vertex { pos: tr, uv: Pos2::new(1.0, 0.0), color: c });
+                mesh.vertices.push(Vertex { pos: br, uv: Pos2::new(1.0, 1.0), color: c });
+                mesh.vertices.push(Vertex { pos: bl, uv: Pos2::new(0.0, 1.0), color: c });
+                mesh.indices = vec![0, 1, 2, 0, 2, 3];
+                p.add(egui::Shape::mesh(mesh));
+            } else {
+                p.image(logo_tex.id(), logo_rect,
+                    Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
+            }
+
+            separator(ui);
+            ui.add_space(4.0);
+
+            // tool icons
+            let brush_tex = self.brush_tex.get_or_insert_with(|| {
+                load_icon_texture(ui, "brush_icon", include_bytes!("../../tex/tools/brush.png"))
+            });
+            if icon_btn_tip(ui, brush_tex.id(), self.tool == Tool::Brush, "Brush (B)") { self.tool = Tool::Brush; }
+
+            let eraser_tex = self.eraser_tex.get_or_insert_with(|| {
+                load_icon_texture(ui, "eraser_icon", include_bytes!("../../tex/tools/eraser.png"))
+            });
+            if icon_btn_tip(ui, eraser_tex.id(), self.tool == Tool::Eraser, "Eraser (E)") { self.tool = Tool::Eraser; }
+
+            let fill_tex = self.fill_tex.get_or_insert_with(|| {
+                load_icon_texture(ui, "fill_icon", include_bytes!("../../tex/tools/fill.png"))
+            });
+            if icon_btn_tip(ui, fill_tex.id(), self.tool == Tool::Fill, "Fill (F)") { self.tool = Tool::Fill; }
+
+            let drop_tex = self.drop_tex.get_or_insert_with(|| {
+                load_icon_texture(ui, "drop_icon", include_bytes!("../../tex/tools/drop.png"))
+            });
+            if icon_btn_tip(ui, drop_tex.id(), self.tool == Tool::Eyedropper, "Eyedropper (A)") { self.tool = Tool::Eyedropper; }
+
+            let select_tex = self.select_tex.get_or_insert_with(|| {
+                load_icon_texture(ui, "select_icon", include_bytes!("../../tex/tools/select.png"))
+            });
+            if icon_btn_tip(ui, select_tex.id(), self.tool == Tool::Select, "Select (R)") { self.tool = Tool::Select; }
+
+            let move_tex = self.move_tex.get_or_insert_with(|| {
+                load_icon_texture(ui, "move_icon", include_bytes!("../../tex/tools/move.png"))
+            });
+            if icon_btn_tip(ui, move_tex.id(), self.tool == Tool::Move, "Move (M)") { self.tool = Tool::Move; }
+
+            // Text tool
+            {
+                let sz = ROW_H + 16.0;
+                let (rect, resp) = ui.allocate_exact_size(Vec2::splat(sz), Sense::click());
+                let t_hover = ui.ctx().animate_bool(resp.id.with("hover"), resp.hovered());
+                let t_active = ui.ctx().animate_bool(resp.id.with("active"), self.tool == Tool::Text);
+                
+                let mut bg = PANEL;
+                bg = lerp_color(bg, HOVER, t_hover);
+                bg = lerp_color(bg, ACCENT, t_active);
+
+                let offset = if resp.is_pointer_button_down_on() { 2.0 } else { 0.0 };
+                let draw_rect = rect.translate(Vec2::new(0.0, offset));
+
+                let p = ui.painter();
+                if offset == 0.0 {
+                    p.rect_filled(rect.translate(Vec2::new(0.0, 2.0)), 0.0, BORDER);
+                }
+                p.rect_filled(draw_rect, 0.0, bg);
+                p.text(draw_rect.center(), egui::Align2::CENTER_CENTER, "T", egui::FontId::proportional(24.0), TEXT);
+                p.rect_stroke(draw_rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Inside);
+                
+                let resp = resp.on_hover_text("Text (T)");
+                if resp.clicked() { self.tool = Tool::Text; }
+            }
+
+            // clear
+            separator(ui);
+
+            let clear_tex = self.clear_tex.get_or_insert_with(|| {
+                load_icon_texture(ui, "clear_icon", include_bytes!("../../tex/tools/clear.png"))
+            });
+            if icon_btn_tip(ui, clear_tex.id(), false, "Clear All Layers") {
+                let doc = &mut self.docs[self.active_tab];
+                doc.push_undo();
+                for layer in &mut doc.layers {
+                    layer.cels[doc.active_frame] = Arc::new(vec![Color32::TRANSPARENT; doc.width * doc.height]);
+                }
+                doc.canvas_dirty = true;
+            }
+
+            // grid + zoom
+            ui.add_space(6.0);
+            separator(ui);
+            ui.add_space(6.0);
+
+            let cbs = 18.0;
+            let btn_h = ROW_H + 16.0;
+            let grid_w = cbs + 8.0 + "Grid".len() as f32 * CHAR_W;
+            let (grid_rect, grid_resp) = ui.allocate_exact_size(Vec2::new(grid_w, btn_h), Sense::click());
+            let p = ui.painter();
+            let cb_rect = Rect::from_min_size(
+                Pos2::new(grid_rect.min.x, grid_rect.center().y - cbs * 0.5),
+                Vec2::splat(cbs),
+            );
+            
+            let is_grid = self.docs[self.active_tab].grid;
+            let t_grid = ui.ctx().animate_bool(grid_resp.id.with("grid_anim"), is_grid);
+
+            p.rect_filled(cb_rect, 0.0, PANEL);
+            p.rect_stroke(cb_rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
+            
+            if t_grid > 0.0 {
+                let inner = cb_rect.shrink(4.0 * (1.0 - t_grid));
+                p.rect_filled(inner, 0.0, lerp_color(PANEL, ACCENT, t_grid));
+            }
+            
+            p.text(
+                Pos2::new(cb_rect.max.x + 8.0, grid_rect.center().y),
+                egui::Align2::LEFT_CENTER,
+                "Grid",
+                egui::FontId::proportional(FONT_SZ),
+                TEXT,
+            );
+            
+            if grid_resp.clicked() {
+                self.docs[self.active_tab].grid = !self.docs[self.active_tab].grid;
+            }
+            ui.add_space(6.0);
+
+            let mh_tex = self.mirror_h_tex.get_or_insert_with(|| {
+                load_icon_texture(ui, "mirror_h", include_bytes!("../../tex/transform/mirror_h.png"))
+            });
+            if icon_btn_tip(ui, mh_tex.id(), false, "Mirror Horizontal") {
+                let doc = &mut self.docs[self.active_tab];
+                doc.push_undo();
+                doc.mirror_horizontal();
+            }
+
+            let mv_tex = self.mirror_v_tex.get_or_insert_with(|| {
+                load_icon_texture(ui, "mirror_v", include_bytes!("../../tex/transform/mirror_v.png"))
+            });
+            if icon_btn_tip(ui, mv_tex.id(), false, "Mirror Vertical") {
+                let doc = &mut self.docs[self.active_tab];
+                doc.push_undo();
+                doc.mirror_vertical();
+            }
+
+            ui.add_space(6.0);
+
+            // zoom text
+            let zoom_text = format!("Zoom: {:.2}", self.docs[self.active_tab].zoom);
+            let zoom_w = zoom_text.len() as f32 * CHAR_W * (20.0 / FONT_SZ) + 10.0;
+            let (zoom_rect, _) = ui.allocate_exact_size(Vec2::new(zoom_w, btn_h), Sense::hover());
+            ui.painter().text(
+                Pos2::new(zoom_rect.min.x, zoom_rect.center().y),
+                egui::Align2::LEFT_CENTER,
+                &zoom_text,
+                egui::FontId::proportional(20.0),
+                TEXT,
+            );
+            ui.add_space(6.0);
+
+            // ── brush size + shape (only for Brush/Eraser) ──
+            if self.tool == Tool::Brush || self.tool == Tool::Eraser {
+                let max = self.docs[self.active_tab].width.max(self.docs[self.active_tab].height) as f32;
+                self.brush = self.brush.clamp(1.0, max);
+
+                ui.add_space(6.0);
+                separator(ui);
+                ui.add_space(10.0);
+
+                // Label "Size"
+                ui.label(egui::RichText::new("Size:").size(18.0).color(DIM));
+                
+                let slider_w = 100.0;
+                ui.add_sized(
+                    Vec2::new(slider_w, btn_h),
+                    egui::Slider::new(&mut self.brush, 1.0..=max).show_value(false),
+                );
+
+                // Current size value
+                let val_text = format!("{}", self.brush.round() as i32);
+                ui.add_sized(Vec2::new(30.0, btn_h), egui::Label::new(egui::RichText::new(val_text).size(20.0).color(TEXT)));
+
+                ui.add_space(6.0);
+                separator(ui);
+                ui.add_space(6.0);
+
+                ui.style_mut().text_styles.insert(
+                    egui::TextStyle::Button,
+                    egui::FontId::proportional(22.0),
+                );
+
+                if toggle_btn(ui, "Round", self.brush_shape == BrushShape::Round) {
+                    self.brush_shape = BrushShape::Round;
+                }
+                ui.add_space(-4.0);
+                if toggle_btn(ui, "Square", self.brush_shape == BrushShape::Square) {
+                    self.brush_shape = BrushShape::Square;
+                }
+            }
+            ui.add_space(6.0);
+        });
+    }
+
+    /// Tab bar row (tab labels + close + add).
+    fn tab_bar_ui(&mut self, ui: &mut egui::Ui) {
+        ui.horizontal(|ui| {
+            ui.add_space(6.0);
+            let tab_h = 28.0;
+
+            for ti in 0..self.docs.len() {
+                let is_active = ti == self.active_tab;
+                let unsaved = self.docs[ti].unsaved;
+                let name = &self.docs[ti].name;
+                let label = if unsaved { format!("*{}", name) } else { name.clone() };
+                let label_w = label.len() as f32 * CHAR_W * (18.0 / FONT_SZ) + 24.0;
+                let close_w = tab_h;
+                let tab_w = label_w + close_w;
+
+                let (tab_rect, tab_resp) = ui.allocate_exact_size(Vec2::new(tab_w, tab_h), Sense::click());
+                let t_active = ui.ctx().animate_bool(tab_resp.id.with("tab_anim"), is_active);
+
+                let bg = lerp_color(PANEL, HOVER, t_active);
+                let p = ui.painter();
+                p.rect_filled(tab_rect, 0.0, bg);
+                p.rect_stroke(tab_rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Inside);
+
+                // tab label
+                p.text(
+                    Pos2::new(tab_rect.min.x + 8.0, tab_rect.center().y),
+                    egui::Align2::LEFT_CENTER,
+                    &label,
+                    egui::FontId::proportional(18.0),
+                    TEXT,
+                );
+
+                // close button
+                let close_rect = Rect::from_min_size(
+                    Pos2::new(tab_rect.max.x - close_w, tab_rect.min.y),
+                    Vec2::new(close_w, tab_h),
+                );
+                let close_resp = ui.interact(close_rect, egui::Id::new(("tab_close", ti)), Sense::click());
+                let t_close = ui.ctx().animate_bool(close_resp.id.with("close_anim"), close_resp.hovered());
+                let close_bg = lerp_color(PANEL, ACCENT, t_close);
+                
+                p.rect_filled(close_rect, 0.0, close_bg);
+                let tab_close_tex = self.tab_close_tex.get_or_insert_with(|| {
+                    load_icon_texture(ui, "tab_close", include_bytes!("../../tex/tools/clear.png"))
+                });
+                p.image(
+                    tab_close_tex.id(),
+                    close_rect,
+                    Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)),
+                    Color32::WHITE,
+                );
+
+                if close_resp.clicked() {
+                    self.close_tab(ti);
+                    break;
+                }
+                if tab_resp.clicked() && !close_resp.clicked() {
+                    self.active_tab = ti;
+                }
+            }
+
+            // "+" button to create new tab
+            let plus_w = 28.0;
+            let (plus_rect, plus_resp) = ui.allocate_exact_size(Vec2::new(plus_w, tab_h), Sense::click());
+            let t_plus = ui.ctx().animate_bool(plus_resp.id.with("plus_anim"), plus_resp.hovered());
+            let bg = lerp_color(PANEL, HOVER, t_plus);
+            
+            ui.painter().rect_filled(plus_rect, 0.0, bg);
+            ui.painter().rect_stroke(plus_rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Inside);
+            let tab_plus_tex = self.tab_plus_tex.get_or_insert_with(|| {
+                load_icon_texture(ui, "tab_plus", include_bytes!("../../tex/layers/plus_layer.png"))
+            });
+            ui.painter().image(
+                tab_plus_tex.id(),
+                plus_rect,
+                Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)),
+                Color32::WHITE,
+            );
+            if plus_resp.clicked() {
+                let n = self.docs.len();
+                self.docs.push(super::Document::new(&format!("Untitled {}", n)));
+                self.active_tab = self.docs.len() - 1;
+            }
+
+            ui.add_space(6.0);
+        });
     }
 }

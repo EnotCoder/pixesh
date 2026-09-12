@@ -2,7 +2,7 @@ use eframe::egui;
 
 use crate::color::*;
 use crate::constants::Tool;
-use super::{PixeshApp, Document};
+use super::PixeshApp;
 
 impl PixeshApp {
     pub(crate) fn handle_input(&mut self, ctx: &egui::Context) {
@@ -58,21 +58,24 @@ impl PixeshApp {
             }
             // Ctrl+L = load image (new tab)
             if i.consume_key(egui::Modifiers::CTRL, egui::Key::L) {
-                let home = std::env::var("HOME").unwrap_or_else(|_| "/".into());
-                if let Some(path) = rfd::FileDialog::new()
-                    .set_directory(&home)
-                    .add_filter("Images", &["png", "jpg", "jpeg", "gif", "bmp", "webp", "tiff", "tga"])
-                    .pick_file()
+                #[cfg(feature = "rfd")]
                 {
-                    let path_str = path.to_string_lossy().to_string();
-                    let name = std::path::Path::new(&path_str)
-                        .file_name()
-                        .map(|n| n.to_string_lossy().into_owned())
-                        .unwrap_or_else(|| "Untitled".into());
-                    let mut doc = Document::new(&name);
-                    doc.load_png(&path_str);
-                    self.docs.push(doc);
-                    self.active_tab = self.docs.len() - 1;
+                    let home = crate::app::config::default_dir();
+                    if let Some(path) = rfd::FileDialog::new()
+                        .set_directory(&home)
+                        .add_filter("Images", &["png", "jpg", "jpeg", "gif", "bmp", "webp", "tiff", "tga"])
+                        .pick_file()
+                    {
+                        let path_str = path.to_string_lossy().to_string();
+                        let name = std::path::Path::new(&path_str)
+                            .file_name()
+                            .map(|n| n.to_string_lossy().into_owned())
+                            .unwrap_or_else(|| "Untitled".into());
+                        let mut doc = Document::new(&name);
+                        doc.load_png(&path_str);
+                        self.docs.push(doc);
+                        self.active_tab = self.docs.len() - 1;
+                    }
                 }
             }
             // Ctrl+Tab = next tab
@@ -287,6 +290,19 @@ impl PixeshApp {
                 let old = doc.zoom;
                 doc.zoom = (doc.zoom * (1.0 + scroll_norm * self.zoom_speed * 0.1)).clamp(0.1, 60.0);
                 doc.pan *= doc.zoom / old;
+            }
+        }
+
+        // mobile pinch zoom + two-finger pan
+        if self.mobile {
+            if let Some(mt) = ctx.input(|i| i.multi_touch()) {
+                let tab = self.active_tab;
+                let doc = &mut self.docs[tab];
+                let old = doc.zoom;
+                doc.zoom = (doc.zoom * mt.zoom_delta).clamp(0.1, 60.0);
+                doc.pan *= doc.zoom / old;
+                doc.pan.x += mt.translation_delta.x * (1.0 / doc.zoom);
+                doc.pan.y += mt.translation_delta.y * (1.0 / doc.zoom);
             }
         }
 

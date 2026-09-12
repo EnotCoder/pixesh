@@ -161,21 +161,24 @@ impl PixeshApp {
     }
 
     fn open_file_dialog(&mut self) {
-        let home = std::env::var("HOME").unwrap_or_else(|_| "/".into());
-        if let Some(path) = rfd::FileDialog::new()
-            .set_directory(&home)
-            .add_filter("Images", &["png", "jpg", "jpeg", "gif", "bmp", "webp", "tiff", "tga"])
-            .pick_file()
+        #[cfg(feature = "rfd")]
         {
-            let path_str = path.to_string_lossy().to_string();
-            let name = std::path::Path::new(&path_str)
-                .file_name()
-                .map(|n| n.to_string_lossy().into_owned())
-                .unwrap_or_else(|| "Untitled".into());
-            let mut doc = Document::new(&name);
-            doc.load_png(&path_str);
-            self.docs.push(doc);
-            self.active_tab = self.docs.len() - 1;
+            let home = crate::app::config::default_dir();
+            if let Some(path) = rfd::FileDialog::new()
+                .set_directory(&home)
+                .add_filter("Images", &["png", "jpg", "jpeg", "gif", "bmp", "webp", "tiff", "tga"])
+                .pick_file()
+            {
+                let path_str = path.to_string_lossy().to_string();
+                let name = std::path::Path::new(&path_str)
+                    .file_name()
+                    .map(|n| n.to_string_lossy().into_owned())
+                    .unwrap_or_else(|| "Untitled".into());
+                let mut doc = Document::new(&name);
+                doc.load_png(&path_str);
+                self.docs.push(doc);
+                self.active_tab = self.docs.len() - 1;
+            }
         }
     }
 }

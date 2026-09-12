@@ -4,7 +4,41 @@ version = "0.1.0"
 edition = "2024"
 license = "MIT"
 
+[lib]
+name = "pixesh"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["desktop"]
+
+# Linux desktop build (original UI: toolbar top, layers right, timeline bottom)
+desktop = [
+    "eframe/glow",
+    "eframe/default_fonts",
+    "eframe/accesskit",
+    "eframe/wayland",
+    "eframe/x11",
+    "eframe/web_screen_reader",
+    "rfd",
+]
+
+# Native file dialogs (GTK3). Only enabled on desktop, never on Android.
+rfd = ["dep:rfd"]
+
+# Android / mobile build (vertical UI: tools top, layers bottom, no timeline)
+mobile = [
+    "eframe/glow",
+    "eframe/default_fonts",
+    "eframe/android-native-activity",
+]
+
 [dependencies]
-eframe = "0.31"
+eframe = { version = "0.31", default-features = false }
 image = "0.25"
-rfd = { version = "0.15", default-features = false, features = ["gtk3"] }
+
+# Only used on desktop (GTK file dialogs don't build on Android).
+rfd = { version = "0.15", default-features = false, features = ["gtk3"], optional = true }
+
+[target.'cfg(target_os = "android")'.dependencies]
+# To name the AndroidApp type in the android_main entry point.
+winit = { version = "0.30", features = ["android-native-activity"] }
