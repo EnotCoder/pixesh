@@ -14,35 +14,21 @@ impl PixeshApp {
             .frame(egui::Frame::new().fill(PANEL))
             .show_separator_line(false)
             .show(ctx, |ui| {
-                ui.add_space(6.0);
-                if self.mobile {
-                    egui::ScrollArea::horizontal()
-                        .id_salt("mobile_tools")
-                        .auto_shrink([false, false])
-                        .show(ui, |ui| self.toolbar_row(ui));
-                } else {
-                    self.toolbar_row(ui);
-                }
-                ui.add_space(6.0);
+                ui.add_space(4.0);
+                self.toolbar_row(ui);
+                ui.add_space(4.0);
 
                 // ── tab bar row ──
-                if self.docs.len() > 0 {
+                if self.docs.len() > 0 && !self.mobile {
                     ui.add_space(2.0);
-                    if self.mobile {
-                        egui::ScrollArea::horizontal()
-                            .id_salt("mobile_tabs")
-                            .auto_shrink([false, false])
-                            .show(ui, |ui| self.tab_bar_ui(ui));
-                    } else {
-                        self.tab_bar_ui(ui);
-                    }
+                    self.tab_bar_ui(ui);
                     ui.add_space(4.0);
                 }
 
                 let panel_bottom = ui.max_rect().bottom();
                 let panel_left = ui.max_rect().left();
                 let panel_right = ui.max_rect().right();
-                ui.painter().hline(panel_left..=panel_right, panel_bottom, Stroke::new(8.0, BORDER));
+                ui.painter().hline(panel_left..=panel_right, panel_bottom, Stroke::new(4.0, BORDER));
             });
     }
 
@@ -277,12 +263,15 @@ impl PixeshApp {
                     egui::FontId::proportional(22.0),
                 );
 
-                if toggle_btn(ui, "Round", self.brush_shape == BrushShape::Round) {
-                    self.brush_shape = BrushShape::Round;
-                }
-                ui.add_space(-4.0);
-                if toggle_btn(ui, "Square", self.brush_shape == BrushShape::Square) {
-                    self.brush_shape = BrushShape::Square;
+                if !self.mobile {
+                    ui.add_space(-4.0);
+                    if toggle_btn(ui, "Round", self.brush_shape == BrushShape::Round) {
+                        self.brush_shape = BrushShape::Round;
+                    }
+                    ui.add_space(-4.0);
+                    if toggle_btn(ui, "Square", self.brush_shape == BrushShape::Square) {
+                        self.brush_shape = BrushShape::Square;
+                    }
                 }
             }
             ui.add_space(6.0);

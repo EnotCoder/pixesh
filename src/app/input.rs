@@ -3,6 +3,8 @@ use eframe::egui;
 use crate::color::*;
 use crate::constants::Tool;
 use super::PixeshApp;
+#[cfg(feature = "rfd")]
+use super::Document;
 
 impl PixeshApp {
     pub(crate) fn handle_input(&mut self, ctx: &egui::Context) {

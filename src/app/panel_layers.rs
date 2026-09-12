@@ -7,10 +7,11 @@ use super::PixeshApp;
 
 impl PixeshApp {
     pub(crate) fn ui_layers(&mut self, ctx: &egui::Context) {
+        let def_w = if self.mobile { 180.0 } else { 280.0 };
         egui::SidePanel::right("layers")
             .resizable(true)
-            .default_width(280.0)
-            .min_width(200.0)
+            .default_width(def_w)
+            .min_width(120.0)
             .max_width(500.0)
             .frame(egui::Frame::new().fill(PANEL))
             .show_separator_line(false)
@@ -188,7 +189,7 @@ impl PixeshApp {
                 // preview + RGB readout
                 ui.horizontal(|ui| {
                     ui.add_space(PANEL_PAD);
-                    let ps = 100.0;
+                    let ps = if self.mobile { 60.0 } else { 100.0 };
                     let (pr, pr_resp) = ui.allocate_exact_size(Vec2::new(ps, ps), Sense::hover());
                     let pv = pr.translate(Vec2::new(0.0, -4.0));
                     let pc = Color32::from_rgba_unmultiplied(self.rgb_r as u8, self.rgb_g as u8, self.rgb_b as u8, self.rgb_a as u8);
@@ -202,18 +203,21 @@ impl PixeshApp {
                     ui.add_space(PANEL_PAD);
                     ui.vertical(|ui| {
                         let mut y = ui.cursor().min.y;
+                        let font_sz = if self.mobile { FONT_SZ * 0.8 } else { FONT_SZ };
+                        let row_step = if self.mobile { ROW_H } else { ROW_H + 4.0 };
+                        
                         for (ch, &v) in [("R", &self.rgb_r), ("G", &self.rgb_g), ("B", &self.rgb_b), ("A", &self.rgb_a)] {
                             let txt = format!("{} {}", ch, v as u8);
                             ui.painter().text(
-                                Pos2::new(pr.max.x + 10.0, y),
+                                Pos2::new(pr.max.x + 8.0, y),
                                 egui::Align2::LEFT_TOP,
                                 &txt,
-                                egui::FontId::proportional(FONT_SZ),
+                                egui::FontId::proportional(font_sz),
                                 TEXT,
                             );
-                            y += ROW_H + 4.0;
+                            y += row_step;
                         }
-                        let _ = ui.allocate_exact_size(Vec2::new(80.0, (ROW_H + 4.0) * 4.0), Sense::hover());
+                        let _ = ui.allocate_exact_size(Vec2::new(60.0, row_step * 4.0), Sense::hover());
                     });
                 });
 
@@ -383,271 +387,6 @@ impl PixeshApp {
                             let rel_y = (pos.y - arect.min.y) / arect.height();
                             self.rgb_a = ((1.0 - rel_y) * 255.0).clamp(0.0, 255.0);
                             self.color = Color32::from_rgba_unmultiplied(cr, cg, cb, self.rgb_a as u8);
-                        }
-                    }
-                });
-
-                let panel_left = ui.max_rect().left();
-                let panel_top = ui.max_rect().top();
-                let panel_bottom = ui.max_rect().bottom();
-                ui.painter().vline(panel_left, panel_top..=panel_bottom, Stroke::new(8.0, BORDER));
-            });
-    }
-
-    /// Mobile bottom panel: layer controls + color picker in a compact vertical block.
-    pub(crate) fn ui_layers_mobile(&mut self, ctx: &egui::Context) {
-        egui::TopBottomPanel::bottom("layers_mobile")
-            .frame(egui::Frame::new().fill(PANEL))
-            .resizable(true)
-            .show_separator_line(true)
-            .show(ctx, |ui| {
-                ui.add_space(4.0);
-                let i = self.active_tab;
-
-                // ── layer controls ──
-                ui.horizontal(|ui| {
-                    ui.add_space(PANEL_PAD);
-
-                    let plus_tex = self.plus_layer_tex.get_or_insert_with(|| {
-                        load_icon_texture(ui, "plus_layer", include_bytes!("../../tex/layers/plus_layer.png"))
-                    });
-                    if icon_btn_tip(ui, plus_tex.id(), false, "Add Layer") {
-                        self.docs[i].add_layer();
-                    }
-
-                    let clone_tex = self.clone_layer_tex.get_or_insert_with(|| {
-                        load_icon_texture(ui, "clone_layer", include_bytes!("../../tex/layers/clone_layer.png"))
-                    });
-                    if icon_btn_tip(ui, clone_tex.id(), false, "Duplicate Layer") {
-                        let al = self.docs[i].active_layer;
-                        self.docs[i].duplicate_layer(al);
-                    }
-
-                    let minus_tex = self.minus_layer_tex.get_or_insert_with(|| {
-                        load_icon_texture(ui, "minus_layer", include_bytes!("../../tex/layers/minus_layer.png"))
-                    });
-                    if icon_btn_tip(ui, minus_tex.id(), false, "Remove Layer") {
-                        let al = self.docs[i].active_layer;
-                        self.docs[i].remove_layer(al);
-                    }
-
-                    let set_all_tex = self.set_all_tex.get_or_insert_with(|| {
-                        load_icon_texture(ui, "set_all", include_bytes!("../../tex/layers/set_all.png"))
-                    });
-                    if icon_btn_tip(ui, set_all_tex.id(), false, "Flatten Layers") {
-                        self.docs[i].flatten_layers();
-                    }
-
-                    ui.add_space(8.0);
-                    separator(ui);
-                    ui.add_space(8.0);
-
-                    let al = self.docs[i].active_layer;
-                    ui.label(egui::RichText::new(self.docs[i].layers[al].name.clone()).size(16.0).color(DIM));
-                    if toggle_btn(ui, "On", self.docs[i].layers[al].visible) {
-                        self.docs[i].layers[al].visible = !self.docs[i].layers[al].visible;
-                        self.docs[i].canvas_dirty = true;
-                    }
-                });
-
-                ui.add_space(6.0);
-
-                self.color = Color32::from_rgba_unmultiplied(
-                    self.rgb_r as u8, self.rgb_g as u8, self.rgb_b as u8, self.rgb_a as u8,
-                );
-
-                // ── preview + readout ──
-                ui.horizontal(|ui| {
-                    ui.add_space(PANEL_PAD);
-                    let ps = 44.0;
-                    let (pr, _) = ui.allocate_exact_size(Vec2::new(ps, ps), Sense::hover());
-                    let pc = Color32::from_rgba_unmultiplied(
-                        self.rgb_r as u8, self.rgb_g as u8, self.rgb_b as u8, self.rgb_a as u8,
-                    );
-                    ui.painter().rect_filled(pr, 0.0, pc);
-                    ui.painter().rect_stroke(pr, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
-
-                    ui.add_space(PANEL_PAD);
-                    ui.vertical(|ui| {
-                        let mut y = ui.cursor().min.y;
-                        for (ch, &v) in [("R", &self.rgb_r), ("G", &self.rgb_g), ("B", &self.rgb_b), ("A", &self.rgb_a)] {
-                            let txt = format!("{} {}", ch, v as u8);
-                            ui.painter().text(
-                                Pos2::new(pr.max.x, y),
-                                egui::Align2::LEFT_TOP,
-                                &txt,
-                                egui::FontId::proportional(16.0),
-                                DIM,
-                            );
-                            y += 16.0;
-                        }
-                        let _ = ui.allocate_exact_size(Vec2::new(70.0, 64.0), Sense::hover());
-                    });
-
-                    // color history (single scrollable line)
-                    if !self.color_history.is_empty() {
-                        ui.add_space(4.0);
-                        egui::ScrollArea::horizontal()
-                            .id_salt("mobile_history")
-                            .auto_shrink([false, false])
-                            .show(ui, |ui| {
-                                ui.horizontal_top(|ui| {
-                                    for &c in self.color_history.iter().rev() {
-                                        let sw = 30.0;
-                                        let (r, resp) = ui.allocate_exact_size(Vec2::splat(sw), Sense::click());
-                                        let t_hov = ui.ctx().animate_bool(resp.id.with("hist_h"), resp.hovered());
-                                        let draw_r = if resp.is_pointer_button_down_on() { r.translate(Vec2::new(0.0, 2.0)) } else { r };
-
-                                        if !resp.is_pointer_button_down_on() {
-                                            ui.painter().rect_filled(r.translate(Vec2::new(0.0, 2.0)), 0.0, BORDER);
-                                        }
-
-                                        ui.painter().rect_filled(draw_r, 0.0, c);
-                                        let b_col = lerp_color(BORDER, Color32::WHITE, t_hov);
-                                        ui.painter().rect_stroke(draw_r, 0.0, Stroke::new(2.0, b_col), egui::StrokeKind::Outside);
-                                        if resp.clicked() {
-                                            self.color = c;
-                                            self.rgb_r = c.r() as f32;
-                                            self.rgb_g = c.g() as f32;
-                                            self.rgb_b = c.b() as f32;
-                                            self.rgb_a = c.a() as f32;
-                                            let (h_, s, v) = crate::color::rgb_to_hsv(c.r(), c.g(), c.b());
-                                            self.hsv_h = h_;
-                                            self.hsv_s = s;
-                                            self.hsv_v = v;
-                                        }
-                                    }
-                                });
-                            });
-                    }
-                });
-
-                ui.add_space(8.0);
-
-                // ── SV field + H strip + A strip ──
-                let avail = ui.available_size();
-                let fsize = avail.y.min(200.0).max(60.0);
-                let strip_w = 16.0;
-                let pad = 6.0;
-                ui.horizontal(|ui| {
-                    ui.add_space(PANEL_PAD);
-
-                    let (rect, resp) = ui.allocate_exact_size(Vec2::splat(fsize), Sense::click_and_drag());
-
-                    if self.sv_tex.is_none() || (self.sv_tex_h - self.hsv_h).abs() > 0.5 {
-                        self.sv_tex_h = self.hsv_h;
-                        let ts = 128;
-                        let h = self.hsv_h;
-                        let mut pix = Vec::with_capacity(ts * ts);
-                        for y in 0..ts {
-                            for x in 0..ts {
-                                let s = x as f32 / (ts - 1) as f32 * 255.0;
-                                let v = (ts - 1 - y) as f32 / (ts - 1) as f32 * 255.0;
-                                let (r, g, b) = hsv_to_rgb(h, s, v);
-                                pix.push(Color32::from_rgb(r, g, b));
-                            }
-                        }
-                        let img = ColorImage { size: [ts, ts], pixels: pix };
-                        self.sv_tex = Some(ui.ctx().load_texture("sv", img, egui::TextureOptions::LINEAR));
-                    }
-
-                    if let Some(tex) = &self.sv_tex {
-                        let p = ui.painter();
-                        p.image(tex.id(), rect, Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
-                        p.rect_stroke(rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
-
-                        let cx = rect.min.x + (self.hsv_s / 255.0) * rect.width();
-                        let cy = rect.min.y + (1.0 - self.hsv_v / 255.0) * rect.height();
-                        let cc = if self.hsv_v > 180.0 { Color32::BLACK } else { Color32::WHITE };
-                        p.circle_stroke(Pos2::new(cx, cy), 4.0, Stroke::new(3.0, cc));
-                        p.circle_filled(Pos2::new(cx, cy), 2.0, cc);
-                    }
-
-                    let pick = resp.dragged_by(egui::PointerButton::Primary)
-                        || resp.clicked_by(egui::PointerButton::Primary);
-                    if pick {
-                        if let Some(pos) = resp.interact_pointer_pos() {
-                            let rel = pos - rect.min;
-                            self.hsv_s = (rel.x / rect.width() * 255.0).clamp(0.0, 255.0);
-                            self.hsv_v = (255.0 - rel.y / rect.height() * 255.0).clamp(0.0, 255.0);
-                            let (r, g, b) = hsv_to_rgb(self.hsv_h, self.hsv_s, self.hsv_v);
-                            self.rgb_r = r as f32;
-                            self.rgb_g = g as f32;
-                            self.rgb_b = b as f32;
-                            self.color = Color32::from_rgba_unmultiplied(r, g, b, self.rgb_a as u8);
-                        }
-                    }
-
-                    ui.add_space(pad);
-
-                    let (arect, aresp) = ui.allocate_exact_size(Vec2::new(strip_w, fsize), Sense::click_and_drag());
-
-                    let ts = 64;
-                    let (cr, cg, cb) = (self.rgb_r as u8, self.rgb_g as u8, self.rgb_b as u8);
-                    let mut apix = Vec::with_capacity(ts);
-                    for y in 0..ts {
-                        let a = ((ts - 1 - y) as f32 / (ts - 1) as f32 * 255.0) as u8;
-                        let checker = if (y / 4 + 0) % 2 == 0 { Color32::from_gray(200) } else { Color32::from_gray(160) };
-                        let alpha = a as f32 / 255.0;
-                        let r = (cr as f32 * alpha + checker.r() as f32 * (1.0 - alpha)) as u8;
-                        let g = (cg as f32 * alpha + checker.g() as f32 * (1.0 - alpha)) as u8;
-                        let b = (cb as f32 * alpha + checker.b() as f32 * (1.0 - alpha)) as u8;
-                        apix.push(Color32::from_rgb(r, g, b));
-                    }
-                    let aimg = ColorImage { size: [1, ts], pixels: apix };
-                    let atex = ui.ctx().load_texture("astrip", aimg, egui::TextureOptions::LINEAR);
-
-                    let ap = ui.painter();
-                    ap.image(atex.id(), arect, Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
-                    ap.rect_stroke(arect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
-
-                    let ay = arect.min.y + (1.0 - self.rgb_a / 255.0) * arect.height();
-                    ap.hline(arect.x_range(), ay, Stroke::new(4.0, Color32::WHITE));
-
-                    let apick = aresp.dragged_by(egui::PointerButton::Primary)
-                        || aresp.clicked_by(egui::PointerButton::Primary);
-                    if apick {
-                        if let Some(pos) = aresp.interact_pointer_pos() {
-                            let rel_y = (pos.y - arect.min.y) / arect.height();
-                            self.rgb_a = ((1.0 - rel_y) * 255.0).clamp(0.0, 255.0);
-                            self.color = Color32::from_rgba_unmultiplied(cr, cg, cb, self.rgb_a as u8);
-                        }
-                    }
-
-                    ui.add_space(pad);
-
-                    let (srect, sresp) = ui.allocate_exact_size(Vec2::new(strip_w, fsize), Sense::click_and_drag());
-
-                    if self.h_tex.is_none() {
-                        let tts = 64;
-                        let mut spix = Vec::with_capacity(tts);
-                        for y in 0..tts {
-                            let hh = y as f32 / (tts - 1) as f32 * 360.0;
-                            let (r, g, b) = hsv_to_rgb(hh, 255.0, 255.0);
-                            spix.push(Color32::from_rgb(r, g, b));
-                        }
-                        let simg = ColorImage { size: [1, tts], pixels: spix };
-                        self.h_tex = Some(ui.ctx().load_texture("hstrip", simg, egui::TextureOptions::LINEAR));
-                    }
-                    let stex = self.h_tex.as_ref().unwrap();
-                    let sp = ui.painter();
-                    sp.image(stex.id(), srect, Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
-                    sp.rect_stroke(srect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
-
-                    let hy = srect.min.y + (self.hsv_h / 360.0) * srect.height();
-                    sp.hline(srect.x_range(), hy, Stroke::new(4.0, Color32::WHITE));
-
-                    let spick = sresp.dragged_by(egui::PointerButton::Primary)
-                        || sresp.clicked_by(egui::PointerButton::Primary);
-                    if spick {
-                        if let Some(pos) = sresp.interact_pointer_pos() {
-                            let rel_y = (pos.y - srect.min.y) / srect.height();
-                            self.hsv_h = (rel_y * 360.0).clamp(0.0, 359.99);
-                            let (r, g, b) = hsv_to_rgb(self.hsv_h, self.hsv_s, self.hsv_v);
-                            self.rgb_r = r as f32;
-                            self.rgb_g = g as f32;
-                            self.rgb_b = b as f32;
-                            self.color = Color32::from_rgba_unmultiplied(r, g, b, self.rgb_a as u8);
                         }
                     }
                 });

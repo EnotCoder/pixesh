@@ -71,8 +71,16 @@ pub fn run_native_app(native_options: eframe::NativeOptions) -> eframe::Result {
             );
             cc.egui_ctx.set_style(style);
 
-            // создаём экземпляр приложения — дальше eframe сам вызывает update()
-            Ok(Box::new(app::PixeshApp::new()))
+            // создаём экземпляр приложения
+            let app = app::PixeshApp::new();
+
+            // Если это мобильная версия, уменьшаем масштаб интерфейса,
+            // чтобы на маленьком экране помещалось больше элементов.
+            if app.mobile {
+                cc.egui_ctx.set_pixels_per_point(0.8);
+            }
+
+            Ok(Box::new(app))
         }),
     )
 }

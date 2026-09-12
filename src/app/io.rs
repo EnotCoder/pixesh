@@ -93,6 +93,7 @@ impl Document {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub(crate) fn load_png(&mut self, path: &str) {
         let img = match image::open(path) {
             Ok(i) => i.to_rgba8(),

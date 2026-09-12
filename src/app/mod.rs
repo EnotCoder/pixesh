@@ -350,20 +350,13 @@ impl eframe::App for PixeshApp {
         self.handle_input(ctx);
         self.update_playback(ctx);
 
-        if self.mobile {
-            // ── Mobile / Android layout ──
-            // Vertical: tools top → canvas → layers+color bottom
-            if self.show_top_panel { self.ui_toolbar(ctx); }
-            self.ui_canvas(ctx);
-            self.ui_layers_mobile(ctx);
-        } else {
-            // ── Desktop layout ──
-            if self.show_top_panel { self.ui_toolbar(ctx); }
-            if self.show_right_panel { self.ui_layers(ctx); }
-            if self.show_status_bar { self.ui_status(ctx); }
-            if self.show_timeline { self.ui_timeline(ctx); }
-            self.ui_canvas(ctx);
-        }
+        // ── Desktop-style layout for everyone ──
+        if self.show_top_panel { self.ui_toolbar(ctx); }
+        if self.show_right_panel { self.ui_layers(ctx); }
+        if self.show_status_bar && !self.mobile { self.ui_status(ctx); }
+        if self.show_timeline && !self.mobile { self.ui_timeline(ctx); }
+        self.ui_canvas(ctx);
+        
         self.ui_dialogs(ctx);
 
         if ctx.input(|i| i.viewport().close_requested()) && self.any_unsaved() && !self.show_quit_dialog && !self.close_handled {

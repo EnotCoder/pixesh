@@ -15,13 +15,20 @@ TOOL_BIN="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
 SDK_BIN="$ANDROID_HOME/build-tools/$BUILD_TOOLS_VER"
 PLATFORM_JAR="$ANDROID_HOME/platforms/$PLATFORM_VER/android.jar"
 
-echo "▸ 1/5 Building native library (aarch64)…"
+echo "▸ 1/5 Building native libraries (aarch64 & x86_64)…"
 export PATH="$TOOL_BIN:$PATH"
+
+# aarch64
 export CC_aarch64_linux_android="$TOOL_BIN/aarch64-linux-android26-clang"
 export AR_aarch64_linux_android="$TOOL_BIN/llvm-ar"
 export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$TOOL_BIN/aarch64-linux-android26-clang"
-
 cargo build --target aarch64-linux-android --release --lib --no-default-features --features mobile
+
+# x86_64
+export CC_x86_64_linux_android="$TOOL_BIN/x86_64-linux-android26-clang"
+export AR_x86_64_linux_android="$TOOL_BIN/llvm-ar"
+export CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER="$TOOL_BIN/x86_64-linux-android26-clang"
+cargo build --target x86_64-linux-android --release --lib --no-default-features --features mobile
 
 echo "▸ 2/5 Compiling resources…"
 mkdir -p target/android/res
@@ -34,12 +41,12 @@ echo "▸ 3/5 Linking APK…"
     target/android/compiled_res.zip \
     --auto-add-overlay
 
-echo "▸ 4/5 Injecting native library…"
-# Create the required directory structure for the APK
-mkdir -p target/android/lib/arm64-v8a
+echo "▸ 4/5 Injecting native libraries…"
+mkdir -p target/android/lib/arm64-v8a target/android/lib/x86_64
 cp target/aarch64-linux-android/release/libpixesh.so target/android/lib/arm64-v8a/
+cp target/x86_64-linux-android/release/libpixesh.so target/android/lib/x86_64/
 cd target/android
-zip -u pixesh-base.apk lib/arm64-v8a/libpixesh.so
+zip -u pixesh-base.apk lib/arm64-v8a/libpixesh.so lib/x86_64/libpixesh.so
 cd ../..
 
 echo "▸ 5/5 Aligning and Signing…"
