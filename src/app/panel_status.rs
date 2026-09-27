@@ -27,6 +27,7 @@ impl PixeshApp {
                         Tool::Move => "Move",
                         Tool::Text => "Text",
                         Tool::Transform => "Transform",
+                        Tool::Effects => "Effects",
                     };
                     ui.label(
                         egui::RichText::new(format!("Tool: {}", tool_name))

@@ -2,7 +2,7 @@ use eframe::egui::Color32;
 
 // какие инструменты есть
 #[derive(PartialEq, Clone, Copy)]
-pub enum Tool { Brush, Eraser, Fill, Eyedropper, Select, Move, Text, Transform }
+pub enum Tool { Brush, Eraser, Fill, Eyedropper, Select, Move, Text, Transform, Effects }
 
 // фон при экспорте PNG
 #[derive(PartialEq, Clone, Copy)]

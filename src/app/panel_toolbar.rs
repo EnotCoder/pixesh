@@ -145,6 +145,54 @@ impl PixeshApp {
                 if resp.clicked() { self.tool = Tool::Text; }
             }
 
+            // Effects tool — открывает панель эффектов
+            {
+                let sz = ROW_H + 16.0;
+                let (rect, resp) = ui.allocate_exact_size(Vec2::splat(sz), Sense::click());
+                let t_hover = ui.ctx().animate_bool(resp.id.with("hover"), resp.hovered());
+                let t_active = ui.ctx().animate_bool(resp.id.with("active"), self.tool == Tool::Effects);
+
+                let mut bg = PANEL;
+                bg = lerp_color(bg, HOVER, t_hover);
+                bg = lerp_color(bg, ACCENT, t_active);
+
+                let offset = if resp.is_pointer_button_down_on() { 2.0 } else { 0.0 };
+                let draw_rect = rect.translate(Vec2::new(0.0, offset));
+
+                let p = ui.painter();
+                if offset == 0.0 {
+                    p.rect_filled(rect.translate(Vec2::new(0.0, 2.0)), 0.0, BORDER);
+                }
+                p.rect_filled(draw_rect, 0.0, bg);
+                p.rect_stroke(draw_rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Inside);
+
+                // пиксельная «искорка» — две наложенные четырёхконечные звезды
+                let c = draw_rect.center();
+                let r = draw_rect.width() * 0.22;
+                let star = |p: &egui::Painter, c: Pos2, r: f32, thick: f32, col: Color32| {
+                    p.rect_filled(Rect::from_center_size(c, Vec2::new(r * 2.0, thick)), 0.0, col);
+                    p.rect_filled(Rect::from_center_size(c, Vec2::new(thick, r * 2.0)), 0.0, col);
+                    p.rect_filled(
+                        Rect::from_center_size(c, Vec2::new(r * 1.414, thick)),
+                        0.0,
+                        col,
+                    );
+                    p.rect_filled(
+                        Rect::from_center_size(c, Vec2::new(thick, r * 1.414)),
+                        0.0,
+                        col,
+                    );
+                };
+                star(p, c + Vec2::new(-r * 0.25, r * 0.25), r, 3.0, TEXT);
+                star(p, c + Vec2::new(r * 0.75, -r * 0.7), r * 0.45, 2.0, ACCENT);
+
+                let resp = resp.on_hover_text("Effects (Ctrl+Shift+E)");
+                if resp.clicked() {
+                    self.tool = Tool::Effects;
+                    self.show_effects = true;
+                }
+            }
+
             // clear
             separator(ui);
 

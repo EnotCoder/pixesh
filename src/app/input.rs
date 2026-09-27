@@ -58,6 +58,16 @@ impl PixeshApp {
                     self.show_scale = true;
                 }
             }
+            // Ctrl+Shift+E = effects panel
+            if i.consume_key(egui::Modifiers::CTRL | egui::Modifiers::SHIFT, egui::Key::E) {
+                if self.show_effects {
+                    self.show_effects = false;
+                    if self.tool == Tool::Effects { self.tool = Tool::Brush; }
+                } else if !self.dialog_open() {
+                    self.tool = Tool::Effects;
+                    self.show_effects = true;
+                }
+            }
             // Ctrl+L = load image (new tab)
             if i.consume_key(egui::Modifiers::CTRL, egui::Key::L) {
                 #[cfg(feature = "rfd")]
@@ -183,6 +193,8 @@ impl PixeshApp {
                     self.show_scale = false;
                     self.show_quit_dialog = false;
                     self.show_welcome = false;
+                    self.show_effects = false;
+                    if self.tool == Tool::Effects { self.tool = Tool::Brush; }
                     crate::app::config::save_welcome_show_again(self.welcome_show_again);
                 } else {
                     self.docs[self.active_tab].deselect();
@@ -278,20 +290,24 @@ impl PixeshApp {
             }
         });
 
-        // scroll zoom / brush size
-        let scroll = ctx.input(|i| i.raw_scroll_delta.y);
-        if scroll != 0.0 {
-            let scroll_norm = scroll.signum();
-            if ctx.input(|i| i.modifiers.shift) {
-                let tab = self.active_tab;
-                let max = self.docs[tab].width.max(self.docs[tab].height) as f32;
-                self.brush = (self.brush + scroll_norm).clamp(1.0, max);
-            } else {
-                let tab = self.active_tab;
-                let doc = &mut self.docs[tab];
-                let old = doc.zoom;
-                doc.zoom = (doc.zoom * (1.0 + scroll_norm * self.zoom_speed * 0.1)).clamp(0.1, 60.0);
-                doc.pan *= doc.zoom / old;
+        // scroll zoom / brush size.
+        // Пока открыт диалог, колесо должно прокручивать панель внутри него,
+        // а не зумить холст под ней.
+        if !self.dialog_open() {
+            let scroll = ctx.input(|i| i.raw_scroll_delta.y);
+            if scroll != 0.0 {
+                let scroll_norm = scroll.signum();
+                if ctx.input(|i| i.modifiers.shift) {
+                    let tab = self.active_tab;
+                    let max = self.docs[tab].width.max(self.docs[tab].height) as f32;
+                    self.brush = (self.brush + scroll_norm).clamp(1.0, max);
+                } else {
+                    let tab = self.active_tab;
+                    let doc = &mut self.docs[tab];
+                    let old = doc.zoom;
+                    doc.zoom = (doc.zoom * (1.0 + scroll_norm * self.zoom_speed * 0.1)).clamp(0.1, 60.0);
+                    doc.pan *= doc.zoom / old;
+                }
             }
         }
 

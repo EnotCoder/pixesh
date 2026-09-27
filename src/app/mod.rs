@@ -1,6 +1,7 @@
 pub mod anim;
 pub mod canvas;
 pub mod config;
+pub mod effects;
 pub mod history;
 pub mod input;
 pub mod io;
@@ -244,6 +245,19 @@ pub struct PixeshApp {
     pub(crate) text_buffer: String,
     pub(crate) text_scale: i32,
 
+    // ── панель эффектов (порты из Pixelorama) ──
+    pub(crate) show_effects: bool,
+    pub(crate) effect: effects::EffectParams,
+    /// на сколько слоёв/кадров применять эффект
+    pub(crate) effect_all_layers: bool,
+    pub(crate) effect_all_frames: bool,
+    /// кэш превью: сигнатура параметров + текстура
+    pub(crate) effect_prev_sig: String,
+    pub(crate) effect_prev_tex: Option<egui::TextureHandle>,
+    pub(crate) effect_prev_px: Vec<Color32>,
+    pub(crate) effect_prev_size: (usize, usize),
+    pub(crate) effect_prev_time: f64,
+
     pub(crate) cursor_px: Option<(i32, i32)>,
     pub(crate) close_handled: bool,
 
@@ -291,6 +305,15 @@ impl PixeshApp {
             text_cursor: None,
             text_buffer: String::new(),
             text_scale: 2,
+            show_effects: false,
+            effect: effects::EffectParams::new(effects::EffectKind::OffsetScale),
+            effect_all_layers: false,
+            effect_all_frames: false,
+            effect_prev_sig: String::new(),
+            effect_prev_tex: None,
+            effect_prev_px: Vec::new(),
+            effect_prev_size: (0, 0),
+            effect_prev_time: 0.0,
             cursor_px: None,
             close_handled: false,
             logo_easter_egg: 0.0,
@@ -304,6 +327,51 @@ impl PixeshApp {
         self.show_resize || self.show_export
             || self.show_panels || self.show_settings || self.show_scale
             || self.show_quit_dialog || self.show_text || self.show_welcome
+            || self.show_effects
+    }
+
+    /// Применить выбранный эффект к слоям документа.
+    /// Один вызов = одна запись в undo, и только если что-то реально изменилось.
+    pub(crate) fn apply_effect_to(&mut self, tab: usize) {
+        let doc = &mut self.docs[tab];
+        let sel = doc.sel;
+        let (w, h) = (doc.width, doc.height);
+        let frames: Vec<usize> = if self.effect_all_frames {
+            (0..doc.frames).collect()
+        } else {
+            vec![doc.active_frame]
+        };
+        let layers: Vec<usize> = if self.effect_all_layers {
+            (0..doc.layers.len()).collect()
+        } else {
+            vec![doc.active_layer]
+        };
+
+        // сначала считаем результат в стороне — если ничего не изменилось,
+        // не засоряем ни состояние документа, ни стек undo
+        let mut results: Vec<(usize, usize, Vec<Color32>)> = Vec::new();
+        for &li in &layers {
+            if li >= doc.layers.len() { continue; }
+            for &f in &frames {
+                let Some(cel) = doc.layers[li].cels.get(f) else { continue };
+                if cel.len() != w * h { continue; }
+                let mut buf = (**cel).clone();
+                effects::apply(&mut buf, w, h, &self.effect, sel);
+                if buf != **cel {
+                    results.push((li, f, buf));
+                }
+            }
+        }
+        if results.is_empty() { return; }
+
+        doc.push_undo();
+        for (li, f, buf) in results {
+            doc.layers[li].cels[f] = Arc::new(buf);
+        }
+        doc.canvas_dirty = true;
+        doc.sel_tex = None;
+        // превью пересчитается при следующем открытии панели
+        self.effect_prev_sig.clear();
     }
 
     pub(crate) fn any_unsaved(&self) -> bool {

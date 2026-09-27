@@ -361,6 +361,10 @@ impl PixeshApp {
                 let cp = |r: &egui::Response| click_pixel(r, &canvas_rect, zoom);
 
                 match tool {
+                    Tool::Effects => {
+                        // инструмент только открывает панель эффектов,
+                        // сам холст он не меняет
+                    }
                     Tool::Transform => {
                         if let Some(sel_rect) = self.docs[i].sel {
                             let (x0, y0, x1, y1) = sel_rect;
