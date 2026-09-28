@@ -121,10 +121,19 @@ impl PixeshApp {
                 // кнопки внизу занимают ~50, остаток отдаём превью — так панель
                 // не остаётся с пустым местом, а превью получается крупнее
                 const BUTTONS_H: f32 = 52.0;
+                // во сколько раз превью меньше доступной высоты
+                const PREVIEW_SCALE: f32 = 1.0 / 1.3;
+                // сдвиг рисунка; раскладку не трогаем (иначе колонка справа поедет)
+                const PREVIEW_DX: f32 = 4.0;
+                const PREVIEW_DY: f32 = 8.0;
                 let spare = ui2.available_height() - BUTTONS_H - 8.0;
-                let prev_sz = (spare * font).clamp(56.0, 240.0);
+                // DY вычитаем: сдвиг не меняет раскладку, но двигает низ картинки
+                // на столько же вниз. Без этого вычитания превью наползает на
+                // нижний край панели, как только свободного места становится мало.
+                let prev_sz = ((spare - PREVIEW_DY) * font * PREVIEW_SCALE).clamp(0.0, 240.0);
                 ui2.horizontal(|ui| {
                     let (r, _) = ui.allocate_exact_size(Vec2::splat(prev_sz), Sense::hover());
+                    let r = r.translate(Vec2::new(PREVIEW_DX, PREVIEW_DY));
                     // шахматка
                     let cell = 8.0;
                     let p = ui.painter();
@@ -161,26 +170,45 @@ impl PixeshApp {
                             self.docs[tab].active_layer,
                             self.docs[tab].active_frame,
                         );
-                        ui.label(egui::RichText::new(info).size(17.0 * font).color(DIM));
+                        ui.horizontal(|ui| {
+                            ui.add_space(24.0);
+                            ui.label(egui::RichText::new(info).size(17.0 * font).color(DIM));
+                        });
                         if self.docs[tab].sel.is_some() {
-                            ui.label(
-                                egui::RichText::new("selection only")
-                                    .size(17.0 * font)
-                                    .color(ACCENT),
-                            );
+                            ui.horizontal(|ui| {
+                                ui.add_space(24.0);
+                                ui.label(
+                                    egui::RichText::new("selection only")
+                                        .size(17.0 * font)
+                                        .color(ACCENT),
+                                );
+                            });
                         }
                         ui.add_space(4.0);
-                        check_row(ui, "All layers", self.effect_all_layers, font, |v| {
-                            self.effect_all_layers = v;
+                        // add_space в top_down добавляет высоту, поэтому горизонтальный
+                        // сдвиг делаем через horizontal-раскладку
+                        ui.horizontal(|ui| {
+                            ui.add_space(24.0);
+                            check_row(ui, "All layers", self.effect_all_layers, font, |v| {
+                                self.effect_all_layers = v;
+                            });
                         });
-                        check_row(ui, "All frames", self.effect_all_frames, font, |v| {
-                            self.effect_all_frames = v;
+
+                        ui.horizontal(|ui| {
+                            ui.add_space(24.0);
+                            check_row(ui, "All frames", self.effect_all_frames, font, |v| {
+                                self.effect_all_frames = v;
+                            });
                         });
                     });
                 });
 
                 // ── кнопки ──
-                ui2.add_space(6.0);
+                // прижимаем их к низу панели: съедаем всю оставшуюся высоту
+                // (в top_down add_space добавляет именно высоту, что тут и нужно)
+                const BTN_H: f32 = 28.0;
+                const BTN_MARGIN: f32 = 8.0;
+                ui2.add_space((ui2.available_height() - BTN_H - BTN_MARGIN).max(0.0));
                 let bw = (rect.width() - pad * 2.0 - 8.0) / 3.0;
                 ui2.horizontal(|ui| {
                     if crate::ui::btn_min_w(ui, "Reset", bw) {
