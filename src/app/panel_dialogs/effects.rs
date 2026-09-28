@@ -206,11 +206,20 @@ impl PixeshApp {
                 // ── кнопки ──
                 // прижимаем их к низу панели: съедаем всю оставшуюся высоту
                 // (в top_down add_space добавляет именно высоту, что тут и нужно)
-                const BTN_H: f32 = 28.0;
+                // btn_min_w делает кнопку высотой font + 2*8, считаем так же,
+                // иначе увеличенный текст вылезет за нижний край
+                let btn_font = 22.0 * font;
+                let btn_h = btn_font + 16.0;
                 const BTN_MARGIN: f32 = 8.0;
-                ui2.add_space((ui2.available_height() - BTN_H - BTN_MARGIN).max(0.0));
+                ui2.add_space((ui2.available_height() - btn_h - BTN_MARGIN).max(0.0));
                 let bw = (rect.width() - pad * 2.0 - 8.0) / 3.0;
                 ui2.horizontal(|ui| {
+                    // кегль задаём только здесь: общий TextStyle::Button трогал бы
+                    // ещё и DragValue в RGBA-строках, и те перестали бы влезать
+                    ui.style_mut().text_styles.insert(
+                        egui::TextStyle::Button,
+                        egui::FontId::proportional(btn_font),
+                    );
                     if crate::ui::btn_min_w(ui, "Reset", bw) {
                         self.effect = EffectParams::new(self.effect.kind);
                     }
