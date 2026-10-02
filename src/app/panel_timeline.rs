@@ -25,7 +25,14 @@ fn thumb_color(doc: &super::Document, f: usize) -> ColorImage {
 
 impl PixeshApp {
     pub(crate) fn ui_timeline(&mut self, ctx: &egui::Context) {
+        // resizable: тянем верхний край мышкой. Панель прибита к низу, поэтому
+        // растёт она только вверх — вниз просто сжимается обратно.
+        // Высота хранится в памяти egui между кадрами, состояние не нужно.
         egui::TopBottomPanel::bottom("timeline")
+            .resizable(true)
+            .default_height(150.0)
+            .min_height(120.0)
+            .max_height(ctx.screen_rect().height() * 0.7)
             .frame(egui::Frame::new().fill(PANEL))
             .show_separator_line(false)
             .show(ctx, |ui| {
@@ -122,48 +129,57 @@ impl PixeshApp {
                 ui.add_space(6.0);
 
                 // frame thumbnails
-                egui::ScrollArea::horizontal().show(ui, |ui| {
-                    ui.horizontal(|ui| {
-                        ui.add_space(8.0);
-                        let th = 60.0;
-                        for f in 0..doc.frames {
-                            let cell = Vec2::new(th, th + 18.0);
-                            let (rect, resp) = ui.allocate_exact_size(cell, Sense::click());
-                            let is_active = f == doc.active_frame;
+                // auto_shrink([false, false]) обязателен: по умолчанию он TRUE,
+                // и при scroll_enabled[1] == false область схлопывается по высоте
+                // до контента. TopBottomPanel сохраняет rect из Frame::show, а тот
+                // считается по content_ui.min_rect() — по фактически занятому
+                // месту. Пока область не растянута на всю панель, в память пишется
+                // высота шапки+ряда, и на следующем кадре высота берётся оттуда:
+                // панель прыгает обратно после отпускания кнопки.
+                egui::ScrollArea::horizontal()
+                    .auto_shrink([false, false])
+                    .show(ui, |ui| {
+                        ui.horizontal(|ui| {
+                            ui.add_space(8.0);
+                            let th = 60.0;
+                            for f in 0..doc.frames {
+                                let cell = Vec2::new(th, th + 18.0);
+                                let (rect, resp) = ui.allocate_exact_size(cell, Sense::click());
+                                let is_active = f == doc.active_frame;
 
-                            let p = ui.painter();
-                            p.rect_filled(rect, 0.0, PANEL_LIGHT);
+                                let p = ui.painter();
+                                p.rect_filled(rect, 0.0, PANEL_LIGHT);
 
-                            let img_rect = Rect::from_min_size(rect.min, Vec2::new(th, th));
-                            let img = thumb_color(doc, f);
-                            let tex = ui.ctx().load_texture(
-                                format!("tl_{}_{}", i, f),
-                                img,
-                                egui::TextureOptions::NEAREST,
-                            );
-                            p.image(tex.id(), img_rect, Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
+                                let img_rect = Rect::from_min_size(rect.min, Vec2::new(th, th));
+                                let img = thumb_color(doc, f);
+                                let tex = ui.ctx().load_texture(
+                                    format!("tl_{}_{}", i, f),
+                                    img,
+                                    egui::TextureOptions::NEAREST,
+                                );
+                                p.image(tex.id(), img_rect, Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
 
-                            // frame number
-                            p.text(
-                                Pos2::new(rect.min.x + 4.0, rect.min.y + th + 2.0),
-                                egui::Align2::LEFT_TOP,
-                                &format!("{}", f + 1),
-                                egui::FontId::proportional(FONT_SZ),
-                                if is_active { ACCENT } else { DIM },
-                            );
+                                // frame number
+                                p.text(
+                                    Pos2::new(rect.min.x + 4.0, rect.min.y + th + 2.0),
+                                    egui::Align2::LEFT_TOP,
+                                    &format!("{}", f + 1),
+                                    egui::FontId::proportional(FONT_SZ),
+                                    if is_active { ACCENT } else { DIM },
+                                );
 
-                            // border
-                            let bw = if is_active { 4.0 } else { 2.0 };
-                            let bc = if is_active { ACCENT } else { BORDER };
-                            p.rect_stroke(rect, 0.0, Stroke::new(bw, bc), egui::StrokeKind::Outside);
+                                // border
+                                let bw = if is_active { 4.0 } else { 2.0 };
+                                let bc = if is_active { ACCENT } else { BORDER };
+                                p.rect_stroke(rect, 0.0, Stroke::new(bw, bc), egui::StrokeKind::Outside);
 
-                            if resp.clicked() {
-                                doc.set_active_frame(f);
+                                if resp.clicked() {
+                                    doc.set_active_frame(f);
+                                }
                             }
-                        }
-                        ui.add_space(8.0);
+                            ui.add_space(8.0);
+                        });
                     });
-                });
 
                 // separator line on top of panel
                 let panel_left = ui.max_rect().left();
