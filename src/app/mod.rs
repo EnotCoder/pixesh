@@ -245,6 +245,10 @@ pub struct PixeshApp {
     pub(crate) text_buffer: String,
     pub(crate) text_scale: i32,
 
+    /// Временная подсказка в статус-баре (буфер обмена, выделение и т.п.)
+    pub(crate) status_hint: String,
+    pub(crate) status_hint_until: f64,
+
     // ── панель эффектов (порты из Pixelorama) ──
     pub(crate) show_effects: bool,
     pub(crate) effect: effects::EffectParams,
@@ -301,6 +305,8 @@ impl PixeshApp {
             arrow_speed: 5.0,             zoom_speed: 1.0,
             color_history: Vec::new(),
             renaming_layer: None, rename_buf: String::new(),
+            status_hint: String::new(),
+            status_hint_until: 0.0,
             show_text: false,
             text_cursor: None,
             text_buffer: String::new(),

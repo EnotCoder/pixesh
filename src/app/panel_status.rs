@@ -112,6 +112,17 @@ impl PixeshApp {
                                     .color(ACCENT),
                             );
                         }
+
+                        // временная подсказка: сюда попадают сообщения вроде
+                        // «nothing selected», чтобы Ctrl+C/Ctrl+V не были безмолвными
+                        if !self.status_hint.is_empty() {
+                            separator(ui);
+                            ui.label(
+                                egui::RichText::new(&self.status_hint)
+                                    .size(FONT_SZ)
+                                    .color(ACCENT),
+                            );
+                        }
                     });
                 });
                 ui.add_space(2.0);
