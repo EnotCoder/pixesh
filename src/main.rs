@@ -1,4 +1,7 @@
 #![cfg_attr(target_os = "android", no_main)]
+// без этой строки Windows открывает рядом с окном чёрное окно консоли:
+// main печатает в stdout только панорамные сообщения, терять нечего
+#![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
 
 use eframe::egui;
 
