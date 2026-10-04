@@ -16,7 +16,7 @@ pub mod tools;
 
 use std::sync::Arc;
 
-use eframe::egui::{self, Color32, Pos2, Stroke, Vec2};
+use eframe::egui::{self, Color32, Pos2, Rect, Stroke, Vec2};
 
 use crate::constants::*;
 use crate::ui::btn_min_w;
@@ -248,6 +248,8 @@ pub struct PixeshApp {
     /// Временная подсказка в статус-баре (буфер обмена, выделение и т.п.)
     pub(crate) status_hint: String,
     pub(crate) status_hint_until: f64,
+    /// Время последнего кадра — чтобы hint() гасил подсказку без доступа к ctx
+    pub(crate) last_time: f64,
 
     // ── панель эффектов (порты из Pixelorama) ──
     pub(crate) show_effects: bool,
@@ -307,6 +309,7 @@ impl PixeshApp {
             renaming_layer: None, rename_buf: String::new(),
             status_hint: String::new(),
             status_hint_until: 0.0,
+            last_time: 0.0,
             show_text: false,
             text_cursor: None,
             text_buffer: String::new(),
@@ -334,6 +337,37 @@ impl PixeshApp {
             || self.show_panels || self.show_settings || self.show_scale
             || self.show_quit_dialog || self.show_text || self.show_welcome
             || self.show_effects
+    }
+
+    /// Показать сообщение в статус-баре на пару секунд.
+    pub(crate) fn hint(&mut self, msg: impl Into<String>) {
+        self.status_hint = msg.into();
+        self.status_hint_until = self.last_time + 2.5;
+    }
+
+    /// Открывает картинку в НОВОЙ вкладке. Общая точка для Ctrl+L и для
+    /// перетаскивания файла в окно, поэтому загрузка не зависит от наличия rfd.
+    /// Возвращает имя файла, если открыть удалось.
+    pub(crate) fn open_path(&mut self, path: &std::path::Path) -> Option<String> {
+        let path_str = path.to_string_lossy().into_owned();
+        let name = path
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_else(|| "Untitled".into());
+
+        let mut doc = Document::new(&name);
+        match doc.load_png(&path_str) {
+            Ok(()) => {
+                self.docs.push(doc);
+                self.active_tab = self.docs.len() - 1;
+                Some(name)
+            }
+            Err(e) => {
+                // вкладку не создаём: пустая вкладка с именем файла только путает
+                self.hint(format!("{}: {}", name, e));
+                None
+            }
+        }
     }
 
     /// Применить выбранный эффект к слоям документа.
@@ -403,6 +437,65 @@ impl PixeshApp {
         }
     }
 
+    /// Перетаскивание файлов из файлового менеджера в окно.
+    /// Каждый файл открывается отдельной вкладкой, активной становится последняя.
+    /// Само подсвечивание при перетаскивании — в draw_drop_overlay.
+    pub(crate) fn handle_dropped_files(&mut self, ctx: &egui::Context) {
+        let dropped = ctx.input(|i| i.raw.dropped_files.clone());
+        if dropped.is_empty() { return; }
+        let mut opened = 0usize;
+        let mut failed = 0usize;
+        for file in &dropped {
+            // path опционален: для «виртуальных» файлов (например, из
+            // встроенного браузера) его нет, и открыть такой нечего
+            let Some(path) = file.path.as_ref() else {
+                failed += 1;
+                continue;
+            };
+            match self.open_path(path) {
+                Some(_) => opened += 1,
+                None => failed += 1,
+            }
+        }
+        if opened > 0 {
+            if opened == 1 {
+                self.hint("image opened");
+            } else {
+                self.hint(format!("{} images opened", opened));
+            }
+        } else if failed > 1 {
+            // про один файл open_path уже сообщил конкретную причину
+            self.hint(format!("{} files could not be opened", failed));
+        }
+    }
+
+    /// Рамка «отпустите, чтобы открыть» поверх всего окна, пока файл над ним.
+    fn draw_drop_overlay(&self, ctx: &egui::Context) {
+        let hovered = ctx.input(|i| !i.raw.hovered_files.is_empty());
+        if !hovered { return; }
+        let screen = ctx.screen_rect();
+        let p = ctx.layer_painter(egui::LayerId::new(egui::Order::Tooltip, egui::Id::new("drop_overlay")));
+        p.rect_filled(
+            screen,
+            0.0,
+            Color32::from_black_alpha(140),
+        );
+        let inset = 8.0;
+        let r = Rect::from_min_max(screen.min + Vec2::splat(inset), screen.max - Vec2::splat(inset));
+        p.rect_stroke(r, 0.0, Stroke::new(6.0, ACCENT), egui::StrokeKind::Inside);
+        let label = match ctx.input(|i| i.raw.hovered_files.len()) {
+            1 => "Open image".to_owned(),
+            n => format!("Open {} images", n),
+        };
+        p.text(
+            r.center(),
+            egui::Align2::CENTER_CENTER,
+            label,
+            egui::FontId::proportional(32.0),
+            ACCENT,
+        );
+    }
+
     pub(crate) fn close_tab(&mut self, idx: usize) {
         if self.docs.len() <= 1 {
             self.docs[0] = Document::new("Untitled");
@@ -421,8 +514,10 @@ impl PixeshApp {
 // ── eframe::App ──────────────────────────────────────
 impl eframe::App for PixeshApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        self.last_time = ctx.input(|i| i.time);
         self.handle_input(ctx);
         self.update_playback(ctx);
+        self.handle_dropped_files(ctx);
 
         // ── Desktop-style layout for everyone ──
         if self.show_top_panel { self.ui_toolbar(ctx); }
@@ -432,6 +527,7 @@ impl eframe::App for PixeshApp {
         self.ui_canvas(ctx);
         
         self.ui_dialogs(ctx);
+        self.draw_drop_overlay(ctx);
 
         if ctx.input(|i| i.viewport().close_requested()) && self.any_unsaved() && !self.show_quit_dialog && !self.close_handled {
             ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
@@ -490,5 +586,63 @@ impl eframe::App for PixeshApp {
                     });
                 });
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn tmp_png(name: &str, w: u32, h: u32) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join("pixesh_open_tests");
+        std::fs::create_dir_all(&dir).unwrap();
+        let img = image::RgbaImage::from_pixel(w, h, image::Rgba([1, 2, 3, 255]));
+        let path = dir.join(name);
+        img.save(&path).unwrap();
+        path
+    }
+
+    #[test]
+    fn open_path_adds_a_tab_and_activates_it() {
+        let path = tmp_png("first.png", 8, 5);
+        let mut app = PixeshApp::new();
+        let tabs_before = app.docs.len();
+
+        let opened = app.open_path(&path).expect("файл должен открыться");
+        assert_eq!(opened, "first.png");
+        assert_eq!(app.docs.len(), tabs_before + 1, "появилась новая вкладка");
+        assert_eq!(app.active_tab, app.docs.len() - 1, "новая вкладка активна");
+
+        let doc = &app.docs[app.active_tab];
+        assert_eq!((doc.width, doc.height), (8, 5), "размеры взяты из картинки");
+        assert_eq!(doc.name, "first.png", "имя вкладки — имя файла");
+        assert!(!doc.unsaved, "только что открытый файл не считается изменённым");
+    }
+
+    #[test]
+    fn open_path_keeps_previous_tabs_untouched() {
+        let mut app = PixeshApp::new();
+        app.docs[0].name = "Untitled".into();
+        app.docs[0].width = 32;
+        app.docs[0].height = 32;
+
+        app.open_path(&tmp_png("second.png", 7, 9));
+        assert_eq!(app.docs[0].name, "Untitled");
+        assert_eq!((app.docs[0].width, app.docs[0].height), (32, 32),
+                   "прежний документ не тронут — это отдельная вкладка");
+    }
+
+    #[test]
+    fn open_path_rejects_non_image_without_adding_a_tab() {
+        let dir = std::env::temp_dir().join("pixesh_open_tests");
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("readme.txt");
+        std::fs::write(&path, b"not an image").unwrap();
+
+        let mut app = PixeshApp::new();
+        let tabs_before = app.docs.len();
+        assert!(app.open_path(&path).is_none(), "не-картинка не открывается");
+        assert_eq!(app.docs.len(), tabs_before, "пустую вкладку не создаём");
+        assert!(!app.status_hint.is_empty(), "пользователь должен узнать о проблеме");
     }
 }

@@ -3,8 +3,6 @@ use eframe::egui;
 use crate::color::*;
 use crate::constants::Tool;
 use super::PixeshApp;
-#[cfg(feature = "rfd")]
-use super::Document;
 
 impl PixeshApp {
     pub(crate) fn handle_input(&mut self, ctx: &egui::Context) {
@@ -83,15 +81,7 @@ impl PixeshApp {
                         .add_filter("Images", &["png", "jpg", "jpeg", "gif", "bmp", "webp", "tiff", "tga"])
                         .pick_file()
                     {
-                        let path_str = path.to_string_lossy().to_string();
-                        let name = std::path::Path::new(&path_str)
-                            .file_name()
-                            .map(|n| n.to_string_lossy().into_owned())
-                            .unwrap_or_else(|| "Untitled".into());
-                        let mut doc = Document::new(&name);
-                        doc.load_png(&path_str);
-                        self.docs.push(doc);
-                        self.active_tab = self.docs.len() - 1;
+                        self.open_path(&path);
                     }
                 }
             }

@@ -93,13 +93,19 @@ impl Document {
         Ok(())
     }
 
-    #[allow(dead_code)]
-    pub(crate) fn load_png(&mut self, path: &str) {
+/// Открывает картинку в этот документ. Имя берётся из пути файла.
+/// Ошибка декодирования возвращается, а не проглатывается: иначе перетащенный
+/// не-картинкой файл выглядел бы как «ничего не произошло».
+#[allow(dead_code)]
+    pub(crate) fn load_png(&mut self, path: &str) -> Result<(), String> {
         let img = match image::open(path) {
             Ok(i) => i.to_rgba8(),
-            Err(_) => return,
+            Err(e) => return Err(e.to_string()),
         };
         let (w, h) = img.dimensions();
+        if w == 0 || h == 0 {
+            return Err("image has zero size".into());
+        }
         self.push_undo();
         self.frames = 1;
         self.active_frame = 0;
@@ -120,6 +126,9 @@ impl Document {
         self.tex = None;
         self.canvas_dirty = true;
         self.needs_zoom_fit = true;
+        // только что открыли с диска — незакрытых правок нет, несмотря на
+        // push_undo() выше, который ставит флаг в true
+        self.unsaved = false;
 
         let p = std::path::Path::new(path);
         if let Some(parent) = p.parent() {
@@ -127,7 +136,9 @@ impl Document {
         }
         if let Some(name) = p.file_name() {
             self.export_name = name.to_string_lossy().into();
+            self.name = name.to_string_lossy().into_owned();
         }
+        Ok(())
     }
 
     pub(crate) fn resize_canvas(&mut self, new_w: usize, new_h: usize) {
@@ -284,4 +295,73 @@ fn blended(r: u8, g: u8, b: u8, a: u8, br: u8, bg: u8, bb: u8) -> (u8, u8, u8, u
     let ia = 255 - a;
     let mix = |c: u32, bc: u32| ((c * a + bc * ia) / 255) as u8;
     (mix(r as u32, br as u32), mix(g as u32, bg as u32), mix(b as u32, bb as u32), 255)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    fn tmp_dir() -> PathBuf {
+        let d = std::env::temp_dir().join("pixesh_io_tests");
+        std::fs::create_dir_all(&d).unwrap();
+        d
+    }
+
+    /// Кладёт ряд пикселей в PNG и возвращает путь.
+    fn write_png(name: &str, w: u32, h: u32, px: &[(u32, u32, [u8; 4])]) -> PathBuf {
+        let mut img = image::RgbaImage::from_pixel(w, h, image::Rgba([0, 0, 0, 0]));
+        for &(x, y, c) in px {
+            img.put_pixel(x, y, image::Rgba(c));
+        }
+        let path = tmp_dir().join(name);
+        img.save(&path).unwrap();
+        path
+    }
+
+    #[test]
+    fn load_png_reads_size_and_pixels() {
+        let path = write_png("load_ok.png", 4, 3, &[(1, 2, [255, 0, 0, 255])]);
+        let mut d = Document::new("t");
+        d.load_png(path.to_str().unwrap()).expect("должно открыться");
+
+        assert_eq!((d.width, d.height), (4, 3));
+        let px = &d.layers[0].cels[0];
+        assert_eq!(px.len(), 12);
+        assert_eq!(px[2 * 4 + 1].to_srgba_unmultiplied(), [255, 0, 0, 255]);
+    }
+
+    #[test]
+    fn load_png_marks_document_as_saved() {
+        let path = write_png("load_saved.png", 2, 2, &[]);
+        let mut d = Document::new("t");
+        // push_undo внутри ставит unsaved = true — свежеоткрытый файл должен
+        // считаться сохранённым
+        assert!(d.load_png(path.to_str().unwrap()).is_ok());
+        assert!(!d.unsaved, "файл только что открыт с диска");
+    }
+
+    #[test]
+    fn load_png_reports_bad_file() {
+        let path = tmp_dir().join("not_an_image.txt");
+        std::fs::write(&path, b"definitely not a png").unwrap();
+        let mut d = Document::new("t");
+        let err = d.load_png(path.to_str().unwrap()).unwrap_err();
+        assert!(!err.is_empty(), "ошибка должна быть непустой");
+    }
+
+    #[test]
+    fn load_png_reports_missing_file() {
+        let mut d = Document::new("t");
+        assert!(d.load_png("/nope/definitely/missing.png").is_err());
+    }
+
+    #[test]
+    fn failed_load_leaves_document_untouched() {
+        let mut d = Document::new_sized("t", 16, 16);
+        let before = d.layers[0].cels[0].clone();
+        assert!(d.load_png("/nope/missing.png").is_err());
+        assert_eq!((d.width, d.height), (16, 16));
+        assert_eq!(d.layers[0].cels[0], before, "неудачная загрузка не меняет холст");
+    }
 }
