@@ -6,21 +6,27 @@ A minimal pixel art editor built with Rust and egui.
 
 ## Features
 
-- **Drawing tools** — Brush, Eraser, Fill, Eyedropper, Select, Move
+- **Drawing tools** — Brush, Eraser, Fill, Eyedropper, Select, Move, Text, Transform
 - **Brush shapes** — Round / Square mask (toolbar size slider + shape buttons)
-- **Copy / Paste** — Copy selection, paste at center, move pasted pixels
-- **Layers** — Add/remove layers, toggle visibility
+- **Effects panel** — 17 effects ported from [Pixelorama](https://github.com/Orama-Interactive/Pixelorama), with a live preview — see [Effects](#effects)
+- **Layers** — Add / remove / duplicate / flatten, rename (double-click), per-layer visibility
+- **Animation** — Add / duplicate / delete frames, reorder with `<` and `>`, play-pause with an FPS setting
+- **Selection** — Rectangular marquee, delete contents, crop the canvas to the selection
+- **Copy / Paste** — `Ctrl+C` / `Ctrl+V` (or `Y` / `P`); the pasted block lands offset from the source and can be dragged into place before you commit it with `Enter`
 - **HSV color picker** — Saturation/Value field + Hue strip
 - **Canvas resize / scale** — Change dimensions or scale the image
-- **Crop to selection** — Crop canvas to selection bounds
+- **Text tool** — Stamp text onto the canvas with the built-in font
 - **Export PNG** — Save your artwork (scale x1–x16, background: none/white/black/checker)
+- **Open images** — `Ctrl+L` file dialog, or drag files straight from your file manager onto the window; each file opens as its own tab
 - **Welcome dialog** — Quick-start window at launch (New / Open / canvas presets), "show on startup" is remembered between runs
+- **Resizable timeline** — Drag the top edge of the animation strip upward to make it taller
 - **Grid overlay** — Toggle pixel grid
 - **Zoom & pan** — Scroll to zoom, arrows/middle-mouse to pan
 - **Zoom to fit** — Auto-zoom on image load
 - **Mirror** — Flip active layer horizontally/vertically with toolbar buttons
 - **Undo / Redo** — Ctrl+Z / Ctrl+Shift+Z (up to 50 steps)
 - **Multi-document tabs** — Open multiple images, Ctrl+Tab to switch
+- **Toggleable panels** — Hide the toolbar, layers, status bar or timeline to get the canvas out of the way
 
 ## Controls
 
@@ -33,8 +39,10 @@ A minimal pixel art editor built with Rust and egui.
 | `F` | Fill (flood fill) |
 | `R` | Rectangular select |
 | `M` | Move (selection or canvas) |
+| `T` | Text |
+| `S` | Transform (needs a selection) |
 | `Y` | Copy selection to clipboard |
-| `P` | Paste clipboard at canvas center |
+| `P` | Paste clipboard (lands offset from the selection, or centred) |
 | `Alt` (hold) | Eyedropper (temporary) |
 | `Right-click + drag` | Eraser |
 
@@ -43,7 +51,7 @@ A minimal pixel art editor built with Rust and egui.
 | Key | Action |
 |-----|--------|
 | `W` | Darken color |
-| `S` | Brighten color |
+| `.` | Brighten color |
 | `A` | Decrease opacity |
 | `D` | Increase opacity |
 
@@ -51,9 +59,19 @@ A minimal pixel art editor built with Rust and egui.
 
 | Key | Action |
 |-----|--------|
+| `Ctrl+C` | Copy selection to clipboard |
+| `Ctrl+V` | Paste clipboard |
+| `Enter` | Commit pasted pixels / crop canvas to selection |
 | `Delete` | Delete selected pixels |
-| `Enter` | Crop canvas to selection |
-| `Escape` | Deselect / close dialogs |
+| `Escape` | Cancel paste, deselect, close dialogs |
+
+### Animation
+
+| Key | Action |
+|-----|--------|
+| `[` | Previous frame |
+| `]` | Next frame |
+| `Space` | Play / pause |
 
 ### Navigation
 
@@ -75,11 +93,42 @@ A minimal pixel art editor built with Rust and egui.
 | `Ctrl+I` | Scale canvas dialog |
 | `Ctrl+H` | Settings dialog |
 | `Ctrl+W` | Toggle panels visibility |
+| `Ctrl+Shift+E` | Effects panel |
+| `Ctrl+Shift+F` | Flatten layers |
 | `Ctrl+D` | Deselect |
 | `Ctrl+Tab` | Switch to next tab |
 | `Ctrl+Z` | Undo |
 | `Ctrl+Shift+Z` | Redo |
 | `G` | Toggle grid |
+
+## Effects
+
+`Ctrl+Shift+E` (or the sparkle button in the toolbar) opens the effects panel.
+Effects respect the current selection — with a marquee active, only pixels
+inside it are touched. The preview updates live as you drag a slider, and
+**Apply** writes the result to the active layer or to every layer / every
+frame, depending on the toggles. Nothing is recorded in the undo history
+unless the pixels actually change.
+
+The list and the per-effect parameters are ported from
+[Pixelorama](https://github.com/Orama-Interactive/Pixelorama)'s Effects menu,
+but the GLSL shaders are reimplemented as plain CPU code — no GPU shader
+compilation is involved, so effects behave identically everywhere.
+
+| Category | Effects |
+|----------|---------|
+| **Transform** | Offset & Scale, Mirror Image, Rotate Image, Flat to Isometric |
+| **Color** | Invert Colors, Desaturation, Adjust Hue/Sat/Value, Adjust Brightness/Contrast, Color Curves, Palettize, Posterize, Gradient Map |
+| **Procedural** | Outline, Drop Shadow, Gradient |
+| **Blur** | Pixelize, Gaussian Blur |
+
+Two effects are deliberately not pixel-identical to Pixelorama:
+
+- **Palettize** builds its palette from the image being filtered (median cut)
+  instead of relying on a fixed or externally supplied palette.
+- **Color Curves** is exposed as a per-channel gamma plus black/white points.
+  Pixelorama uses an interactive curve editor, which has no equivalent in a
+  parameter list.
 
 ## Build
 
@@ -93,6 +142,33 @@ Run with:
 ./target/release/pixesh
 ```
 
+### Linux dependencies
+
+The binary links against GTK 3 (for the native Open/Save dialogs) and the usual
+X11/Wayland graphics stack. On Debian/Ubuntu:
+
+```bash
+sudo apt install libgtk-3-0 libx11-6 libx11-xcb1 libxcb1 \
+    libxkbcommon0 libwayland-client0 libopengl0
+```
+
+Rendering itself does not need GTK — only the file dialogs do.
+
+### Windows (cross-compiled from Linux)
+
+Requires the `x86_64-pc-windows-gnu` target and mingw-w64:
+
+```bash
+rustup target add x86_64-pc-windows-gnu
+CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=x86_64-w64-mingw32-gcc \
+    cargo build --release --target x86_64-pc-windows-gnu
+```
+
+The resulting `pixesh.exe` imports system DLLs only — no mingw runtime DLLs
+need to be shipped alongside it. All icons and the font are embedded via
+`include_bytes!`, so the executable is self-contained on a clean Windows
+10/11.
+
 ---
 
 ## Android build (mobile)
@@ -103,44 +179,51 @@ timeline) is gated behind the `mobile` crate feature. It never compiles `rfd`
 
 Requirements (already on this machine):
 
-- Android SDK + NDK 25.2.9519653, JDK 21, `cargo-ndk` / `cargo-apk`
-- Android target installed: `rustup target add aarch64-linux-android`
+- Android SDK + NDK 25.2.9519653, build-tools 36.1.0, platform android-33
+- Android targets installed: `rustup target add aarch64-linux-android x86_64-linux-android`
 
-### 1. Check the mobile build (no NDK required)
+### 1. Check the mobile build (fastest feedback)
 
 ```bash
-cargo check --target aarch64-linux-android --no-default-features --features mobile
+cargo check --target aarch64-linux-android --lib --no-default-features --features mobile
 ```
 
 ### 2. Build the APK
 
 ```bash
-./build_android.sh
+./scripts/build_android.sh
 ```
 
-Writes `android/pixesh-debug.apk`. The script finds the NDK toolchain, sets the
-Android linker, builds the `aarch64-linux-android` release with the `mobile`
-feature and packages it with `cargo apk` (cargo-apk is available on this box).
+Writes a signed `pixesh-debug.apk` in the repository root. The script is a
+manual pipeline — **no Gradle and no `cargo-apk`**: it builds `libpixesh.so`
+for `aarch64` and `x86_64`, compiles `android/res` with `aapt2`, links a base
+APK against `android/AndroidManifest.xml`, injects both `.so` files, then runs
+`zipalign` and `apksigner` (debug keystore).
 
-The Android entry point lives in [`android_main`](android/AndroidManifest.xml);
-winit's `android-native-activity` provides the native activity. `res/mipmap-*`
-holds the launcher icon at all densities and `res/values/strings.xml` the app
-name, so `aapt2` never needs a Gradle project.
-
-
+winit's `android-native-activity` provides the native activity; the entry point
+lives in `src/lib.rs` under the `mobile` feature. `android/res/mipmap-*` holds
+the launcher icon at all densities and `android/res/values/strings.xml` the app
+name, which is why no Gradle project is needed.
 
 ## Project Structure
 
-- `src/main.rs` — Entry point, font & style setup
+- `src/main.rs` — Entry point; the Windows build is marked GUI so no console window appears
+- `src/lib.rs` — Library entry point (`run_native_app`), embeds the font, sets up visuals
 - `src/app/` — Core application logic
-  - `mod.rs` — App state (layers, color, tools, undo, selection, multi-doc tabs)
+  - `mod.rs` — App state (layers, color, tools, undo, selection, multi-doc tabs), file opening, drag-and-drop
   - `canvas.rs` — Compositing, pixel painting, Bresenham lines, flood fill, mirror
+  - `anim.rs` — Per-frame compositing
   - `history.rs` — Undo/redo with snapshots
   - `input.rs` — Keyboard shortcuts, zoom, pan, copy/paste
-  - `io.rs` — Save/load PNG, layer management, canvas resize/scale/crop
+  - `io.rs` — Save/load PNG, open image by path, layer management, canvas resize/scale/crop
+  - `effects.rs` — The 17 Pixelorama effects (CPU implementations)
+  - `text.rs` — Text stamping helpers
+  - `config.rs` — Settings persistence
   - `panel_canvas.rs` — Canvas rendering, tool dispatch
-  - `panel_dialogs/` — Resize, Export, Panels, Settings, Scale dialogs
+  - `panel_dialogs/` — Effects, Export, Panels, Resize, Scale, Settings, Text, Welcome dialogs
   - `panel_layers.rs` — Layers panel, HSV color picker
+  - `panel_status.rs` — Status bar, including transient hints
+  - `panel_timeline.rs` — Resizable animation strip
   - `panel_toolbar.rs` — Toolbar with tool icons, grid toggle, tab bar
   - `tools.rs` — Tool handlers (brush, fill, eyedropper, selection, move, paste)
 - `src/color.rs` — HSV <-> RGB conversion
