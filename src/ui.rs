@@ -123,3 +123,40 @@ pub fn separator(ui: &mut egui::Ui) {
         Stroke::new(4.0, BORDER),
     );
 }
+
+/// Строка-чекбокс в общем пиксельном стиле: рамка без скруглений, заливка
+/// акцентом при включении. `font` — множитель относительно базового 19 px,
+/// чтобы одна и та же функция годилась и для панели эффектов, и для диалогов.
+///
+/// Живёт здесь, а не в панели эффектов, потому что чекбоксы нужны ещё в
+/// диалогах изменения размера и масштаба.
+pub fn check_row(ui: &mut egui::Ui, label: &str, value: bool, font: f32, mut set: impl FnMut(bool)) {
+    let sz = 19.0 * font;
+    let row_h = sz + 12.0;
+    let w = ui.available_width().min(170.0);
+    let (row, _) = ui.allocate_exact_size(Vec2::new(w, row_h), Sense::hover());
+    let cbs = 18.0;
+    let cb_rect = Rect::from_min_size(
+        Pos2::new(row.min.x, row.center().y - cbs * 0.5),
+        Vec2::splat(cbs),
+    );
+    let p = ui.painter();
+    p.text(
+        Pos2::new(cb_rect.max.x + 8.0, row.center().y),
+        egui::Align2::LEFT_CENTER,
+        label,
+        egui::FontId::proportional(sz),
+        TEXT,
+    );
+    p.rect_filled(cb_rect, 0.0, PANEL);
+    p.rect_stroke(cb_rect, 0.0, Stroke::new(3.0, BORDER), egui::StrokeKind::Outside);
+    if value {
+        p.rect_filled(cb_rect.shrink(4.0), 0.0, ACCENT);
+    }
+    // id с нейтральным префиксом: функцией пользуются несколько диалогов
+    if ui.interact(row, egui::Id::new(("check_row", label)), Sense::click()).clicked()
+        || ui.interact(cb_rect, egui::Id::new(("check_row_inner", label)), Sense::click()).clicked()
+    {
+        set(!value);
+    }
+}

@@ -117,3 +117,102 @@ pub const CHAR_W: f32 = 11.0;     // примерная ширина одног�
 pub const ROW_H: f32 = 22.0;      // высота строки в пикселях
 pub const PANEL_PAD: f32 = 12.0;   // отступ от краёв панели (слои, цвет)
 pub const CHECKER_PX: f32 = 8.0;  // желаемый экранный размер клетки шахматки (прозрачный фон)
+
+/// Максимальный размер стороны холста — тот же предел, что у DragValue
+/// в диалогах изменения размера и масштаба.
+pub const MAX_SIDE: i32 = 4096;
+
+/// Возвращает пару (W, H), в которой изменённая сторона согласована с другой
+/// по пропорциям исходного холста.
+///
+/// Опорой служит именно `orig_w`/`orig_h`, а не текущая пара `w`/`h`. Если
+/// брать за опору вторую сторону, пропорции «поедут»: у холста 64x48 шаг W=100
+/// даёт H=75, а следующий шаг H=76 вернул бы W=101 — и с каждым щелчком
+/// расхождение накапливалось бы. Якорь не меняется, поэтому дрейфа нет.
+pub fn linked_side(orig_w: i32, orig_h: i32, w: i32, h: i32, edited_w: bool) -> (i32, i32) {
+    let clamp = |v: i32| v.clamp(1, MAX_SIDE);
+    if edited_w {
+        if orig_w <= 0 { return (clamp(w), clamp(h)); }
+        (clamp(w), clamp(((w as f64 * orig_h as f64 / orig_w as f64).round()) as i32))
+    } else {
+        if orig_h <= 0 { return (clamp(w), clamp(h)); }
+        (clamp(((h as f64 * orig_w as f64 / orig_h as f64).round()) as i32), clamp(h))
+    }
+}
+
+#[cfg(test)]
+mod linked_tests {
+    use super::*;
+
+    #[test]
+    fn width_edit_keeps_aspect() {
+        // 100x50 -> ширина 200, высота обязана стать 100
+        assert_eq!(linked_side(100, 50, 200, 50, true), (200, 100));
+    }
+
+    #[test]
+    fn height_edit_keeps_aspect() {
+        // 100x50 — пропорция 2, поэтому H=200 это четырехкратное увеличение
+        // и ширина обязана стать 400, а не 200
+        assert_eq!(linked_side(100, 50, 100, 200, false), (400, 200));
+        // а вот H=100 — ровно вдвое
+        assert_eq!(linked_side(100, 50, 100, 100, false), (200, 100));
+    }
+
+    #[test]
+    fn square_canvas_is_unchanged() {
+        assert_eq!(linked_side(64, 64, 128, 64, true), (128, 128));
+        assert_eq!(linked_side(64, 64, 64, 32, false), (32, 32));
+    }
+
+    /// Главное свойство: последовательность правок не уходит от пропорций.
+    /// Раньше считая от показанных значений, второй шаг дал бы 101 вместо 100.
+    #[test]
+    fn successive_edits_do_not_drift() {
+        let (ow, oh) = (64, 48);
+        let (w, h) = linked_side(ow, oh, 100, 48, true);
+        assert_eq!((w, h), (100, 75));
+        let (w, h) = linked_side(ow, oh, w, 76, false);
+        assert_eq!((w, h), (101, 76), "ширина считается от якоря, а не от 100");
+        let (w, h) = linked_side(ow, oh, 202, h, true);
+        assert_eq!((w, h), (202, 152));
+    }
+
+    /// Пропорция итоговой пары совпадает с исходной с точностью до округления.
+    /// Случаи, где результат упрётся в предел 4096, пропускаем: там пропорция
+    /// ломается намеренно, это проверяет отдельный тест про кламп.
+    #[test]
+    fn result_stays_within_one_pixel_of_the_original_ratio() {
+        for (ow, oh) in [(64, 48), (100, 50), (37, 91), (16, 16), (5, 3)] {
+            for target in [1, 7, 33, 64, 200, 4096] {
+                let expect = target as f64 * oh as f64 / ow as f64;
+                if !(1.0..=MAX_SIDE as f64).contains(&expect.round()) { continue; }
+                let (w, h) = linked_side(ow, oh, target, oh, true);
+                assert_eq!(w, target, "{ow}x{oh}, ширина не должна меняться");
+                assert!(
+                    (h as f64 - expect).abs() <= 0.5,
+                    "{ow}x{oh} -> {w}x{h}, ожидалось ~{expect}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn values_are_clamped_to_the_dialog_range() {
+        assert_eq!(linked_side(1, 4096, 4096, 4096, true).1, 4096);
+        // крошечная высота и огромная ширина не должны обнулить высоту
+        let (_, h) = linked_side(4096, 1, 4096, 1, true);
+        assert_eq!(h, 1);
+        let (w, _) = linked_side(1, 4096, 1, 4096, false);
+        assert_eq!(w, 1);
+        // и наоборот: узкий холст при огромной ширине упрётся в предел
+        assert_eq!(linked_side(37, 91, 4096, 91, true).1, MAX_SIDE);
+    }
+
+    /// Вырожденный якорь не должен ронять расчёт (деление на ноль).
+    #[test]
+    fn degenerate_anchor_passes_values_through() {
+        assert_eq!(linked_side(0, 10, 5, 10, true), (5, 10));
+        assert_eq!(linked_side(10, 0, 10, 5, false), (10, 5));
+    }
+}

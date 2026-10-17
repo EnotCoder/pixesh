@@ -219,6 +219,11 @@ pub struct PixeshApp {
     pub(crate) show_scale: bool,
     pub(crate) scale_w: f32,
     pub(crate) scale_h: f32,
+    /// Держать пропорции: ввод W тянет за собой H и наоборот.
+    /// По умолчанию выключено, иначе тот, кто правит одну сторону, получал бы
+    /// тихо подменённую вторую.
+    pub(crate) scale_lock_ratio: bool,
+    pub(crate) resize_lock_ratio: bool,
     pub(crate) show_export: bool,
     pub(crate) export_scale: i32,
     pub(crate) export_bg: ExportBg,
@@ -314,6 +319,7 @@ impl PixeshApp {
             tab_close_tex: None, tab_plus_tex: None,
             show_resize: false, resize_w: 64.0, resize_h: 64.0,
             show_scale: false, scale_w: 64.0, scale_h: 64.0,
+            scale_lock_ratio: false, resize_lock_ratio: false,
             show_export: false, export_scale: 1, export_bg: ExportBg::Transparent,
             export_layers: false, export_sheet: false,
             show_panels: false, show_settings: false,

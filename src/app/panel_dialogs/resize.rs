@@ -39,11 +39,13 @@ impl PixeshApp {
                 });
 
                 child_ui.add_space(20.0);
+                let prev_w = self.resize_w as i32;
+                let prev_h = self.resize_h as i32;
                 child_ui.vertical_centered(|ui| {
                     let mut w = self.resize_w as i32;
                     ui.add(
                         egui::DragValue::new(&mut w)
-                            .range(1..=4096)
+                            .range(1..=MAX_SIDE)
                             .prefix("W: "),
                     );
                     self.resize_w = w as f32;
@@ -53,10 +55,47 @@ impl PixeshApp {
                     let mut h = self.resize_h as i32;
                     ui.add(
                         egui::DragValue::new(&mut h)
-                            .range(1..=4096)
+                            .range(1..=MAX_SIDE)
                             .prefix("H: "),
                     );
                     self.resize_h = h as f32;
+                });
+                child_ui.add_space(10.0);
+                // пропорции держим от размера холста, а не от показанной пары:
+                // иначе каждая правка сдвигала бы их всё дальше
+                let (ow, oh) = (self.docs[i].width as i32, self.docs[i].height as i32);
+                let now_w = self.resize_w as i32;
+                let now_h = self.resize_h as i32;
+                if self.resize_lock_ratio {
+                    if now_w != prev_w {
+                        let (w, h) = linked_side(ow, oh, now_w, now_h, true);
+                        self.resize_w = w as f32;
+                        self.resize_h = h as f32;
+                    } else if now_h != prev_h {
+                        let (w, h) = linked_side(ow, oh, now_w, now_h, false);
+                        self.resize_w = w as f32;
+                        self.resize_h = h as f32;
+                    }
+                }
+                child_ui.vertical_centered(|ui| {
+                    let mut lock = self.resize_lock_ratio;
+                    check_row(ui, "Lock ratio", lock, 1.2, |v| {
+                        lock = v;
+                        self.resize_lock_ratio = v;
+                        // включение сразу приводит пару в порядок: иначе после
+                        // свободной правки W высота осталась бы от другой пропорции
+                        if v {
+                            let (w, h) = linked_side(
+                                self.docs[i].width as i32,
+                                self.docs[i].height as i32,
+                                self.resize_w as i32,
+                                self.resize_h as i32,
+                                true,
+                            );
+                            self.resize_w = w as f32;
+                            self.resize_h = h as f32;
+                        }
+                    });
                 });
 
                 let enter = ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Enter));

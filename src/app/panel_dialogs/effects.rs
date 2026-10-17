@@ -6,6 +6,7 @@ use crate::app::effects::{self, EffectParams, PT};
 use crate::app::{Document, PixeshApp};
 use crate::color::lerp_color;
 use crate::constants::*;
+use crate::ui::check_row;
 
 /// Максимальный размер картинки-превью (в пикселях холста).
 const PREVIEW_MAX: usize = 64;
@@ -483,35 +484,4 @@ fn seg_btn(ui: &mut egui::Ui, label: &str, active: bool, font: f32) -> bool {
     p.rect_stroke(rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Inside);
     p.text(rect.center(), egui::Align2::CENTER_CENTER, label, egui::FontId::proportional(sz), TEXT);
     resp.clicked()
-}
-
-/// Строка-чекбокс в стиле панели слоёв.
-fn check_row(ui: &mut egui::Ui, label: &str, value: bool, font: f32, mut set: impl FnMut(bool)) {
-    let sz = 19.0 * font;
-    let row_h = sz + 12.0;
-    let w = ui.available_width().min(170.0);
-    let (row, _) = ui.allocate_exact_size(Vec2::new(w, row_h), Sense::hover());
-    let cbs = 18.0;
-    let cb_rect = Rect::from_min_size(
-        Pos2::new(row.min.x, row.center().y - cbs * 0.5),
-        Vec2::splat(cbs),
-    );
-    let p = ui.painter();
-    p.text(
-        Pos2::new(cb_rect.max.x + 8.0, row.center().y),
-        egui::Align2::LEFT_CENTER,
-        label,
-        egui::FontId::proportional(sz),
-        TEXT,
-    );
-    p.rect_filled(cb_rect, 0.0, PANEL);
-    p.rect_stroke(cb_rect, 0.0, Stroke::new(3.0, BORDER), egui::StrokeKind::Outside);
-    if value {
-        p.rect_filled(cb_rect.shrink(4.0), 0.0, ACCENT);
-    }
-    if ui.interact(row, egui::Id::new(("fx_cb", label)), Sense::click()).clicked()
-        || ui.interact(cb_rect, egui::Id::new(("fx_cbi", label)), Sense::click()).clicked()
-    {
-        set(!value);
-    }
 }
