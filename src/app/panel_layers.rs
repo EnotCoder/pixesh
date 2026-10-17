@@ -7,15 +7,29 @@ use super::PixeshApp;
 
 impl PixeshApp {
     pub(crate) fn ui_layers(&mut self, ctx: &egui::Context) {
+        let edge = self.layers_edge;
+        let id = PanelId::Layers.ui_id(edge);
         let def_w = if self.mobile { 180.0 } else { 280.0 };
-        egui::SidePanel::right("layers")
+        let mut body = |ui: &mut egui::Ui| self.layers_body(ctx, ui);
+        // панель слоёв — вертикальный список, ей разрешены только левый и
+        // правый края
+        let panel = if edge == Edge::Left {
+            egui::SidePanel::left(id)
+        } else {
+            egui::SidePanel::right(id)
+        };
+        panel
             .resizable(true)
             .default_width(def_w)
             .min_width(120.0)
             .max_width(500.0)
             .frame(egui::Frame::new().fill(PANEL))
             .show_separator_line(false)
-            .show(ctx, |ui| {
+            .show(ctx, &mut body);
+    }
+
+    fn layers_body(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
+                self.grab_handle(ui, PanelId::Layers);
                 ui.add_space(8.0);
 
                 let header = "Layers";
@@ -392,6 +406,5 @@ impl PixeshApp {
                 });
 
                 ui.add_space(4.0);
-            });
     }
 }

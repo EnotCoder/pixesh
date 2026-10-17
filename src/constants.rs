@@ -1,4 +1,4 @@
-use eframe::egui::Color32;
+use eframe::egui::{Color32, Id};
 
 // какие инструменты есть
 #[derive(PartialEq, Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
@@ -11,6 +11,95 @@ pub enum ExportBg { Transparent, White, Black, Checker }
 // форма (маска) кисти
 #[derive(PartialEq, Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
 pub enum BrushShape { Round, Square }
+
+// ── раскладка панелей ──
+
+/// Какой край окна занимает панель. Панели можно перетаскивать между краями,
+/// но не на любой: полосу кадров бессмысленно прижимать к боку окна.
+#[derive(PartialEq, Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
+pub enum Edge { Top, Bottom, Left, Right }
+
+impl Edge {
+    pub fn is_vertical(self) -> bool {
+        matches!(self, Edge::Left | Edge::Right)
+    }
+
+    /// Порядок групп при отрисовке. Верхние и нижние панели должны идти до
+    /// боковых: egui вырезает панели из остатка прямоугольника по порядку,
+    /// поэтому верхняя, нарисованная после боковой, уже не растянулась бы на
+    /// всю ширину окна.
+    pub fn draw_group(self) -> usize {
+        match self {
+            Edge::Top => 0,
+            Edge::Bottom => 1,
+            Edge::Left => 2,
+            Edge::Right => 3,
+        }
+    }
+
+    /// Края, на которые панель разрешено перетаскивать. Тулбар, статус-бар и
+    /// таймлайн — горизонтальные полосы, панель слоёв — вертикальный список.
+    pub fn allowed_for(self) -> &'static [Edge] {
+        const H: &[Edge] = &[Edge::Top, Edge::Bottom];
+        const V: &[Edge] = &[Edge::Left, Edge::Right];
+        if self.is_vertical() { V } else { H }
+    }
+}
+
+/// Какая из перетаскиваемых панелей. Порядок вариантов задаёт канонический
+/// порядок отрисовки внутри одного края — он не меняется от того, куда панель
+/// перетащили, иначе панели на одном краю прыгали бы местами при каждом
+/// переносе.
+#[derive(PartialEq, Eq, Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
+pub enum PanelId { Toolbar, Status, Timeline, Layers }
+
+/// Порядок панели внутри одного края. Нужен sort_by_key, который сортирует
+/// по целому, а не по перечислению (derive Ord тащит за собой лишнее).
+pub(crate) fn p_order(p: PanelId) -> usize {
+    match p {
+        PanelId::Toolbar => 0,
+        PanelId::Status => 1,
+        PanelId::Timeline => 2,
+        PanelId::Layers => 3,
+    }
+}
+
+impl PanelId {
+    /// Стартовый край. Панели на одном краю идут именно в этом порядке:
+    /// первая отрисованная оказывается у самого края окна.
+    pub fn default_edge(self) -> Edge {
+        match self {
+            PanelId::Toolbar => Edge::Top,
+            PanelId::Status => Edge::Bottom,
+            PanelId::Timeline => Edge::Bottom,
+            PanelId::Layers => Edge::Right,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            PanelId::Toolbar => "Toolbar",
+            PanelId::Status => "Status",
+            PanelId::Timeline => "Timeline",
+            PanelId::Layers => "Layers",
+        }
+    }
+
+    /// Собственный край панели, по которому судим, горизонтальная она или
+    /// вертикальная. Одинаков для всех краёв, допустимых для панели.
+    pub fn shape_edge(self) -> Edge {
+        self.default_edge()
+    }
+
+    /// Стабильный Id для egui. Край входит в Id намеренно: PanelState лежит в
+    /// egui::Memory по Id и для боковой панели читается как rect.width(), а для
+    /// верхней/нижней как rect.height(). Без края в Id панель, переехавшая с
+    /// низа на бок, прочитала бы старые 1400 px как ширину и раздулась до
+    /// max_width. С краем в Id каждая ориентация помнит свой размер отдельно.
+    pub fn ui_id(self, edge: Edge) -> Id {
+        Id::new((self.name(), format!("{:?}", edge)))
+    }
+}
 
 // ── цвета темы ──
 pub const BG: Color32 = Color32::from_rgb(24, 24, 24);          // самый тёмный (фон холста)

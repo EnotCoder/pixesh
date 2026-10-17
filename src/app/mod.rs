@@ -6,6 +6,7 @@ pub mod history;
 pub mod input;
 pub mod io;
 pub mod panel_canvas;
+pub mod panel_drag;
 pub mod panel_dialogs;
 pub mod panel_layers;
     pub mod panel_status;
@@ -229,6 +230,20 @@ pub struct PixeshApp {
     pub(crate) show_right_panel: bool,
     pub(crate) show_status_bar: bool,
     pub(crate) show_timeline: bool,
+
+    /// Край окна для каждой перетаскиваемой панели
+    pub(crate) toolbar_edge: Edge,
+    pub(crate) layers_edge: Edge,
+    pub(crate) status_edge: Edge,
+    pub(crate) timeline_edge: Edge,
+
+    // ── перетаскивание панелей между краями ──
+    /// Край, на который в данный момент наведён курсор при переносе
+    pub(crate) drop_edge: Option<Edge>,
+    /// Панель, которую сейчас тащим
+    pub(crate) dragging_panel: Option<PanelId>,
+    /// Откуда начали тащить — отменяем перенос, если бросили туда же
+    pub(crate) drag_from_edge: Edge,
     pub(crate) show_quit_dialog: bool,
     pub(crate) show_welcome: bool,
     pub(crate) welcome_show_again: bool,
@@ -306,6 +321,13 @@ impl PixeshApp {
             show_right_panel: prefs.show_right_panel,
             show_status_bar: prefs.show_status_bar,
             show_timeline: prefs.show_timeline,
+            toolbar_edge: prefs.toolbar_edge,
+            layers_edge: prefs.layers_edge,
+            status_edge: prefs.status_edge,
+            timeline_edge: prefs.timeline_edge,
+            drop_edge: None,
+            dragging_panel: None,
+            drag_from_edge: Edge::Top,
             show_quit_dialog: false,
             welcome_show_again: prefs.welcome_show_again,
             show_welcome: prefs.welcome_show_again,
@@ -342,6 +364,52 @@ impl PixeshApp {
     /// Preferences просто превращается в набор исходных значений полей.
     fn initial_prefs() -> config::Prefs {
         config::Prefs::default()
+    }
+
+    /// Край, на котором сейчас панель.
+    pub(crate) fn edge_of(&self, p: PanelId) -> Edge {
+        match p {
+            PanelId::Toolbar => self.toolbar_edge,
+            PanelId::Layers => self.layers_edge,
+            PanelId::Status => self.status_edge,
+            PanelId::Timeline => self.timeline_edge,
+        }
+    }
+
+    pub(crate) fn set_edge(&mut self, p: PanelId, e: Edge) {
+        let e = config::clamp_edge(e, p.default_edge());
+        match p {
+            PanelId::Toolbar => self.toolbar_edge = e,
+            PanelId::Layers => self.layers_edge = e,
+            PanelId::Status => self.status_edge = e,
+            PanelId::Timeline => self.timeline_edge = e,
+        }
+    }
+
+    pub(crate) fn panel_visible(&self, p: PanelId) -> bool {
+        match p {
+            PanelId::Toolbar => self.show_top_panel,
+            PanelId::Layers => self.show_right_panel,
+            PanelId::Status => self.show_status_bar,
+            PanelId::Timeline => self.show_timeline,
+        }
+    }
+
+    /// Порядок отрисовки панелей: по группам краёв, а внутри края — по
+    /// каноническому порядку. Возвращает только видимые панели.
+    ///
+    /// Вынесено отдельно и без egui, чтобы поведение можно было проверить
+    /// тестом: главное свойство здесь — что все горизонтальные полосы идут
+    /// раньше боковых. Иначе верхняя панель, нарисованная после боковой,
+    /// получила бы не всю ширину окна: egui вырезает панели из остатка
+    /// прямоугольника строго в порядке вызовов.
+    pub(crate) fn draw_order(&self) -> Vec<PanelId> {
+        let mut out: Vec<PanelId> = [PanelId::Toolbar, PanelId::Status, PanelId::Timeline, PanelId::Layers]
+            .into_iter()
+            .filter(|p| self.panel_visible(*p))
+            .collect();
+        out.sort_by_key(|p| (self.edge_of(*p).draw_group(), p_order(*p)));
+        out
     }
 
     /// Ставит текущий цвет сразу во все представления: Color32, RGBA-поля
@@ -384,6 +452,10 @@ impl PixeshApp {
             show_right_panel: self.show_right_panel,
             show_status_bar: self.show_status_bar,
             show_timeline: self.show_timeline,
+            toolbar_edge: self.toolbar_edge,
+            layers_edge: self.layers_edge,
+            status_edge: self.status_edge,
+            timeline_edge: self.timeline_edge,
             welcome_show_again: self.welcome_show_again,
             arrow_speed: self.arrow_speed,
             zoom_speed: self.zoom_speed,
@@ -413,6 +485,10 @@ impl PixeshApp {
         self.show_right_panel = prefs.show_right_panel;
         self.show_status_bar = prefs.show_status_bar;
         self.show_timeline = prefs.show_timeline;
+        self.toolbar_edge = config::clamp_edge(prefs.toolbar_edge, Edge::Top);
+        self.layers_edge = config::clamp_edge(prefs.layers_edge, Edge::Right);
+        self.status_edge = config::clamp_edge(prefs.status_edge, Edge::Bottom);
+        self.timeline_edge = config::clamp_edge(prefs.timeline_edge, Edge::Bottom);
         self.welcome_show_again = prefs.welcome_show_again;
         self.arrow_speed = prefs.arrow_speed;
         self.zoom_speed = prefs.zoom_speed;
@@ -632,14 +708,21 @@ impl eframe::App for PixeshApp {
         self.handle_dropped_files(ctx);
 
         // ── Desktop-style layout for everyone ──
-        if self.show_top_panel { self.ui_toolbar(ctx); }
-        if self.show_right_panel { self.ui_layers(ctx); }
-        if self.show_status_bar && !self.mobile { self.ui_status(ctx); }
-        if self.show_timeline && !self.mobile { self.ui_timeline(ctx); }
+        // порядок панелей вычисляется из раскладки: сначала верхние и нижние
+        // полосы, потом боковые, потом холст
+        for p in self.draw_order() {
+            match p {
+                PanelId::Toolbar => self.ui_toolbar(ctx),
+                PanelId::Layers => self.ui_layers(ctx),
+                PanelId::Status => if !self.mobile { self.ui_status(ctx) },
+                PanelId::Timeline => if !self.mobile { self.ui_timeline(ctx) },
+            }
+        }
         self.ui_canvas(ctx);
-        
+
         self.ui_dialogs(ctx);
         self.draw_drop_overlay(ctx);
+        self.ui_panel_drag(ctx);
 
         if ctx.input(|i| i.viewport().close_requested()) && self.any_unsaved() && !self.show_quit_dialog && !self.close_handled {
             ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
@@ -897,5 +980,174 @@ mod prefs_tests {
         assert!(app.welcome_show_again && app.show_welcome);
         assert_eq!(app.tool, Tool::Brush);
         assert_eq!(app.brush, 1.0);
+    }
+}
+
+// ── раскладка панелей ────────────────────────────────
+#[cfg(test)]
+mod layout_tests {
+    use super::*;
+
+    /// Главное свойство порядка отрисовки: все горизонтальные полосы раньше
+    /// боковых. Иначе верхняя панель, нарисованная после боковой, получила бы
+    /// не всю ширину окна — egui вырезает панели из остатка по порядку вызовов.
+    #[test]
+    fn horizontal_panels_are_drawn_before_side_panels() {
+        let mut app = PixeshApp::new();
+        // худший случай: тулбар уехал вниз, слои — влево
+        app.toolbar_edge = Edge::Bottom;
+        app.layers_edge = Edge::Left;
+        app.status_edge = Edge::Top;
+        app.timeline_edge = Edge::Top;
+
+        let order = app.draw_order();
+        let first_side = order
+            .iter()
+            .position(|p| app.edge_of(*p).is_vertical())
+            .unwrap_or(order.len());
+        let last_horizontal = order
+            .iter()
+            .rposition(|p| !app.edge_of(*p).is_vertical())
+            .unwrap_or(0);
+        assert!(
+            last_horizontal < first_side,
+            "боковая панель нарисовалась раньше горизонтальной: {order:?}"
+        );
+    }
+
+    /// Взаимный порядок панелей не зависит от того, на каком краю они стоят:
+    /// он канонический, иначе панели прыгали бы местами при каждом переносе.
+    #[test]
+    fn order_inside_an_edge_is_stable() {
+        let canonical = vec![PanelId::Toolbar, PanelId::Status, PanelId::Timeline, PanelId::Layers];
+
+        // все три горизонтальные наверху, слои слева
+        let mut app = PixeshApp::new();
+        app.toolbar_edge = Edge::Top;
+        app.status_edge = Edge::Top;
+        app.timeline_edge = Edge::Top;
+        app.layers_edge = Edge::Left;
+        assert_eq!(app.draw_order(), canonical, "верх + лево");
+
+        // те же панели, но все внизу, слои справа — порядок тот же
+        let mut app = PixeshApp::new();
+        app.toolbar_edge = Edge::Bottom;
+        app.status_edge = Edge::Bottom;
+        app.timeline_edge = Edge::Bottom;
+        app.layers_edge = Edge::Right;
+        assert_eq!(app.draw_order(), canonical, "низ + право");
+
+        // перенос таймлайна наверх не меняет его места относительно соседей
+        let mut app = PixeshApp::new();
+        app.timeline_edge = Edge::Top;
+        app.status_edge = Edge::Bottom;
+        assert_eq!(
+            app.draw_order(),
+            vec![PanelId::Toolbar, PanelId::Timeline, PanelId::Status, PanelId::Layers],
+            "таймлайн наверху, статус внизу — но таймлайн всё равно раньше"
+        );
+    }
+
+    #[test]
+    fn hidden_panels_are_not_drawn() {
+        let mut app = PixeshApp::new();
+        app.show_timeline = false;
+        app.show_status_bar = false;
+        let order = app.draw_order();
+        assert!(!order.contains(&PanelId::Timeline));
+        assert!(!order.contains(&PanelId::Status));
+        assert_eq!(order, vec![PanelId::Toolbar, PanelId::Layers]);
+    }
+
+    /// Перенос не должен уводить панель на запрещённый край, даже если его
+    /// подсунули руками (например, правкой файла настроек).
+    #[test]
+    fn set_edge_refuses_forbidden_edges() {
+        let mut app = PixeshApp::new();
+        app.set_edge(PanelId::Timeline, Edge::Left);
+        assert_ne!(app.timeline_edge, Edge::Left, "таймлайн нельзя в бок");
+        app.set_edge(PanelId::Layers, Edge::Top);
+        assert_ne!(app.layers_edge, Edge::Top, "слои нельзя наверх");
+        app.set_edge(PanelId::Timeline, Edge::Top);
+        assert_eq!(app.timeline_edge, Edge::Top, "разрешённый край принимаем");
+        app.set_edge(PanelId::Layers, Edge::Left);
+        assert_eq!(app.layers_edge, Edge::Left);
+    }
+
+    #[test]
+    fn panel_ids_differ_per_edge_so_sizes_do_not_mix() {
+        // ключевой момент: PanelState лежит в egui::Memory по Id, и для боковой
+        // панели читается как rect.width(), а для горизонтальной как
+        // rect.height(). Разные Id на каждый край — иначе панель, переехавшая с
+        // низа на бок, прочитала бы старую высоту как ширину
+        assert_ne!(
+            PanelId::Timeline.ui_id(Edge::Bottom),
+            PanelId::Timeline.ui_id(Edge::Top)
+        );
+        assert_ne!(
+            PanelId::Layers.ui_id(Edge::Left),
+            PanelId::Layers.ui_id(Edge::Right)
+        );
+        // и при этом Id уникальны между панелями
+        assert_ne!(
+            PanelId::Timeline.ui_id(Edge::Top),
+            PanelId::Toolbar.ui_id(Edge::Top)
+        );
+    }
+
+    #[test]
+    fn edges_survive_a_restart() {
+        let mut first = PixeshApp::new();
+        first.set_edge(PanelId::Timeline, Edge::Top);
+        first.set_edge(PanelId::Toolbar, Edge::Bottom);
+        first.set_edge(PanelId::Layers, Edge::Left);
+
+        let mut store = config::MemStore::default();
+        eframe::set_value(&mut store, config::PREFS_KEY, &first.prefs());
+        let mut second = PixeshApp::new();
+        second.load_prefs(Some(&store));
+
+        assert_eq!(second.timeline_edge, Edge::Top);
+        assert_eq!(second.toolbar_edge, Edge::Bottom);
+        assert_eq!(second.layers_edge, Edge::Left);
+        assert_eq!(second.status_edge, Edge::Bottom);
+    }
+
+    /// Файл настроек от старой версии без полей краёв читается как исходная
+    /// раскладка, а не как «панели перепутаны».
+    #[test]
+    fn layout_without_edge_fields_keeps_the_original_arrangement() {
+        let mut store = config::MemStore::default();
+        eframe::set_value(
+            &mut store,
+            config::PREFS_KEY,
+            &config::Prefs { show_timeline: false, ..Default::default() },
+        );
+        let mut app = PixeshApp::new();
+        app.load_prefs(Some(&store));
+
+        assert!(!app.show_timeline);
+        assert_eq!(app.toolbar_edge, Edge::Top);
+        assert_eq!(app.layers_edge, Edge::Right);
+        assert_eq!(app.status_edge, Edge::Bottom);
+        assert_eq!(app.timeline_edge, Edge::Bottom);
+    }
+
+    #[test]
+    fn a_forbidden_edge_in_the_file_is_repaired() {
+        let mut store = config::MemStore::default();
+        eframe::set_value(
+            &mut store,
+            config::PREFS_KEY,
+            &config::Prefs {
+                timeline_edge: Edge::Left, // мусор в файле
+                layers_edge: Edge::Top,     // мусор в файле
+                ..Default::default()
+            },
+        );
+        let mut app = PixeshApp::new();
+        app.load_prefs(Some(&store));
+        assert_eq!(app.timeline_edge, Edge::Bottom, "вернули таймлайн вниз");
+        assert_eq!(app.layers_edge, Edge::Right, "вернули слои вправо");
     }
 }

@@ -4,7 +4,7 @@
 //! `egui::Memory`, а eframe сериализует всю память в app.ron, когда включена
 //! фича `persistence`. Нам остаётся только состояние, о котором egui не знает.
 
-use crate::constants::{BrushShape, Tool};
+use crate::constants::{BrushShape, Edge, Tool};
 
 /// Стартовая директория для нативных диалогов открытия/сохранения.
 /// Нужна только rfd, на Android нативных диалогов нет.
@@ -31,6 +31,12 @@ pub(crate) struct Prefs {
     pub show_right_panel: bool,
     pub show_status_bar: bool,
     pub show_timeline: bool,
+    /// Какие края окна занимают панели. Перетаскиванием меняются на лету и
+    /// переживают перезапуск вместе с размерами (размеры egui хранит сам).
+    pub toolbar_edge: Edge,
+    pub layers_edge: Edge,
+    pub status_edge: Edge,
+    pub timeline_edge: Edge,
     pub welcome_show_again: bool,
     pub arrow_speed: f32,
     pub zoom_speed: f32,
@@ -50,6 +56,10 @@ impl Default for Prefs {
             show_right_panel: true,
             show_status_bar: true,
             show_timeline: true,
+            toolbar_edge: Edge::Top,
+            layers_edge: Edge::Right,
+            status_edge: Edge::Bottom,
+            timeline_edge: Edge::Bottom,
             welcome_show_again: true,
             arrow_speed: 5.0,
             zoom_speed: 1.0,
@@ -95,7 +105,44 @@ impl Prefs {
         if self.color_history.len() > 4 {
             self.color_history.truncate(4);
         }
+        // файл редактируется руками, края могут оказаться недопустимыми
+        // (например, таймлайн на боку). Разрешённые краё�� выводим из дефолтного
+        // края панели, а не из испорченного.
+        let d = Self::default();
+        self.toolbar_edge = clamp_edge(self.toolbar_edge, d.toolbar_edge);
+        self.layers_edge = clamp_edge(self.layers_edge, d.layers_edge);
+        self.status_edge = clamp_edge(self.status_edge, d.status_edge);
+        self.timeline_edge = clamp_edge(self.timeline_edge, d.timeline_edge);
     }
+}
+
+/// Оставляет край, если панели он разрешён, иначе возвращает дефолтный.
+/// `default_edge` задаёт, о какой панели речь: горизонтальные (тулбар,
+/// статус, таймлайн) могут ходить только между верхним и нижним краем.
+pub(crate) fn clamp_edge(loaded: Edge, default_edge: Edge) -> Edge {
+    if default_edge.allowed_for().contains(&loaded) {
+        loaded
+    } else {
+        default_edge
+    }
+}
+
+/// Хранилище в памяти для тестов. Так тесты идут через настоящий
+/// `eframe::get_value`, а не через подставной разбор строки. Вынесено из
+/// `mod tests`, чтобы им можно было пользоваться и другим тестовым модулям.
+#[cfg(all(feature = "persistence", test))]
+#[derive(Default)]
+pub(crate) struct MemStore(std::cell::RefCell<std::collections::HashMap<String, String>>);
+
+#[cfg(all(feature = "persistence", test))]
+impl eframe::Storage for MemStore {
+    fn get_string(&self, key: &str) -> Option<String> {
+        self.0.borrow().get(key).cloned()
+    }
+    fn set_string(&mut self, key: &str, value: String) {
+        self.0.borrow_mut().insert(key.to_owned(), value);
+    }
+    fn flush(&mut self) {}
 }
 
 /// f32::clamp на NaN возвращает NaN, поэтому нечисловые значения отсекаем
@@ -108,23 +155,6 @@ fn finite_or(v: f32, fallback: f32) -> f32 {
 mod tests {
     use super::*;
     use eframe::Storage;
-    use std::cell::RefCell;
-    use std::collections::HashMap;
-
-    /// Хранилище в памяти вместо файла. Так тесты идут через настоящий
-    /// `eframe::get_value`, а не через подставной RON.
-    #[derive(Default)]
-    struct MemStore(RefCell<HashMap<String, String>>);
-
-    impl eframe::Storage for MemStore {
-        fn get_string(&self, key: &str) -> Option<String> {
-            self.0.borrow().get(key).cloned()
-        }
-        fn set_string(&mut self, key: &str, value: String) {
-            self.0.borrow_mut().insert(key.to_owned(), value);
-        }
-        fn flush(&mut self) {}
-    }
 
     fn round_trip(p: &Prefs) -> Prefs {
         let mut store = MemStore::default();

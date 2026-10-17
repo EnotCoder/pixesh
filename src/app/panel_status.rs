@@ -6,10 +6,26 @@ use super::PixeshApp;
 
 impl PixeshApp {
     pub(crate) fn ui_status(&mut self, ctx: &egui::Context) {
-        egui::TopBottomPanel::bottom("status")
-            .frame(egui::Frame::new().fill(PANEL))
-            .show_separator_line(false)
-            .show(ctx, |ui| {
+        let edge = self.status_edge;
+        let id = PanelId::Status.ui_id(edge);
+        let mut body = |ui: &mut egui::Ui| self.status_body(ui);
+        let frame = egui::Frame::new().fill(PANEL);
+        // статус-бар — горизонтальная полоса, только верх или низ
+        if edge == Edge::Top {
+            egui::TopBottomPanel::top(id)
+                .frame(frame)
+                .show_separator_line(false)
+                .show(ctx, &mut body);
+        } else {
+            egui::TopBottomPanel::bottom(id)
+                .frame(frame)
+                .show_separator_line(false)
+                .show(ctx, &mut body);
+        }
+    }
+
+    fn status_body(&mut self, ui: &mut egui::Ui) {
+                self.grab_handle(ui, PanelId::Status);
                 ui.add_space(2.0);
                 ui.horizontal(|ui| {
                     ui.add_space(6.0);
@@ -131,6 +147,5 @@ impl PixeshApp {
                 let panel_right = ui.max_rect().right();
                 let panel_top = ui.max_rect().top();
                 ui.painter().hline(panel_left..=panel_right, panel_top, Stroke::new(8.0, BORDER));
-            });
     }
 }

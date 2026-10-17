@@ -10,10 +10,26 @@ use super::PixeshApp;
 
 impl PixeshApp {
     pub(crate) fn ui_toolbar(&mut self, ctx: &egui::Context) {
-        egui::TopBottomPanel::top("tools")
-            .frame(egui::Frame::new().fill(PANEL))
-            .show_separator_line(false)
-            .show(ctx, |ui| {
+        let edge = self.toolbar_edge;
+        let id = PanelId::Toolbar.ui_id(edge);
+        let mut body = |ui: &mut egui::Ui| self.toolbar_body(ui);
+        let frame = egui::Frame::new().fill(PANEL);
+        // тулбар — горизонтальная полоса, ему разрешены только верх и низ
+        if edge == Edge::Top {
+            egui::TopBottomPanel::top(id)
+                .frame(frame)
+                .show_separator_line(false)
+                .show(ctx, &mut body);
+        } else {
+            egui::TopBottomPanel::bottom(id)
+                .frame(frame)
+                .show_separator_line(false)
+                .show(ctx, &mut body);
+        }
+    }
+
+    fn toolbar_body(&mut self, ui: &mut egui::Ui) {
+                self.grab_handle(ui, PanelId::Toolbar);
                 ui.add_space(4.0);
                 self.toolbar_row(ui);
                 ui.add_space(4.0);
@@ -29,7 +45,6 @@ impl PixeshApp {
                 let panel_left = ui.max_rect().left();
                 let panel_right = ui.max_rect().right();
                 ui.painter().hline(panel_left..=panel_right, panel_bottom, Stroke::new(4.0, BORDER));
-            });
     }
 
     /// Main tool row (logo + tools + grid + zoom + brush controls).

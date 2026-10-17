@@ -25,19 +25,39 @@ fn thumb_color(doc: &super::Document, f: usize) -> ColorImage {
 
 impl PixeshApp {
     pub(crate) fn ui_timeline(&mut self, ctx: &egui::Context) {
-        // resizable: тянем верхний край мышкой. Панель прибита к низу, поэтому
-        // растёт она только вверх — вниз просто сжимается обратно.
-        // Высота хранится в памяти egui между кадрами, состояние не нужно.
-        egui::TopBottomPanel::bottom("timeline")
-            .resizable(true)
-            .default_height(150.0)
-            .min_height(120.0)
-            .max_height(ctx.screen_rect().height() * 0.7)
-            .frame(egui::Frame::new().fill(PANEL))
-            .show_separator_line(false)
-            .show(ctx, |ui| {
-                let i = self.active_tab;
-                let doc = &mut self.docs[i];
+        let edge = self.timeline_edge;
+        let id = PanelId::Timeline.ui_id(edge);
+        // resizable: тянем край мышкой. У нижней панель растёт только вверх,
+        // вниз просто сжимается обратно. Размер хранится в памяти egui между
+        // кадрами и переживает перезапуск — в app.ron, вместе с Id панели.
+        // Край входит в Id намеренно, см. PanelId::ui_id.
+        let screen = ctx.screen_rect();
+        let mut body = |ui: &mut egui::Ui| self.timeline_body(ui);
+        if edge.is_vertical() {
+            egui::SidePanel::left(id)
+                .resizable(true)
+                .default_width(260.0)
+                .min_width(180.0)
+                .max_width(520.0)
+                .frame(egui::Frame::new().fill(PANEL))
+                .show_separator_line(false)
+                .show(ctx, &mut body);
+        } else {
+            egui::TopBottomPanel::bottom(id)
+                .resizable(true)
+                .default_height(150.0)
+                .min_height(120.0)
+                .max_height(screen.height() * 0.7)
+                .frame(egui::Frame::new().fill(PANEL))
+                .show_separator_line(false)
+                .show(ctx, &mut body);
+        }
+    }
+
+    fn timeline_body(&mut self, ui: &mut egui::Ui) {
+            self.grab_handle(ui, PanelId::Timeline);
+            let i = self.active_tab;
+            let doc = &mut self.docs[i];
 
                 ui.horizontal(|ui| {
                     ui.add_space(8.0);
@@ -186,6 +206,5 @@ impl PixeshApp {
                 let panel_right = ui.max_rect().right();
                 let panel_top = ui.max_rect().top();
                 ui.painter().hline(panel_left..=panel_right, panel_top, Stroke::new(8.0, BORDER));
-            });
     }
 }
