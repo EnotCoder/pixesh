@@ -4,6 +4,34 @@ A minimal pixel art editor built with Rust and egui.
 
 ![screenshot](img/s_1.png)
 
+## Install
+
+Version 0.1.0. Prebuilt binaries are attached to the
+[GitHub releases](https://github.com/EnotCoder/pixesh/releases/latest) page.
+
+**Linux** — one command, installs into `~/.local/bin`:
+
+```bash
+curl -fLo ~/.local/bin/pixesh \
+  https://github.com/EnotCoder/pixesh/releases/latest/download/pixesh-linux-x86_64 \
+  && chmod +x ~/.local/bin/pixesh
+```
+
+Needs GTK 3 at runtime (for the native file dialogs); everything else is
+already in the binary — icons and the font are embedded.
+
+**Windows** — PowerShell:
+
+```powershell
+irm https://github.com/EnotCoder/pixesh/releases/latest/download/pixesh-windows-x86_64.zip -OutFile pixesh.zip; Expand-Archive pixesh.zip -Force
+```
+
+The executable links only system DLLs, so nothing has to be installed
+alongside it.
+
+Both URLs always resolve to the newest release, so re-running the same
+command is also how you update.
+
 ## Features
 
 - **Drawing tools** — Brush, Eraser, Fill, Eyedropper, Select, Move, Text, Transform
