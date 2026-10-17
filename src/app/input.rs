@@ -198,7 +198,6 @@ impl PixeshApp {
                     self.show_welcome = false;
                     self.show_effects = false;
                     if self.tool == Tool::Effects { self.tool = Tool::Brush; }
-                    crate::app::config::save_welcome_show_again(self.welcome_show_again);
                 } else {
                     self.docs[self.active_tab].deselect();
                 }

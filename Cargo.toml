@@ -11,6 +11,11 @@ crate-type = ["cdylib", "rlib"]
 [features]
 default = ["desktop"]
 
+# Save UI state (panel visibility/sizes, window geometry, preferences) to disk.
+# Enabled on desktop only: eframe has no storage dir on Android, so on mobile
+# there would be nowhere to write it.
+persistence = ["eframe/persistence"]
+
 # Linux desktop build (original UI: toolbar top, layers right, timeline bottom)
 desktop = [
     "eframe/glow",
@@ -19,6 +24,7 @@ desktop = [
     "eframe/wayland",
     "eframe/x11",
     "eframe/web_screen_reader",
+    "persistence",
     "rfd",
 ]
 
@@ -35,6 +41,9 @@ mobile = [
 [dependencies]
 eframe = { version = "0.31", default-features = false }
 image = "0.25"
+
+# Derives for the persisted preference struct in src/app/config.rs.
+serde = { version = "1", features = ["derive"] }
 
 # Only used on desktop (GTK file dialogs don't build on Android).
 rfd = { version = "0.15", default-features = false, features = ["gtk3"], optional = true }

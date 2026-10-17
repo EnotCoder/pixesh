@@ -1,6 +1,6 @@
 use eframe::egui::{self, Color32, Pos2, Rect, Sense, Stroke, Vec2};
 
-use crate::app::{config, Document, PixeshApp};
+use crate::app::{Document, PixeshApp};
 use crate::constants::*;
 use crate::ui::load_icon_texture;
 
@@ -131,7 +131,6 @@ impl PixeshApp {
                 let enter = ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Enter));
                 let esc = ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Escape));
                 if close_resp.clicked() || enter || esc {
-                    config::save_welcome_show_again(self.welcome_show_again);
                     self.show_welcome = false;
                     return;
                 }
@@ -148,7 +147,6 @@ impl PixeshApp {
                             self.new_tab(Document::new_sized("Untitled", side, side));
                         }
                     }
-                    config::save_welcome_show_again(self.welcome_show_again);
                     self.show_welcome = false;
                 }
             });

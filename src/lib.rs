@@ -72,7 +72,12 @@ pub fn run_native_app(native_options: eframe::NativeOptions) -> eframe::Result {
             cc.egui_ctx.set_style(style);
 
             // создаём экземпляр приложения
-            let app = app::PixeshApp::new();
+            let mut app = app::PixeshApp::new();
+
+            // размеры панелей и геометрию окна egui восстанавливает сам из
+            // app.ron (persist_egui_memory); здесь — настройки, о которых
+            // egui не знает: видимость панелей, кисть, инструмент, цвета
+            app.load_prefs(cc.storage);
 
             // Если это мобильная версия, уменьшаем масштаб интерфейса,
             // чтобы на маленьком экране помещалось больше элементов.

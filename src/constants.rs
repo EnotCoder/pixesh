@@ -1,7 +1,7 @@
 use eframe::egui::Color32;
 
 // какие инструменты есть
-#[derive(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
 pub enum Tool { Brush, Eraser, Fill, Eyedropper, Select, Move, Text, Transform, Effects }
 
 // фон при экспорте PNG
@@ -9,7 +9,7 @@ pub enum Tool { Brush, Eraser, Fill, Eyedropper, Select, Move, Text, Transform, 
 pub enum ExportBg { Transparent, White, Black, Checker }
 
 // форма (маска) кисти
-#[derive(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
 pub enum BrushShape { Round, Square }
 
 // ── цвета темы ──

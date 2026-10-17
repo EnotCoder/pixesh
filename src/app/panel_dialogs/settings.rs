@@ -98,7 +98,6 @@ impl PixeshApp {
                         || ui.interact(cb_rect, egui::Id::new("cb_welcome"), egui::Sense::click()).clicked()
                     {
                         self.welcome_show_again = !self.welcome_show_again;
-                        crate::app::config::save_welcome_show_again(self.welcome_show_again);
                         if self.welcome_show_again {
                             self.show_welcome = true;
                         }

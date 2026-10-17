@@ -275,16 +275,18 @@ pub struct PixeshApp {
 
 impl PixeshApp {
     pub fn new() -> Self {
-        let welcome_show_again = config::load_welcome_show_again();
+        // дефолты настроек живут в одном месте — в Prefs, иначе «что было при
+        // первом запуске» и «что лежит в файле» разъезжаются
+        let prefs = Self::initial_prefs();
         Self {
             docs: vec![Document::new("Untitled")],
             active_tab: 0,
             color: Color32::BLACK,
             hsv_h: 0.0, hsv_s: 0.0, hsv_v: 0.0,
             rgb_r: 0.0, rgb_g: 0.0, rgb_b: 0.0, rgb_a: 255.0,
-            brush: 1.0,
-            brush_shape: BrushShape::Square,
-            tool: Tool::Brush,
+            brush: prefs.brush,
+            brush_shape: prefs.brush_shape,
+            tool: prefs.tool,
             tool_saved: None,
             tool_saved_shift: None,
             brush_tex: None, eraser_tex: None, fill_tex: None,
@@ -300,11 +302,15 @@ impl PixeshApp {
             show_export: false, export_scale: 1, export_bg: ExportBg::Transparent,
             export_layers: false, export_sheet: false,
             show_panels: false, show_settings: false,
-            show_top_panel: true, show_right_panel: true, show_status_bar: true, show_timeline: true,
+            show_top_panel: prefs.show_top_panel,
+            show_right_panel: prefs.show_right_panel,
+            show_status_bar: prefs.show_status_bar,
+            show_timeline: prefs.show_timeline,
             show_quit_dialog: false,
-            welcome_show_again,
-            show_welcome: welcome_show_again,
-            arrow_speed: 5.0,             zoom_speed: 1.0,
+            welcome_show_again: prefs.welcome_show_again,
+            show_welcome: prefs.welcome_show_again,
+            arrow_speed: prefs.arrow_speed,
+            zoom_speed: prefs.zoom_speed,
             color_history: Vec::new(),
             renaming_layer: None, rename_buf: String::new(),
             status_hint: String::new(),
@@ -332,6 +338,27 @@ impl PixeshApp {
 }
 
 impl PixeshApp {
+    /// Настройки по умолчанию. Без фичи persistence файла нет, поэтому
+    /// Preferences просто превращается в набор исходных значений полей.
+    fn initial_prefs() -> config::Prefs {
+        config::Prefs::default()
+    }
+
+    /// Ставит текущий цвет сразу во все представления: Color32, RGBA-поля
+    /// и HSV. Держать их по отдельности нельзя — пикер и слайдеры пишут в
+    /// одни и те же поля, и рассинхрон виден пользователю.
+    pub(crate) fn set_color(&mut self, c: Color32) {
+        self.color = c;
+        self.rgb_r = c.r() as f32;
+        self.rgb_g = c.g() as f32;
+        self.rgb_b = c.b() as f32;
+        self.rgb_a = c.a() as f32;
+        let (h, s, v) = crate::color::rgb_to_hsv(c.r(), c.g(), c.b());
+        self.hsv_h = h;
+        self.hsv_s = s;
+        self.hsv_v = v;
+    }
+
     pub(crate) fn dialog_open(&self) -> bool {
         self.show_resize || self.show_export
             || self.show_panels || self.show_settings || self.show_scale
@@ -343,6 +370,76 @@ impl PixeshApp {
     pub(crate) fn hint(&mut self, msg: impl Into<String>) {
         self.status_hint = msg.into();
         self.status_hint_until = self.last_time + 2.5;
+    }
+
+    /// Снимок сохраняемого состояния. Список намеренно короткий: сюда попадает
+    /// только то, что имеет смысл помнить между запусками. Флаги диалогов
+    /// (show_resize/show_export/show_settings/show_panels/show_text/
+    /// show_effects/show_quit_dialog) сюда НЕ идут — иначе при запуске вылезет
+    /// диалог, и «закрытое окно» будет открываться само.
+    #[cfg_attr(not(feature = "persistence"), allow(dead_code))]
+    pub(crate) fn prefs(&self) -> config::Prefs {
+        config::Prefs {
+            show_top_panel: self.show_top_panel,
+            show_right_panel: self.show_right_panel,
+            show_status_bar: self.show_status_bar,
+            show_timeline: self.show_timeline,
+            welcome_show_again: self.welcome_show_again,
+            arrow_speed: self.arrow_speed,
+            zoom_speed: self.zoom_speed,
+            brush: self.brush,
+            brush_shape: self.brush_shape,
+            tool: self.tool,
+            rgba: [
+                self.rgb_r.clamp(0.0, 255.0) as u8,
+                self.rgb_g.clamp(0.0, 255.0) as u8,
+                self.rgb_b.clamp(0.0, 255.0) as u8,
+                self.rgb_a.clamp(0.0, 255.0) as u8,
+            ],
+            color_history: self
+                .color_history
+                .iter()
+                .map(|c| [c.r(), c.g(), c.b(), c.a()])
+                .collect(),
+        }
+    }
+
+    /// Восстанавливает состояние из файла. Метода `App::restore` в eframe 0.31
+    /// нет — читать хранилище приходится здесь, в замыкании создания.
+    pub(crate) fn load_prefs(&mut self, storage: Option<&dyn eframe::Storage>) {
+        let prefs = config::Prefs::load(storage);
+
+        self.show_top_panel = prefs.show_top_panel;
+        self.show_right_panel = prefs.show_right_panel;
+        self.show_status_bar = prefs.show_status_bar;
+        self.show_timeline = prefs.show_timeline;
+        self.welcome_show_again = prefs.welcome_show_again;
+        self.arrow_speed = prefs.arrow_speed;
+        self.zoom_speed = prefs.zoom_speed;
+        self.brush = prefs.brush;
+        self.brush_shape = prefs.brush_shape;
+        self.tool = prefs.tool;
+        self.set_color(Color32::from_rgba_unmultiplied(
+            prefs.rgba[0], prefs.rgba[1], prefs.rgba[2], prefs.rgba[3],
+        ));
+        self.color_history = prefs
+            .color_history
+            .iter()
+            .map(|c| Color32::from_rgba_unmultiplied(c[0], c[1], c[2], c[3]))
+            .collect();
+
+        // dialogs must all start closed
+        self.show_resize = false;
+        self.show_scale = false;
+        self.show_export = false;
+        self.show_panels = false;
+        self.show_settings = false;
+        self.show_quit_dialog = false;
+        self.show_effects = false;
+        self.show_text = false;
+        self.show_welcome = self.welcome_show_again;
+        if self.tool == Tool::Effects { self.tool = Tool::Brush; }
+        self.renaming_layer = None;
     }
 
     /// Открывает картинку в НОВОЙ вкладке. Общая точка для Ctrl+L и для
@@ -513,6 +610,21 @@ impl PixeshApp {
 
 // ── eframe::App ──────────────────────────────────────
 impl eframe::App for PixeshApp {
+    /// eframe вызывает это раз в auto_save_interval и при выходе. Метода
+    /// restore в eframe 0.31 нет, поэтому чтение живёт в load_prefs.
+    fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        #[cfg(feature = "persistence")]
+        eframe::set_value(storage, config::PREFS_KEY, &self.prefs());
+        #[cfg(not(feature = "persistence"))]
+        let _ = storage;
+    }
+
+    /// Дефолт — 30 секунд. Столько теряется при падении, а панель тянут
+    /// мышкой и вполне можно успеть за это время закрыть приложение.
+    fn auto_save_interval(&self) -> std::time::Duration {
+        std::time::Duration::from_secs(10)
+    }
+
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.last_time = ctx.input(|i| i.time);
         self.handle_input(ctx);
@@ -644,5 +756,146 @@ mod tests {
         assert!(app.open_path(&path).is_none(), "не-картинка не открывается");
         assert_eq!(app.docs.len(), tabs_before, "пустую вкладку не создаём");
         assert!(!app.status_hint.is_empty(), "пользователь должен узнать о проблеме");
+    }
+}
+
+// ── сохранение настроек ───────────────────────────────
+#[cfg(feature = "persistence")]
+#[cfg(test)]
+mod prefs_tests {
+    use super::*;
+    use eframe::Storage;
+    use std::cell::RefCell;
+    use std::collections::HashMap;
+
+    #[derive(Default)]
+    struct MemStore(RefCell<HashMap<String, String>>);
+
+    impl Storage for MemStore {
+        fn get_string(&self, key: &str) -> Option<String> {
+            self.0.borrow().get(key).cloned()
+        }
+        fn set_string(&mut self, key: &str, value: String) {
+            self.0.borrow_mut().insert(key.to_owned(), value);
+        }
+        fn flush(&mut self) {}
+    }
+
+    fn store_with(app: &PixeshApp) -> MemStore {
+        let mut s = MemStore::default();
+        eframe::set_value(&mut s, config::PREFS_KEY, &app.prefs());
+        s
+    }
+
+    #[test]
+    fn panel_visibility_survives_a_restart() {
+        let mut first = PixeshApp::new();
+        // прячем тулбар и таймлайн — как это делает диалог панелей
+        first.show_top_panel = false;
+        first.show_timeline = false;
+        first.show_status_bar = false;
+        first.welcome_show_again = false;
+
+        let store = store_with(&first);
+        let mut second = PixeshApp::new();
+        second.load_prefs(Some(&store));
+
+        assert!(!second.show_top_panel, "закрытый тулбар не должен вернуться");
+        assert!(!second.show_timeline, "закрытый таймлайн не должен вернуться");
+        assert!(!second.show_status_bar);
+        assert!(second.show_right_panel, "не тронутая панель остаётся на месте");
+        assert!(!second.welcome_show_again);
+    }
+
+    #[test]
+    fn tool_and_brush_survive_a_restart() {
+        let mut first = PixeshApp::new();
+        first.tool = Tool::Text;
+        first.brush = 9.0;
+        first.brush_shape = BrushShape::Round;
+        first.arrow_speed = 33.0;
+
+        let store = store_with(&first);
+        let mut second = PixeshApp::new();
+        second.load_prefs(Some(&store));
+
+        assert_eq!(second.tool, Tool::Text);
+        assert_eq!(second.brush, 9.0);
+        assert_eq!(second.brush_shape, BrushShape::Round);
+        assert_eq!(second.arrow_speed, 33.0);
+    }
+
+    /// Цвет хранится как RGBA, а HSV/RGB-поля из него пересчитываются —
+    /// иначе пикер и слайдеры показывали бы разные цвета.
+    #[test]
+    fn color_is_restored_consistently_across_representations() {
+        let mut first = PixeshApp::new();
+        first.set_color(Color32::from_rgb(200, 100, 50));
+        first.color_history.push(Color32::from_rgb(1, 2, 3));
+
+        let store = store_with(&first);
+        let mut second = PixeshApp::new();
+        second.load_prefs(Some(&store));
+
+        assert_eq!(second.color, Color32::from_rgb(200, 100, 50));
+        assert_eq!(second.rgb_r, 200.0);
+        assert_eq!(second.rgb_g, 100.0);
+        let (h, s, v) = crate::color::rgb_to_hsv(200, 100, 50);
+        assert_eq!(second.hsv_h, h);
+        assert_eq!(second.hsv_s, s);
+        assert_eq!(second.hsv_v, v);
+        assert_eq!(second.color_history, vec![Color32::from_rgb(1, 2, 3)]);
+    }
+
+    /// Главная защита от раздражающего бага: диалоги не должны вылезать
+    /// при запуске, даже если в файле что-то о них есть.
+    #[test]
+    fn dialogs_never_restore() {
+        let mut first = PixeshApp::new();
+        first.show_resize = true;
+        first.show_scale = true;
+        first.show_export = true;
+        first.show_panels = true;
+        first.show_settings = true;
+        first.show_quit_dialog = true;
+        first.show_effects = true;
+        first.show_text = true;
+        first.renaming_layer = Some(0);
+
+        let store = store_with(&first);
+        let mut second = PixeshApp::new();
+        second.load_prefs(Some(&store));
+
+        assert!(!second.show_resize && !second.show_scale && !second.show_export);
+        assert!(!second.show_panels && !second.show_settings && !second.show_quit_dialog);
+        assert!(!second.show_effects && !second.show_text);
+        assert!(second.renaming_layer.is_none());
+    }
+
+    /// Эффекты сохранять не просили, и инструмент Effects без открытой панели
+    /// бессмысленен — приводим к кисти.
+    #[test]
+    fn effects_tool_is_not_restored() {
+        let mut first = PixeshApp::new();
+        first.tool = Tool::Effects;
+        first.welcome_show_again = false;
+        let store = store_with(&first);
+
+        let mut second = PixeshApp::new();
+        second.load_prefs(Some(&store));
+        assert_eq!(second.tool, Tool::Brush);
+        assert!(!second.show_welcome);
+    }
+
+    /// Пустое хранилище = первый запуск: ничего не ломается, всё живо.
+    #[test]
+    fn first_run_without_a_file_is_all_defaults() {
+        let mut app = PixeshApp::new();
+        app.load_prefs(None);
+        assert!(app.show_top_panel && app.show_right_panel);
+        assert!(app.show_status_bar && app.show_timeline);
+        assert!(app.welcome_show_again && app.show_welcome);
+        assert_eq!(app.tool, Tool::Brush);
+        assert_eq!(app.brush, 1.0);
     }
 }
