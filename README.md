@@ -2,188 +2,77 @@
 
 A minimal pixel art editor built with Rust and egui.
 
-![screenshot](img/s_1.png)
+![Pixesh](img/icon.png)
 
 ## Install
 
-Version 0.1.0. Download a prebuilt archive from the
-[GitHub releases](https://github.com/EnotCoder/pixesh/releases/latest) page:
+Version 0.1.0 — grab an archive from the
+[releases page](https://github.com/EnotCoder/pixesh/releases/latest):
 
 | Platform | File |
 |----------|------|
 | Linux x86-64 | `pixesh-0.1.0-linux-x86_64.zip` |
 | Windows x86-64 | `pixesh-0.1.0-windows-x86_64.zip` |
 
-Unpack and run `pixesh` (Linux) or `pixesh.exe` (Windows). Nothing else is
-needed: icons and the font are embedded in the binary, and the Windows build
-links only system DLLs.
-
-On Linux the app needs **GTK 3** at runtime, and only for the native file
-dialogs — rendering does not use it:
-
-```bash
-sudo apt install libgtk-3-0   # Debian / Ubuntu
-```
+Unpack and run `pixesh` / `pixesh.exe`. Icons and the font are embedded in the
+binary, and the Windows build links only system DLLs. On Linux you need
+**GTK 3** at runtime, and only for the file dialogs:
+`sudo apt install libgtk-3-0`.
 
 ## Features
 
-- **Drawing tools** — Brush, Eraser, Fill, Eyedropper, Select, Move, Text, Transform
-- **Brush shapes** — Round / Square mask (toolbar size slider + shape buttons)
-- **Effects panel** — 17 effects ported from [Pixelorama](https://github.com/Orama-Interactive/Pixelorama), with a live preview — see [Effects](#effects)
-- **Layers** — Add / remove / duplicate / flatten, rename (double-click), per-layer visibility
-- **Animation** — Add / duplicate / delete frames, reorder with `<` and `>`, play-pause with an FPS setting
-- **Selection** — Rectangular marquee, delete contents, crop the canvas to the selection
-- **Copy / Paste** — `Ctrl+C` / `Ctrl+V` (or `Y` / `P`); the pasted block lands offset from the source and can be dragged into place before you commit it with `Enter`
-- **HSV color picker** — Saturation/Value field + Hue strip
-- **Canvas resize / scale** — Change dimensions or scale the image
-- **Text tool** — Stamp text onto the canvas with the built-in font
-- **Export PNG** — Save your artwork (scale x1–x16, background: none/white/black/checker)
-- **Open images** — `Ctrl+L` file dialog, or drag files straight from your file manager onto the window; each file opens as its own tab
-- **Welcome dialog** — Quick-start window at launch (New / Open / canvas presets), "show on startup" is remembered between runs
-- **Resizable timeline** — Drag the top edge of the animation strip upward to make it taller
-- **Rearrangeable panels** — Drag a panel by its grip handle to another window edge, the way you move areas in Blender — see [Layout](#layout)
-- **Layout is remembered** — Panel visibility, panel sizes, window size and position, plus the brush, active tool, colour and slider settings, all come back on the next launch
-- **Grid overlay** — Toggle pixel grid
-- **Zoom & pan** — Scroll to zoom, arrows/middle-mouse to pan
-- **Zoom to fit** — Auto-zoom on image load
-- **Mirror** — Flip active layer horizontally/vertically with toolbar buttons
-- **Undo / Redo** — Ctrl+Z / Ctrl+Shift+Z (up to 50 steps)
-- **Multi-document tabs** — Open multiple images, Ctrl+Tab to switch
-- **Toggleable panels** — Hide the toolbar, layers, status bar or timeline to get the canvas out of the way (`Ctrl+W`)
+- **Tools** — Brush, Eraser, Fill, Eyedropper, Select, Move, Text, Transform,
+  with round or square brush shapes
+- **Effects** — 17 effects ported from
+  [Pixelorama](https://github.com/Orama-Interactive/Pixelorama), with a live
+  preview; see [Effects](#effects)
+- **Animation** — add, duplicate and reorder frames, play-pause with an FPS
+  setting, per-layer cels
+- **Layers** — add, remove, duplicate, flatten, rename, per-layer visibility
+- **Selection** — rectangular marquee, copy/paste, delete, crop the canvas to
+  the selection
+- **Editing** — resize or scale the canvas with an optional aspect-ratio lock,
+  text tool, mirror, grid overlay, HSV picker, zoom and pan, zoom-to-fit
+- **Rearrangeable layout** — drag panels between window edges, resize them,
+  hide them; the arrangement and your settings come back on the next launch
+- **Files** — open with `Ctrl+L` or by dropping files onto the window (each
+  becomes its own tab), multi-document tabs, PNG export with scale and
+  background options
+- **History** — undo / redo, up to 50 steps
 
 ## Controls
 
-### Tools
-
 | Key | Action |
 |-----|--------|
-| `B` | Brush |
-| `E` | Eraser |
-| `F` | Fill (flood fill) |
-| `R` | Rectangular select |
-| `M` | Move (selection or canvas) |
-| `T` | Text |
-| `S` | Transform (needs a selection) |
-| `Y` | Copy selection to clipboard |
-| `P` | Paste clipboard (lands offset from the selection, or centred) |
-| `Alt` (hold) | Eyedropper (temporary) |
+| `B` `E` `F` | Brush, Eraser, Fill |
+| `R` `M` `T` `S` | Select, Move, Text, Transform (needs a selection) |
+| `Alt` (hold) | Eyedropper |
 | `Right-click + drag` | Eraser |
-
-### Color
-
-| Key | Action |
-|-----|--------|
-| `W` | Darken color |
-| `.` | Brighten color |
-| `A` | Decrease opacity |
-| `D` | Increase opacity |
-
-### Selection
-
-| Key | Action |
-|-----|--------|
-| `Ctrl+C` | Copy selection to clipboard |
-| `Ctrl+V` | Paste clipboard |
-| `Enter` | Commit pasted pixels / crop canvas to selection |
-| `Delete` | Delete selected pixels |
-| `Escape` | Cancel paste, deselect, close dialogs |
-
-### Animation
-
-| Key | Action |
-|-----|--------|
-| `[` | Previous frame |
-| `]` | Next frame |
-| `Space` | Play / pause |
-
-### Navigation
-
-| Key | Action |
-|-----|--------|
-| `Scroll` | Zoom in/out |
-| `Shift+Scroll` | Brush size |
-| `Arrow keys` | Pan canvas |
-| `Shift+Arrow` | Pan canvas (4x speed) |
+| `W` `.` | Darken / brighten the colour |
+| `A` `D` | Decrease / increase opacity |
+| `Ctrl+C` `Ctrl+V` | Copy / paste selection — `Y` and `P` do the same |
+| `Enter` | Commit pasted pixels, otherwise crop to the selection |
+| `Delete` / `Escape` | Delete selection / cancel paste, deselect, close dialogs |
+| `[` `]` `Space` | Previous / next frame, play-pause |
+| `Scroll` / `Shift+Scroll` | Zoom / brush size |
+| `Arrows`, `Shift+Arrows` | Pan canvas (`Shift` = 4x speed) |
 | `Middle mouse drag` | Pan canvas |
-
-### File & Dialogs
-
-| Key | Action |
-|-----|--------|
-| `Ctrl+S` | Export PNG dialog |
-| `Ctrl+L` | Load image (opens in new tab) |
-| `Ctrl+R` | Resize canvas dialog |
-| `Ctrl+I` | Scale canvas dialog |
-| `Ctrl+H` | Settings dialog |
-| `Ctrl+W` | Toggle panels visibility |
+| `Ctrl+S` / `Ctrl+L` | Export PNG / open image in a new tab |
+| `Ctrl+R` / `Ctrl+I` | Resize / scale canvas |
+| `Ctrl+W` | Panels dialog — show, hide and arrange panels |
 | `Ctrl+Shift+E` | Effects panel |
 | `Ctrl+Shift+F` | Flatten layers |
-| `Ctrl+D` | Deselect |
-| `Ctrl+Tab` | Switch to next tab |
-| `Ctrl+Z` | Undo |
-| `Ctrl+Shift+Z` | Redo |
+| `Ctrl+H` / `Ctrl+D` | Settings / deselect |
+| `Ctrl+Tab` | Next tab |
+| `Ctrl+Z` / `Ctrl+Shift+Z` | Undo / redo |
 | `G` | Toggle grid |
-
-## Layout
-
-The toolbar, status bar, timeline and layers panel can be dragged to a
-different edge of the window by the small grip at the start of each panel.
-While you drag, the eligible edges light up; drop on one of them.
-
-Each panel is only offered the edges that suit its content:
-
-| Panel | Edges |
-|-------|-------|
-| Toolbar, Status bar, Timeline | Top, Bottom |
-| Layers panel | Left, Right |
-
-The toolbar, status bar and timeline are horizontal strips; the layers panel
-is a vertical list with a colour picker in it. Letting the frame strip hug
-the side of the window would produce a narrow unusable column, so the
-timeline is never offered a side edge and the layers panel never a top or
-bottom one.
-
-Panels share an edge in a fixed order that does not depend on where you have
-moved them, so they do not swap places every time you drag one. Sizing a
-panel is separate from moving it: drag the panel's *outer* edge to resize,
-its grip to move.
-
-Panels are hidden and shown from the `Ctrl+W` dialog. Dialogs themselves
-(resize, export, effects, settings, text, welcome) always start closed.
-
-### Where the layout is stored
-
-Everything above is written to a single file and restored on the next launch:
-
-- Linux: `~/.local/share/pixesh/app.ron`
-- Windows: `%APPDATA%\pixesh\data\app.ron`
-
-It is written every 10 seconds and on exit, so a crash can lose the last few
-seconds. The file is plain RON and safe to read, though not intended to be
-hand-edited — values outside the ranges the UI allows are clamped on load,
-and an unreadable file simply falls back to defaults.
-
-Panel **sizes** and the window geometry live in that same file, but under keys
-that egui owns (`egui` and `window`) rather than the app's own
-(`pixesh_prefs`): the arrangement (which edge each panel sits on), panel
-visibility, brush, tool, colour and the arrow/zoom speed settings.
-
-Dialog flags are deliberately not stored, otherwise a dialog would reopen by
-itself on the next start.
 
 ## Effects
 
-`Ctrl+Shift+E` (or the sparkle button in the toolbar) opens the effects panel.
-Effects respect the current selection — with a marquee active, only pixels
-inside it are touched. The preview updates live as you drag a slider, and
-**Apply** writes the result to the active layer or to every layer / every
-frame, depending on the toggles. Nothing is recorded in the undo history
-unless the pixels actually change.
-
-The list and the per-effect parameters are ported from
-[Pixelorama](https://github.com/Orama-Interactive/Pixelorama)'s Effects menu,
-but the GLSL shaders are reimplemented as plain CPU code — no GPU shader
-compilation is involved, so effects behave identically everywhere.
+`Ctrl+Shift+E` (or the sparkle button) opens the panel. Effects respect the
+active selection, preview live while you drag a slider, and can be applied to
+every layer or every frame. Nothing enters the undo history unless pixels
+actually change.
 
 | Category | Effects |
 |----------|---------|
@@ -192,41 +81,31 @@ compilation is involved, so effects behave identically everywhere.
 | **Procedural** | Outline, Drop Shadow, Gradient |
 | **Blur** | Pixelize, Gaussian Blur |
 
-Two effects are deliberately not pixel-identical to Pixelorama:
+Ported from Pixelorama; the GLSL shaders are reimplemented as plain CPU code,
+so they behave identically everywhere. Two are deliberately not identical to
+the originals: **Palettize** builds its palette from the image itself (median
+cut), and **Color Curves** is a per-channel gamma plus black/white points
+rather than an interactive curve editor.
 
-- **Palettize** builds its palette from the image being filtered (median cut)
-  instead of relying on a fixed or externally supplied palette.
-- **Color Curves** is exposed as a per-channel gamma plus black/white points.
-  Pixelorama uses an interactive curve editor, which has no equivalent in a
-  parameter list.
+## Layout
+
+Drag a panel by the small grip at its start onto another window edge — the
+eligible edges light up while you drag. Toolbar, status bar and timeline move
+only between top and bottom, the layers panel only between left and right,
+since they are shaped differently. Drag a panel's *outer* edge to resize it.
+
+Everything is kept in one file — `~/.local/share/pixesh/app.ron` on Linux,
+`%APPDATA%\pixesh\data\app.ron` on Windows — written every 10 seconds and on
+exit. Dialogs are never restored, so nothing opens by itself.
 
 ## Build
 
 ```bash
 cargo build --release
-```
-
-Run with:
-
-```bash
 ./target/release/pixesh
 ```
 
-### Linux dependencies
-
-The binary links against GTK 3 (for the native Open/Save dialogs) and the usual
-X11/Wayland graphics stack. On Debian/Ubuntu:
-
-```bash
-sudo apt install libgtk-3-0 libx11-6 libx11-xcb1 libxcb1 \
-    libxkbcommon0 libwayland-client0 libopengl0
-```
-
-Rendering itself does not need GTK — only the file dialogs do.
-
-### Windows (cross-compiled from Linux)
-
-Requires the `x86_64-pc-windows-gnu` target and mingw-w64:
+Windows can be cross-compiled from Linux:
 
 ```bash
 rustup target add x86_64-pc-windows-gnu
@@ -234,35 +113,5 @@ CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=x86_64-w64-mingw32-gcc \
     cargo build --release --target x86_64-pc-windows-gnu
 ```
 
-The resulting `pixesh.exe` imports system DLLs only — no mingw runtime DLLs
-need to be shipped alongside it. All icons and the font are embedded via
-`include_bytes!`, so the executable is self-contained on a clean Windows
-10/11.
-
-## Project Structure
-
-- `src/main.rs` — Entry point; the Windows build is marked GUI so no console window appears
-- `src/lib.rs` — Library entry point (`run_native_app`), embeds the font, sets up visuals
-- `src/app/` — Core application logic
-  - `mod.rs` — App state (layers, color, tools, undo, selection, multi-doc tabs), file opening, drag-and-drop
-  - `canvas.rs` — Compositing, pixel painting, Bresenham lines, flood fill, mirror
-  - `anim.rs` — Per-frame compositing
-  - `history.rs` — Undo/redo with snapshots
-  - `input.rs` — Keyboard shortcuts, zoom, pan, copy/paste
-  - `io.rs` — Save/load PNG, open image by path, layer management, canvas resize/scale/crop
-  - `effects.rs` — The 17 Pixelorama effects (CPU implementations)
-  - `text.rs` — Text stamping helpers
-  - `config.rs` — Persisted preferences: panel visibility and edges, brush, tool, colour, slider settings
-  - `panel_canvas.rs` — Canvas rendering, tool dispatch
-  - `panel_drag.rs` — Dragging panels between window edges: grip handle, drop zones
-  - `panel_dialogs/` — Effects, Export, Panels, Resize, Scale, Settings, Text, Welcome dialogs
-  - `panel_layers.rs` — Layers panel, HSV color picker
-  - `panel_status.rs` — Status bar, including transient hints
-  - `panel_timeline.rs` — Resizable animation strip
-  - `panel_toolbar.rs` — Toolbar with tool icons, grid toggle, tab bar
-  - `tools.rs` — Tool handlers (brush, fill, eyedropper, selection, move, paste)
-- `src/color.rs` — HSV <-> RGB conversion
-- `src/constants.rs` — Colors, sizes, Tool enum
-- `src/ui.rs` — Custom widgets (button, icon button, checkbox, slider)
-- `tex/` — Tool icons
-- `img/` — Screenshots
+Architecture and internals are documented in
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
