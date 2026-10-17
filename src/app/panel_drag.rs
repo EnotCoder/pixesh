@@ -68,9 +68,8 @@ impl PixeshApp {
 
     /// Зоны-приёмники и подсветка активной. Вызывается после отрисовки холста.
     pub(crate) fn ui_panel_drag(&mut self, ctx: &egui::Context) {
-        // на мобильной раскладке таймлайна и статус-бара нет, а диалог должен
-        // перехватывать мышь целиком
-        if self.mobile || self.dialog_open() {
+        // диалог должен перехватывать мышь целиком
+        if self.dialog_open() {
             self.cancel_panel_drag();
             return;
         }

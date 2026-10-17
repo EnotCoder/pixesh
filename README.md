@@ -150,9 +150,6 @@ visibility, brush, tool, colour and the arrow/zoom speed settings.
 Dialog flags are deliberately not stored, otherwise a dialog would reopen by
 itself on the next start.
 
-On Android there is no such file — eframe has no data directory there — so the
-mobile build starts from defaults every time.
-
 ## Effects
 
 `Ctrl+Shift+E` (or the sparkle button in the toolbar) opens the effects panel.
@@ -220,42 +217,6 @@ The resulting `pixesh.exe` imports system DLLs only — no mingw runtime DLLs
 need to be shipped alongside it. All icons and the font are embedded via
 `include_bytes!`, so the executable is self-contained on a clean Windows
 10/11.
-
----
-
-## Android build (mobile)
-
-The mobile UI (tools top, layers+toolbars bottom, vertical center panel, no
-timeline) is gated behind the `mobile` crate feature. It never compiles `rfd`
-(GTK file dialogs can't build on Android).
-
-Requirements (already on this machine):
-
-- Android SDK + NDK 25.2.9519653, build-tools 36.1.0, platform android-33
-- Android targets installed: `rustup target add aarch64-linux-android x86_64-linux-android`
-
-### 1. Check the mobile build (fastest feedback)
-
-```bash
-cargo check --target aarch64-linux-android --lib --no-default-features --features mobile
-```
-
-### 2. Build the APK
-
-```bash
-./scripts/build_android.sh
-```
-
-Writes a signed `pixesh-debug.apk` in the repository root. The script is a
-manual pipeline — **no Gradle and no `cargo-apk`**: it builds `libpixesh.so`
-for `aarch64` and `x86_64`, compiles `android/res` with `aapt2`, links a base
-APK against `android/AndroidManifest.xml`, injects both `.so` files, then runs
-`zipalign` and `apksigner` (debug keystore).
-
-winit's `android-native-activity` provides the native activity; the entry point
-lives in `src/lib.rs` under the `mobile` feature. `android/res/mipmap-*` holds
-the launcher icon at all densities and `android/res/values/strings.xml` the app
-name, which is why no Gradle project is needed.
 
 ## Project Structure
 

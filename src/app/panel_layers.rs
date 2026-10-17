@@ -9,7 +9,7 @@ impl PixeshApp {
     pub(crate) fn ui_layers(&mut self, ctx: &egui::Context) {
         let edge = self.layers_edge;
         let id = PanelId::Layers.ui_id(edge);
-        let def_w = if self.mobile { 180.0 } else { 280.0 };
+        let def_w = 280.0;
         let mut body = |ui: &mut egui::Ui| self.layers_body(ctx, ui);
         // панель слоёв — вертикальный список, ей разрешены только левый и
         // правый края
@@ -203,7 +203,7 @@ impl PixeshApp {
                 // preview + RGB readout
                 ui.horizontal(|ui| {
                     ui.add_space(PANEL_PAD);
-                    let ps = if self.mobile { 60.0 } else { 100.0 };
+                    let ps = 100.0;
                     let (pr, pr_resp) = ui.allocate_exact_size(Vec2::new(ps, ps), Sense::hover());
                     let pv = pr.translate(Vec2::new(0.0, -4.0));
                     let pc = Color32::from_rgba_unmultiplied(self.rgb_r as u8, self.rgb_g as u8, self.rgb_b as u8, self.rgb_a as u8);
@@ -217,8 +217,8 @@ impl PixeshApp {
                     ui.add_space(PANEL_PAD);
                     ui.vertical(|ui| {
                         let mut y = ui.cursor().min.y;
-                        let font_sz = if self.mobile { FONT_SZ * 0.8 } else { FONT_SZ };
-                        let row_step = if self.mobile { ROW_H } else { ROW_H + 4.0 };
+                        let font_sz = FONT_SZ;
+                        let row_step = ROW_H + 4.0;
                         
                         for (ch, &v) in [("R", &self.rgb_r), ("G", &self.rgb_g), ("B", &self.rgb_b), ("A", &self.rgb_a)] {
                             let txt = format!("{} {}", ch, v as u8);

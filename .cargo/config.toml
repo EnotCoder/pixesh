@@ -1,6 +1,5 @@
-[target.aarch64-linux-android]
-linker = "aarch64-linux-android26-clang"
-
-[env]
-CC_aarch64_linux_android = "aarch64-linux-android26-clang"
-AR_aarch64_linux_android = "llvm-ar"
+# Конфигурация сборки намеренно пустая: Android-линкер убран вместе с
+# мобильным портом. Для Windows-таргета линкер задаётся переменной окружения:
+#
+#   CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=x86_64-w64-mingw32-gcc \
+#       cargo build --release --target x86_64-pc-windows-gnu

@@ -288,9 +288,6 @@ pub struct PixeshApp {
     pub(crate) close_handled: bool,
 
     pub(crate) logo_easter_egg: f32,
-
-    /// True on the Android build: vertical UI — tools on top, layers+color at the bottom.
-    pub(crate) mobile: bool,
 }
 
 impl PixeshApp {
@@ -360,7 +357,6 @@ impl PixeshApp {
             cursor_px: None,
             close_handled: false,
             logo_easter_egg: 0.0,
-            mobile: cfg!(feature = "mobile"),
         }
     }
 }
@@ -720,8 +716,8 @@ impl eframe::App for PixeshApp {
             match p {
                 PanelId::Toolbar => self.ui_toolbar(ctx),
                 PanelId::Layers => self.ui_layers(ctx),
-                PanelId::Status => if !self.mobile { self.ui_status(ctx) },
-                PanelId::Timeline => if !self.mobile { self.ui_timeline(ctx) },
+                PanelId::Status => self.ui_status(ctx),
+                PanelId::Timeline => self.ui_timeline(ctx),
             }
         }
         self.ui_canvas(ctx);

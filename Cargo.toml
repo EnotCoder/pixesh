@@ -12,11 +12,9 @@ crate-type = ["cdylib", "rlib"]
 default = ["desktop"]
 
 # Save UI state (panel visibility/sizes, window geometry, preferences) to disk.
-# Enabled on desktop only: eframe has no storage dir on Android, so on mobile
-# there would be nowhere to write it.
 persistence = ["eframe/persistence"]
 
-# Linux desktop build (original UI: toolbar top, layers right, timeline bottom)
+# Desktop build: toolbar top, layers right, timeline bottom
 desktop = [
     "eframe/glow",
     "eframe/default_fonts",
@@ -28,15 +26,8 @@ desktop = [
     "rfd",
 ]
 
-# Native file dialogs (GTK3). Only enabled on desktop, never on Android.
+# Native file dialogs (GTK3).
 rfd = ["dep:rfd"]
-
-# Android / mobile build (vertical UI: tools top, layers bottom, no timeline)
-mobile = [
-    "eframe/glow",
-    "eframe/default_fonts",
-    "eframe/android-native-activity",
-]
 
 [dependencies]
 eframe = { version = "0.31", default-features = false }
@@ -45,9 +36,5 @@ image = "0.25"
 # Derives for the persisted preference struct in src/app/config.rs.
 serde = { version = "1", features = ["derive"] }
 
-# Only used on desktop (GTK file dialogs don't build on Android).
+# GTK3 file dialogs; Linux only in practice.
 rfd = { version = "0.15", default-features = false, features = ["gtk3"], optional = true }
-
-[target.'cfg(target_os = "android")'.dependencies]
-# To name the AndroidApp type in the android_main entry point.
-winit = { version = "0.30", features = ["android-native-activity"] }

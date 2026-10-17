@@ -294,19 +294,6 @@ impl PixeshApp {
             }
         }
 
-        // mobile pinch zoom + two-finger pan
-        if self.mobile {
-            if let Some(mt) = ctx.input(|i| i.multi_touch()) {
-                let tab = self.active_tab;
-                let doc = &mut self.docs[tab];
-                let old = doc.zoom;
-                doc.zoom = (doc.zoom * mt.zoom_delta).clamp(0.1, 60.0);
-                doc.pan *= doc.zoom / old;
-                doc.pan.x += mt.translation_delta.x * (1.0 / doc.zoom);
-                doc.pan.y += mt.translation_delta.y * (1.0 / doc.zoom);
-            }
-        }
-
         // arrow pan
         if !self.dialog_open() {
             let tab = self.active_tab;

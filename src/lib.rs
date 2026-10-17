@@ -5,24 +5,9 @@ mod ui;
 
 use eframe::egui;
 
-// ── android entry ────────────────────────────────────
-// On Android eframe links an `android_main` exported from the cdylib
-// (libpixesh.so) rather than a `main()` in the binary target. So it lives
-// here, in the lib, gated to Android only.
-#[cfg(target_os = "android")]
-#[cfg_attr(target_os = "android", unsafe(no_mangle))]
-fn android_main(app: winit::platform::android::activity::AndroidApp) {
-    let native_options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_fullscreen(true),
-        android_app: Some(app),
-        ..Default::default()
-    };
-    let _ = run_native_app(native_options);
-}
-
 use constants::*;
 
-/// Boot the egui app. Desktop calls this from `fn main`, Android from `android_main`.
+/// Boot the egui app. Called from `fn main` in src/main.rs.
 pub fn run_native_app(native_options: eframe::NativeOptions) -> eframe::Result {
     // читаем файл шрифта во время компиляции (лежит в корне проекта)
     let font_data: &'static [u8] = include_bytes!("../tex/font.otf");
@@ -78,12 +63,6 @@ pub fn run_native_app(native_options: eframe::NativeOptions) -> eframe::Result {
             // app.ron (persist_egui_memory); здесь — настройки, о которых
             // egui не знает: видимость панелей, кисть, инструмент, цвета
             app.load_prefs(cc.storage);
-
-            // Если это мобильная версия, уменьшаем масштаб интерфейса,
-            // чтобы на маленьком экране помещалось больше элементов.
-            if app.mobile {
-                cc.egui_ctx.set_pixels_per_point(0.8);
-            }
 
             Ok(Box::new(app))
         }),

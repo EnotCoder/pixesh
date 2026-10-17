@@ -23,8 +23,8 @@ impl PixeshApp {
             self.tool = Tool::Brush;
         }
 
-        let size = if self.mobile { Vec2::new(300.0, 520.0) } else { Vec2::new(520.0, 620.0) };
-        let font = if self.mobile { 0.8 } else { 1.0 };
+        let size = Vec2::new(520.0, 620.0);
+        let font = 1.0;
         let sz = 21.0 * font;
 
         egui::Area::new("effects_panel".into())
@@ -85,7 +85,7 @@ impl PixeshApp {
                     .map(|d| (d.kind, d.name))
                     .collect();
                 let cur_kind = self.effect.kind;
-                let scroll_h = if self.mobile { 250.0 } else { 300.0 };
+                let scroll_h = 300.0;
 
                 egui::ScrollArea::vertical()
                     .max_height(scroll_h)

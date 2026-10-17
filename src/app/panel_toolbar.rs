@@ -35,7 +35,7 @@ impl PixeshApp {
                 ui.add_space(4.0);
 
                 // ── tab bar row ──
-                if self.docs.len() > 0 && !self.mobile {
+                if !self.docs.is_empty() {
                     ui.add_space(2.0);
                     self.tab_bar_ui(ui);
                     ui.add_space(4.0);
@@ -326,15 +326,13 @@ impl PixeshApp {
                     egui::FontId::proportional(22.0),
                 );
 
-                if !self.mobile {
-                    ui.add_space(-4.0);
-                    if toggle_btn(ui, "Round", self.brush_shape == BrushShape::Round) {
-                        self.brush_shape = BrushShape::Round;
-                    }
-                    ui.add_space(-4.0);
-                    if toggle_btn(ui, "Square", self.brush_shape == BrushShape::Square) {
-                        self.brush_shape = BrushShape::Square;
-                    }
+                ui.add_space(-4.0);
+                if toggle_btn(ui, "Round", self.brush_shape == BrushShape::Round) {
+                    self.brush_shape = BrushShape::Round;
+                }
+                ui.add_space(-4.0);
+                if toggle_btn(ui, "Square", self.brush_shape == BrushShape::Square) {
+                    self.brush_shape = BrushShape::Square;
                 }
             }
             ui.add_space(6.0);
