@@ -12,7 +12,7 @@ impl PixeshApp {
             .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
             .order(egui::Order::Foreground)
             .show(ctx, |ui| {
-                let size = Vec2::splat(300.0);
+                let size = Vec2::splat(250.0);
                 let (rect, _) = ui.allocate_exact_size(size, egui::Sense::hover());
 
                 let p = ui.painter();
