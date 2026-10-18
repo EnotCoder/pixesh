@@ -133,11 +133,25 @@ pub fn separator(ui: &mut egui::Ui) {
 pub fn check_row(ui: &mut egui::Ui, label: &str, value: bool, font: f32, mut set: impl FnMut(bool)) {
     let sz = 19.0 * font;
     let row_h = sz + 12.0;
+    let cbs = 18.0;
+    let font_id = egui::FontId::proportional(sz);
+    // Ширина подписи нужна до отрисовки: квадратик ставим по центру именно
+    // ВИДИМОГО содержимого, а не строки.
+    let text_w = ui
+        .fonts(|f| f.layout_no_wrap(label.to_owned(), font_id.clone(), TEXT).size().x);
+
     let w = ui.available_width().min(170.0);
     let (row, _) = ui.allocate_exact_size(Vec2::new(w, row_h), Sense::hover());
-    let cbs = 18.0;
+
+    // Раньше квадратик прижимался к row.min.x, а строка шире видимой части
+    // примерно на 40 px. Центрировалась строка целиком, поэтому видимый блок
+    // уезжал влево на половину этой пустоты — на «Lock ratio» это −22 px.
+    let content_w = cbs + 8.0 + text_w;
     let cb_rect = Rect::from_min_size(
-        Pos2::new(row.min.x, row.center().y - cbs * 0.5),
+        Pos2::new(
+            row.center().x - content_w / 2.0,
+            row.center().y - cbs * 0.5,
+        ),
         Vec2::splat(cbs),
     );
     let p = ui.painter();
@@ -145,7 +159,7 @@ pub fn check_row(ui: &mut egui::Ui, label: &str, value: bool, font: f32, mut set
         Pos2::new(cb_rect.max.x + 8.0, row.center().y),
         egui::Align2::LEFT_CENTER,
         label,
-        egui::FontId::proportional(sz),
+        font_id,
         TEXT,
     );
     p.rect_filled(cb_rect, 0.0, PANEL);
