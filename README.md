@@ -2,7 +2,7 @@
 
 A minimal pixel art editor built with Rust and egui.
 
-![Pixesh](img/icon.png)
+![Pixesh](pixesh.png)
 
 ## Install
 
