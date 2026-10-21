@@ -111,12 +111,58 @@ pub(crate) struct Document {
     pub(crate) transform_corner: Option<usize>,
 }
 
+/// Сторона холста по умолчанию. Совпадает с размером `img/pixel_logo.png`,
+/// чтобы маскот лёг на холст один в один, без всякого ужатия.
+const MASCOT_SIDE: usize = 32;
+
+/// Пиксели совы из `img/pixel_logo.png`, приведённые к размеру стартового холста.
+///
+/// Источник ровно такого же размера, как холст, так что `resize` здесь просто
+/// копирует. Фильтр оставлен nearest неспроста: если размеры когда-нибудь
+/// разойдутся, nearest сохранит пиксель-арт стиль совы, а сглаживание на
+/// заметном уменьшении превратило бы маскот в пёстрое пятно.
+///
+/// `None` — если картинка не декодируется: тогда холст просто останется
+/// пустым, приложение при этом не упадёт.
+fn logo_pixels(w: usize, h: usize) -> Option<Vec<Color32>> {
+    let img = image::load_from_memory(include_bytes!("../../img/pixel_logo.png"))
+        .ok()?
+        .to_rgba8();
+    let small = image::imageops::resize(
+        &img,
+        w as u32,
+        h as u32,
+        image::imageops::FilterType::Nearest,
+    );
+    Some(
+        small
+            .pixels()
+            .map(|p| Color32::from_rgba_unmultiplied(p[0], p[1], p[2], p[3]))
+            .collect(),
+    )
+}
+
 impl Document {
     pub(crate) fn new_sized(name: &str, w: usize, h: usize) -> Self {
         let mut doc = Document::new(name);
         doc.width = w;
         doc.height = h;
         doc.layers[0].cels = vec![Arc::new(vec![Color32::TRANSPARENT; w * h])];
+        doc
+    }
+
+    /// Документ по умолчанию: чистый холст 32×32, залитый совой из
+    /// `img/pixel_logo.png`. Нужен, чтобы при запуске и при закрытии последней
+    /// вкладки холст не выглядел пустым серым квадратом.
+    pub(crate) fn new_logo(name: &str) -> Self {
+        let mut doc = Document::new_sized(name, MASCOT_SIDE, MASCOT_SIDE);
+        // Длина проверяется на месте: если размеры когда-нибудь разойдутся
+        // с размером картинки, документ остаётся пустым, а не падает по индексу.
+        if let Some(px) = logo_pixels(doc.width, doc.height)
+            .filter(|px| px.len() == doc.width * doc.height)
+        {
+            doc.layers[0].cels[0] = Arc::new(px);
+        }
         doc
     }
 
@@ -296,7 +342,7 @@ impl PixeshApp {
         // первом запуске» и «что лежит в файле» разъезжаются
         let prefs = Self::initial_prefs();
         Self {
-            docs: vec![Document::new("Untitled")],
+            docs: vec![Document::new_logo("Untitled")],
             active_tab: 0,
             color: Color32::BLACK,
             hsv_h: 0.0, hsv_s: 0.0, hsv_v: 0.0,
@@ -673,7 +719,7 @@ impl PixeshApp {
 
     pub(crate) fn close_tab(&mut self, idx: usize) {
         if self.docs.len() <= 1 {
-            self.docs[0] = Document::new("Untitled");
+            self.docs[0] = Document::new_logo("Untitled");
             self.active_tab = 0;
             return;
         }
@@ -797,6 +843,50 @@ mod tests {
         let path = dir.join(name);
         img.save(&path).unwrap();
         path
+    }
+
+    #[test]
+    fn default_document_carries_the_mascot() {
+        let doc = Document::new_logo("Untitled");
+        assert_eq!(
+            (doc.width, doc.height),
+            (MASCOT_SIDE, MASCOT_SIDE),
+            "стартовый холст подгонен под размер совы"
+        );
+        let px = &doc.layers[0].cels[0];
+        assert_eq!(px.len(), MASCOT_SIDE * MASCOT_SIDE, "залит весь холст");
+        assert!(px.iter().any(|c| c.a() > 0), "сова нарисована, а не пустой холст");
+        assert!(!doc.unsaved, "совы по умолчанию — не правка пользователя");
+    }
+
+    #[test]
+    fn blank_document_stays_blank() {
+        let doc = Document::new("Untitled");
+        assert!(
+            doc.layers[0].cels[0].iter().all(|c| c.a() == 0),
+            "Document::new по-прежнему даёт пустой холст — на нём держатся другие тесты"
+        );
+    }
+
+    #[test]
+    fn mascot_is_a_faithful_copy_of_the_source_png() {
+        let doc = Document::new_logo("t");
+        let src = image::load_from_memory(include_bytes!("../../img/pixel_logo.png"))
+            .expect("совы должна декодироваться")
+            .to_rgba8();
+        assert_eq!(
+            src.dimensions(),
+            (MASCOT_SIDE as u32, MASCOT_SIDE as u32),
+            "источник обязан совпадать с холстом — иначе маскот начнёт ужиматься"
+        );
+        let px = &doc.layers[0].cels[0];
+        for y in 0..MASCOT_SIDE {
+            for x in 0..MASCOT_SIDE {
+                let p = src.get_pixel(x as u32, y as u32);
+                let want = Color32::from_rgba_unmultiplied(p[0], p[1], p[2], p[3]);
+                assert_eq!(px[y * MASCOT_SIDE + x], want, "пиксель ({x},{y}) разошёлся");
+            }
+        }
     }
 
     #[test]
