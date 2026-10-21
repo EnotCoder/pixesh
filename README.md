@@ -1,8 +1,8 @@
 # Pixesh
 
-A minimal pixel art editor built with Rust and egui.
-
 ![Pixesh](pixesh.png)
+
+A minimal pixel art editor built with Rust and egui.
 
 ## Install
 
