@@ -45,11 +45,13 @@ binary, and the Windows build links only system DLLs. On Linux you need
 | Key | Action |
 |-----|--------|
 | `B` `E` `F` | Brush, Eraser, Fill |
-| `R` `M` `T` `S` | Select, Move, Text, Transform (needs a selection) |
+| `R` `M` `T` `X` | Select, Move, Text, Transform (needs a selection) |
 | `Alt` (hold) | Eyedropper |
 | `Right-click + drag` | Eraser |
-| `W` `.` | Darken / brighten the colour |
-| `A` `D` | Decrease / increase opacity |
+| `W` `S` | Brighten / darken the colour |
+| `A` `D` | Less / more saturated |
+| `I` `K` | Hue back / forward |
+| `,` `.` | Decrease / increase opacity |
 | `Ctrl+C` `Ctrl+V` | Copy / paste selection — `Y` and `P` do the same |
 | `Enter` | Commit pasted pixels, otherwise crop to the selection |
 | `Delete` / `Escape` | Delete selection / cancel paste, deselect, close dialogs |

@@ -475,6 +475,35 @@ impl PixeshApp {
         self.hsv_v = v;
     }
 
+    /// Подправить HSV и пересчитать из него RGB. `color`, `rgb_*` и `hsv_*`
+    /// обязаны оставаться согласованными — иначе пикер и слайдеры разъезжаются.
+    ///
+    /// Оттенок заворачивается по кругу, а не упирается в clamp: диапазон
+    /// 0–360° — это замкнутое кольцо, и на границе вращение не должно
+    /// останавливаться.
+    pub(crate) fn bump_hsv(&mut self, dh: f32, ds: f32, dv: f32) {
+        self.hsv_h = (self.hsv_h + dh).rem_euclid(360.0);
+        self.hsv_s = (self.hsv_s + ds).clamp(0.0, 255.0);
+        self.hsv_v = (self.hsv_v + dv).clamp(0.0, 255.0);
+        let (r, g, b) = crate::color::hsv_to_rgb(self.hsv_h, self.hsv_s, self.hsv_v);
+        self.rgb_r = r as f32;
+        self.rgb_g = g as f32;
+        self.rgb_b = b as f32;
+        self.color = Color32::from_rgba_unmultiplied(r, g, b, self.rgb_a as u8);
+    }
+
+    /// Прозрачность правится отдельным методом: она не входит в HSV, поэтому
+    /// пересчёт оттенка ей не нужен, а цвет менять нельзя.
+    pub(crate) fn bump_alpha(&mut self, d: f32) {
+        self.rgb_a = (self.rgb_a + d).clamp(0.0, 255.0);
+        self.color = Color32::from_rgba_unmultiplied(
+            self.rgb_r as u8,
+            self.rgb_g as u8,
+            self.rgb_b as u8,
+            self.rgb_a as u8,
+        );
+    }
+
     pub(crate) fn dialog_open(&self) -> bool {
         self.show_resize || self.show_export
             || self.show_panels || self.show_settings || self.show_scale
@@ -1020,6 +1049,72 @@ mod prefs_tests {
         assert_eq!(second.hsv_s, s);
         assert_eq!(second.hsv_v, v);
         assert_eq!(second.color_history, vec![Color32::from_rgb(1, 2, 3)]);
+    }
+
+    /// 0–360° — замкнутое кольцо: за порогом цвет должен вернуться к красному,
+    /// а не застрять на clamp. Иначе клавишей оттенка замкнуть круг нельзя.
+    #[test]
+    fn bump_hsv_wraps_hue_around_the_wheel() {
+        let mut app = PixeshApp::new();
+        app.hsv_h = 358.0;
+        app.bump_hsv(5.0, 0.0, 0.0);
+        assert_eq!(app.hsv_h, 3.0, "358 + 5 даёт 3, а не 360");
+
+        app.bump_hsv(-5.0, 0.0, 0.0);
+        assert_eq!(app.hsv_h, 358.0, "и обратно, через 0");
+    }
+
+    /// Шаг насыщенности и яркости ограничен диапазоном: иначе цветовые поля
+    /// ушли бы за 255 и пересчёт через u8 начал бы врать.
+    #[test]
+    fn bump_hsv_clamps_saturation_and_value() {
+        let mut app = PixeshApp::new();
+        app.hsv_s = 253.0;
+        app.hsv_v = 3.0;
+        app.bump_hsv(0.0, 5.0, -5.0);
+        assert_eq!(app.hsv_s, 255.0, "насыщенность упирается в 255");
+        assert_eq!(app.hsv_v, 0.0, "яркость упирается в 0");
+
+        app.bump_hsv(0.0, -5.0, 0.0);
+        assert_eq!(app.hsv_s, 250.0, "и обратно вниз работает");
+    }
+
+    /// Главный инвариант: что ни подправь в HSV, `color`, `rgb_*` и `hsv_*`
+    /// обязаны описывать один и тот же цвет. На этом держатся пикер и слайдеры.
+    #[test]
+    fn bump_hsv_keeps_every_colour_representation_in_sync() {
+        let mut app = PixeshApp::new();
+        app.set_color(Color32::from_rgb(200, 100, 50));
+        app.bump_hsv(30.0, -20.0, 15.0);
+
+        let (r, g, b) = crate::color::hsv_to_rgb(app.hsv_h, app.hsv_s, app.hsv_v);
+        assert_eq!(app.color.r(), r, "color.r не совпал с hsv_*");
+        assert_eq!(app.color.g(), g, "color.g не совпал с hsv_*");
+        assert_eq!(app.color.b(), b, "color.b не совпал с hsv_*");
+        assert_eq!(app.rgb_r, r as f32, "rgb_r не совпал");
+        assert_eq!(app.rgb_g, g as f32, "rgb_g не совпал");
+        assert_eq!(app.rgb_b, b as f32, "rgb_b не совпал");
+    }
+
+    /// Прозрачность живёт отдельно от HSV: её изменение не должно сдвигать
+    /// ни цвет, ни hsv_*.
+    ///
+    /// Сравнивать здесь `color.r()` с исходным нельзя: egui хранит `Color32`
+    /// премультиплицированным, поэтому у полупрозрачного цвета `r()` отдаёт
+    /// уже умноженный на альфу канал. Проверяем собственные поля приложения,
+    /// которые как раз ведут себя как неумноженные.
+    #[test]
+    fn bump_alpha_leaves_the_colour_itself_alone() {
+        let mut app = PixeshApp::new();
+        app.set_color(Color32::from_rgb(200, 100, 50));
+        let rgb_before = (app.rgb_r, app.rgb_g, app.rgb_b);
+        let hsv_before = (app.hsv_h, app.hsv_s, app.hsv_v);
+
+        app.bump_alpha(-5.0);
+        assert_eq!(app.rgb_a, 250.0, "альфа уменьшилась на шаг");
+        assert_eq!((app.rgb_r, app.rgb_g, app.rgb_b), rgb_before, "RGB не тронут");
+        assert_eq!((app.hsv_h, app.hsv_s, app.hsv_v), hsv_before, "HSV не тронут");
+        assert_eq!(app.color.a(), 250, "color.a согласован с rgb_a");
     }
 
     /// Главная защита от раздражающего бага: диалоги не должны вылезать

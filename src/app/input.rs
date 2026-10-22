@@ -104,30 +104,16 @@ impl PixeshApp {
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::G) {
                     self.docs[self.active_tab].grid = !self.docs[self.active_tab].grid;
                 }
-                if i.consume_key(egui::Modifiers::NONE, egui::Key::W) {
-                    self.hsv_v = (self.hsv_v - 5.0).clamp(0.0, 255.0);
-                    let (r, g, b) = hsv_to_rgb(self.hsv_h, self.hsv_s, self.hsv_v);
-                    self.rgb_r = r as f32;
-                    self.rgb_g = g as f32;
-                    self.rgb_b = b as f32;
-                    self.color = egui::Color32::from_rgba_unmultiplied(r, g, b, self.rgb_a as u8);
-                }
-                if i.consume_key(egui::Modifiers::NONE, egui::Key::Period) {
-                    self.hsv_v = (self.hsv_v + 5.0).clamp(0.0, 255.0);
-                    let (r, g, b) = hsv_to_rgb(self.hsv_h, self.hsv_s, self.hsv_v);
-                    self.rgb_r = r as f32;
-                    self.rgb_g = g as f32;
-                    self.rgb_b = b as f32;
-                    self.color = egui::Color32::from_rgba_unmultiplied(r, g, b, self.rgb_a as u8);
-                }
-                if i.consume_key(egui::Modifiers::NONE, egui::Key::A) {
-                    self.rgb_a = (self.rgb_a - 5.0).clamp(0.0, 255.0);
-                    self.color = egui::Color32::from_rgba_unmultiplied(self.rgb_r as u8, self.rgb_g as u8, self.rgb_b as u8, self.rgb_a as u8);
-                }
-                if i.consume_key(egui::Modifiers::NONE, egui::Key::D) {
-                    self.rgb_a = (self.rgb_a + 5.0).clamp(0.0, 255.0);
-                    self.color = egui::Color32::from_rgba_unmultiplied(self.rgb_r as u8, self.rgb_g as u8, self.rgb_b as u8, self.rgb_a as u8);
-                }
+                // цвет: W/S яркость, A/D насыщенность, I/K оттенок
+                if i.consume_key(egui::Modifiers::NONE, egui::Key::W) { self.bump_hsv(0.0, 0.0, 5.0); }
+                if i.consume_key(egui::Modifiers::NONE, egui::Key::S) { self.bump_hsv(0.0, 0.0, -5.0); }
+                if i.consume_key(egui::Modifiers::NONE, egui::Key::A) { self.bump_hsv(0.0, -5.0, 0.0); }
+                if i.consume_key(egui::Modifiers::NONE, egui::Key::D) { self.bump_hsv(0.0, 5.0, 0.0); }
+                if i.consume_key(egui::Modifiers::NONE, egui::Key::I) { self.bump_hsv(-5.0, 0.0, 0.0); }
+                if i.consume_key(egui::Modifiers::NONE, egui::Key::K) { self.bump_hsv(5.0, 0.0, 0.0); }
+                // , / . = прозрачность
+                if i.consume_key(egui::Modifiers::NONE, egui::Key::Comma) { self.bump_alpha(-5.0); }
+                if i.consume_key(egui::Modifiers::NONE, egui::Key::Period) { self.bump_alpha(5.0); }
                 // [ / ] = previous / next frame
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::OpenBracket) {
                     let tab = self.active_tab;
@@ -235,8 +221,10 @@ impl PixeshApp {
                     self.status_hint_until = now + 2.0;
                 }
             }
-            // S = toggle transform (when selection exists)
-            if i.consume_key(egui::Modifiers::NONE, egui::Key::S) {
+            // X = toggle transform (when selection exists).
+            // text_focused нужен: иначе «x», набранный в поле текста или в
+            // DragValue, переключал бы инструмент под рукой.
+            if i.consume_key(egui::Modifiers::NONE, egui::Key::X) && !text_focused {
                 let tab = self.active_tab;
                 let has_sel = self.docs[tab].sel.is_some();
                 if has_sel && self.tool != Tool::Transform {
