@@ -53,6 +53,7 @@ binary, and the Windows build links only system DLLs. On Linux you need
 | `I` `K` | Hue back / forward |
 | `,` `.` | Decrease / increase opacity |
 | `Ctrl+C` `Ctrl+V` | Copy / paste selection — `Y` and `P` do the same |
+| `Ctrl+A` | Select the whole canvas |
 | `Enter` | Commit pasted pixels, otherwise crop to the selection |
 | `Delete` / `Escape` | Delete selection / cancel paste, deselect, close dialogs |
 | `[` `]` `Space` | Previous / next frame, play-pause |

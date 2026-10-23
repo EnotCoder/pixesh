@@ -359,6 +359,23 @@ impl Document {
         self.clear_move_state();
     }
 
+    /// Ctrl+A: выделить весь холст целиком, как в Photoshop.
+    pub(crate) fn select_all(&mut self) {
+        // Плавающая вставка ещё не легла на слой. Подтверждаем её: иначе
+        // замена sel оставила бы pasting=true с опустошённым sel_buffer,
+        // и Enter дальше вёл бы себя странно.
+        self.commit_pending_paste();
+        // Диапазон включительный, поэтому -1: холст шириной w имеет
+        // координаты 0..=w-1, и выходить за них нельзя — delete_selection
+        // упадёт по индексу.
+        self.sel = Some((0, 0, self.width as i32 - 1, self.height as i32 - 1));
+        // Остаток перетаскивания скрывается рисовальщиком, пока sel пуст.
+        // Обнуляем, иначе при снятом выделении старый маркиз вернулся бы.
+        self.sel_start = None;
+        self.sel_end = None;
+        self.clear_move_state();
+    }
+
     pub(crate) fn commit_pending_paste(&mut self) {
         if !self.pasting { return; }
         if let (Some(buf), Some((x0, y0, _x1, _y1))) = (self.sel_buffer.take(), self.sel) {
@@ -518,6 +535,49 @@ mod tests {
         assert_eq!(d.clip_w, 2);
         assert_eq!(d.clip_h, 2);
         assert_eq!(d.clipboard.as_ref().unwrap().len(), 4);
+    }
+
+    #[test]
+    fn select_all_covers_the_whole_canvas() {
+        let mut d = doc_with(&[]);
+        d.select_all();
+        // Диапазон включительный: координаты идут до w-1/h-1, не до w/h.
+        assert_eq!(d.sel, Some((0, 0, W - 1, W - 1)));
+    }
+
+    /// Главная защита от путаницы шириной и высотой: на прямоугольном холсте
+    /// выделение обязано повторять его форму, а не стать квадратом.
+    #[test]
+    fn select_all_respects_non_square_documents() {
+        let mut d = Document::new_sized("t", 8, 5);
+        d.select_all();
+        assert_eq!(d.sel, Some((0, 0, 7, 4)), "8 по горизонтали, 5 по вертикали");
+    }
+
+    #[test]
+    fn select_all_clears_a_half_dragged_marquee() {
+        let mut d = doc_with(&[]);
+        d.sel_start = Some((2, 2));
+        d.sel_end = Some((6, 6));
+        d.select_all();
+        assert_eq!(d.sel_start, None, "остаток перетаскивания убран");
+        assert_eq!(d.sel_end, None, "остаток перетаскивания убран");
+    }
+
+    /// Плавающая вставка ещё не легла на слой. Если просто заменить sel,
+    /// pasting осталась бы true с пустым sel_buffer — Enter вёл бы себя странно.
+    #[test]
+    fn select_all_finishes_a_pending_paste() {
+        let mut d = doc_with(&[(3, 3, red())]);
+        d.sel = Some((3, 3, 3, 3));
+        assert!(d.copy_selection());
+        assert!(d.paste_clipboard());
+        assert!(d.pasting, "вставка висит до select_all");
+
+        d.select_all();
+        assert!(!d.pasting, "вставка подтверждена, а не брошена");
+        assert_eq!(d.sel, Some((0, 0, W - 1, W - 1)));
+        assert!(d.sel_buffer.is_none());
     }
 
     #[test]

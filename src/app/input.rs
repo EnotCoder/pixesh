@@ -188,9 +188,19 @@ impl PixeshApp {
                     self.docs[self.active_tab].deselect();
                 }
             }
+            // Ctrl-перехватчики не забираем, пока открыт диалог или правится
+            // имя слоя: там Ctrl+C/Ctrl+V/Ctrl+A принадлежат текстовому полю.
+            let clip_ok = !self.dialog_open() && self.renaming_layer.is_none();
             // Ctrl+D = deselect
             if i.consume_key(egui::Modifiers::CTRL, egui::Key::D) {
                 self.docs[self.active_tab].deselect();
+            }
+            // Ctrl+A = выделить весь холст, как в Photoshop.
+            // Guard общий с Ctrl+C/Ctrl+V не зря: egui-поле TextEdit само
+            // использует Ctrl+A, чтобы выделить весь текст, и без этой
+            // проверки мы отбирали бы его у поля.
+            if clip_ok && i.consume_key(egui::Modifiers::CTRL, egui::Key::A) {
+                self.docs[self.active_tab].select_all();
             }
             // Ctrl+Shift+F = flatten layers
             if i.consume_key(egui::Modifiers::CTRL | egui::Modifiers::SHIFT, egui::Key::F) {
@@ -199,9 +209,6 @@ impl PixeshApp {
                 }
             }
             // Y = copy selection, Ctrl+C = то же.
-            // Ctrl-перехватчики не забираем, пока открыт диалог или правится
-            // имя слоя: там Ctrl+C/Ctrl+V принадлежат текстовому полю.
-            let clip_ok = !self.dialog_open() && self.renaming_layer.is_none();
             if i.consume_key(egui::Modifiers::NONE, egui::Key::Y)
                 || (clip_ok && i.consume_key(egui::Modifiers::CTRL, egui::Key::C))
             {
