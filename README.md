@@ -54,6 +54,7 @@ binary, and the Windows build links only system DLLs. On Linux you need
 | `,` `.` | Decrease / increase opacity |
 | `Ctrl+C` `Ctrl+V` | Copy / paste selection — `Y` and `P` do the same |
 | `Ctrl+A` | Select the whole canvas |
+| `1`–`9` | Preset colour — red, green, blue, yellow, cyan, magenta, white, gray, black |
 | `Enter` | Commit pasted pixels, otherwise crop to the selection |
 | `Delete` / `Escape` | Delete selection / cancel paste, deselect, close dialogs |
 | `[` `]` `Space` | Previous / next frame, play-pause |

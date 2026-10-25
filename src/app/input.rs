@@ -114,6 +114,27 @@ impl PixeshApp {
                 // , / . = прозрачность
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::Comma) { self.bump_alpha(-5.0); }
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::Period) { self.bump_alpha(5.0); }
+                // 1–9 = готовые цвета из NUM_PALETTE.
+                // Индекс называется idx, а не i: замыкание ctx.input_mut(|i| …)
+                // уже заняло имя i, и затенение сломало бы соседние обработчики.
+                for (idx, key) in [
+                    egui::Key::Num1,
+                    egui::Key::Num2,
+                    egui::Key::Num3,
+                    egui::Key::Num4,
+                    egui::Key::Num5,
+                    egui::Key::Num6,
+                    egui::Key::Num7,
+                    egui::Key::Num8,
+                    egui::Key::Num9,
+                ]
+                .into_iter()
+                .enumerate()
+                {
+                    if i.consume_key(egui::Modifiers::NONE, key) {
+                        self.pick_preset(idx);
+                    }
+                }
                 // [ / ] = previous / next frame
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::OpenBracket) {
                     let tab = self.active_tab;
@@ -340,11 +361,7 @@ impl PixeshApp {
         self.hsv_s = s;
         self.hsv_v = v;
         if c != egui::Color32::TRANSPARENT {
-            self.color_history.retain(|&x| x != c);
-            self.color_history.push(c);
-            if self.color_history.len() > 4 {
-                self.color_history.remove(0);
-            }
+            self.push_history(c);
         }
     }
 }

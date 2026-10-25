@@ -504,6 +504,28 @@ impl PixeshApp {
         );
     }
 
+    /// Клавиши 1–9: подставить готовый цвет из `NUM_PALETTE`. Индекс нулевой,
+    /// то есть клавиша «1» — это `NUM_PALETTE[0]`.
+    ///
+    /// `set_color` сам разносит цвет по `color`, `rgb_*` и `hsv_*`, поэтому
+    /// пикер и слайдеры сразу показывают новое значение.
+    pub(crate) fn pick_preset(&mut self, idx: usize) {
+        let [r, g, b, a] = NUM_PALETTE[idx];
+        self.set_color(Color32::from_rgba_unmultiplied(r, g, b, a));
+        self.push_history(self.color);
+    }
+
+    /// Кладёт цвет в историю, убирая дубликат и удерживая длину в пределе.
+    /// Раньше эта логика жила только в пипетке, и держать её в двух местах
+    /// нельзя: изменение лимита забылось бы в одном из них.
+    pub(crate) fn push_history(&mut self, c: Color32) {
+        self.color_history.retain(|&x| x != c);
+        self.color_history.push(c);
+        if self.color_history.len() > 4 {
+            self.color_history.remove(0);
+        }
+    }
+
     pub(crate) fn dialog_open(&self) -> bool {
         self.show_resize || self.show_export
             || self.show_panels || self.show_settings || self.show_scale
@@ -1115,6 +1137,64 @@ mod prefs_tests {
         assert_eq!((app.rgb_r, app.rgb_g, app.rgb_b), rgb_before, "RGB не тронут");
         assert_eq!((app.hsv_h, app.hsv_s, app.hsv_v), hsv_before, "HSV не тронут");
         assert_eq!(app.color.a(), 250, "color.a согласован с rgb_a");
+    }
+
+    #[test]
+    fn pick_preset_sets_the_expected_colour() {
+        let mut app = PixeshApp::new();
+        app.pick_preset(0);
+        assert_eq!(app.color, Color32::from_rgb(255, 0, 0), "клавиша 1 — красный");
+        app.pick_preset(2);
+        assert_eq!(app.color, Color32::from_rgb(0, 0, 255), "клавиша 3 — синий");
+        app.pick_preset(8);
+        assert_eq!(app.color, Color32::from_rgb(0, 0, 0), "клавиша 9 — чёрный");
+    }
+
+    /// Пресет — готовый непрозрачный цвет. Если бы он брал текущую альфу,
+    /// затемнённый до 128 красный оставался бы полупрозрачным и после «1».
+    #[test]
+    fn pick_preset_always_uses_full_opacity() {
+        let mut app = PixeshApp::new();
+        app.rgb_a = 128.0;
+        app.pick_preset(0);
+        assert_eq!(app.color.a(), 255, "пресет игнорирует текущую прозрачность");
+        assert_eq!(app.rgb_a, 255.0, "rgb_a согласован");
+    }
+
+    #[test]
+    fn pick_preset_keeps_every_colour_representation_in_sync() {
+        let mut app = PixeshApp::new();
+        app.pick_preset(4); // циан
+        let (r, g, b) = crate::color::hsv_to_rgb(app.hsv_h, app.hsv_s, app.hsv_v);
+        assert_eq!(
+            (app.color.r(), app.color.g(), app.color.b()),
+            (r, g, b),
+            "color не совпал с hsv_*"
+        );
+        assert_eq!(
+            (app.rgb_r, app.rgb_g, app.rgb_b),
+            (r as f32, g as f32, b as f32),
+            "rgb_* не совпал с hsv_*"
+        );
+    }
+
+    #[test]
+    fn push_history_dedupes_and_caps_at_four() {
+        let mut app = PixeshApp::new();
+        for i in 0u8..6 {
+            app.push_history(Color32::from_rgb(i * 10, 0, 0));
+        }
+        assert_eq!(app.color_history.len(), 4, "история ограничена четырьмя");
+        assert_eq!(app.color_history[0], Color32::from_rgb(20, 0, 0), "старые выпали");
+
+        // уже имеющийся цвет не плодит дубликат, а встаёт в конец
+        app.push_history(Color32::from_rgb(20, 0, 0));
+        assert_eq!(app.color_history.len(), 4, "дубликат не добавил длины");
+        assert_eq!(
+            *app.color_history.last().unwrap(),
+            Color32::from_rgb(20, 0, 0),
+            "повторно выбранный цвет всплыл наверх"
+        );
     }
 
     /// Главная защита от раздражающего бага: диалоги не должны вылезать
