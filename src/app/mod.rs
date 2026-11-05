@@ -1255,63 +1255,76 @@ mod prefs_tests {
 mod layout_tests {
     use super::*;
 
-    /// Главное свойство порядка отрисовки: все горизонтальные полосы раньше
-    /// боковых. Иначе верхняя панель, нарисованная после боковой, получила бы
-    /// не всю ширину окна — egui вырезает панели из остатка по порядку вызовов.
+    /// Главное свойство порядка отрисовки: верхняя полоса (Toolbar) раньше
+    /// боковых, а боковые панели (Layers) — раньше нижних полос (Status, Timeline),
+    /// чтобы нижние панели не задевали панель слоёв (не заходили под неё).
     #[test]
-    fn horizontal_panels_are_drawn_before_side_panels() {
+    fn layers_panel_drawn_before_bottom_panels() {
         let mut app = PixeshApp::new();
-        // худший случай: тулбар уехал вниз, слои — влево
-        app.toolbar_edge = Edge::Bottom;
-        app.layers_edge = Edge::Left;
-        app.status_edge = Edge::Top;
-        app.timeline_edge = Edge::Top;
+        // стандартное расположение: тулбар вверху, слои справа, статус и таймлайн внизу
+        app.toolbar_edge = Edge::Top;
+        app.layers_edge = Edge::Right;
+        app.status_edge = Edge::Bottom;
+        app.timeline_edge = Edge::Bottom;
 
         let order = app.draw_order();
-        let first_side = order
+        let layers_pos = order
             .iter()
-            .position(|p| app.edge_of(*p).is_vertical())
-            .unwrap_or(order.len());
-        let last_horizontal = order
+            .position(|p| *p == PanelId::Layers)
+            .unwrap();
+        let status_pos = order
             .iter()
-            .rposition(|p| !app.edge_of(*p).is_vertical())
-            .unwrap_or(0);
+            .position(|p| *p == PanelId::Status)
+            .unwrap();
+        let timeline_pos = order
+            .iter()
+            .position(|p| *p == PanelId::Timeline)
+            .unwrap();
         assert!(
-            last_horizontal < first_side,
-            "боковая панель нарисовалась раньше горизонтальной: {order:?}"
+            layers_pos < status_pos && layers_pos < timeline_pos,
+            "панель слоёв должна рисоваться раньше нижних панелей: {order:?}"
         );
     }
 
     /// Взаимный порядок панелей не зависит от того, на каком краю они стоят:
-    /// он канонический, иначе панели прыгали бы местами при каждом переносе.
+    /// он определяется группой краёв (Top -> Left/Right -> Bottom), а внутри одного края —
+    /// каноническим порядком.
     #[test]
     fn order_inside_an_edge_is_stable() {
-        let canonical = vec![PanelId::Toolbar, PanelId::Status, PanelId::Timeline, PanelId::Layers];
-
-        // все три горизонтальные наверху, слои слева
+        // все три горизонтальные наверху, слои слева: Top (Toolbar, Status, Timeline) -> Left (Layers)
         let mut app = PixeshApp::new();
         app.toolbar_edge = Edge::Top;
         app.status_edge = Edge::Top;
         app.timeline_edge = Edge::Top;
         app.layers_edge = Edge::Left;
-        assert_eq!(app.draw_order(), canonical, "верх + лево");
+        assert_eq!(
+            app.draw_order(),
+            vec![PanelId::Toolbar, PanelId::Status, PanelId::Timeline, PanelId::Layers],
+            "верх + лево"
+        );
 
-        // те же панели, но все внизу, слои справа — порядок тот же
+        // те же панели, но Toolbar, Status, Timeline внизу, слои справа:
+        // Right (Layers) -> Bottom (Toolbar, Status, Timeline)
         let mut app = PixeshApp::new();
         app.toolbar_edge = Edge::Bottom;
         app.status_edge = Edge::Bottom;
         app.timeline_edge = Edge::Bottom;
         app.layers_edge = Edge::Right;
-        assert_eq!(app.draw_order(), canonical, "низ + право");
+        assert_eq!(
+            app.draw_order(),
+            vec![PanelId::Layers, PanelId::Toolbar, PanelId::Status, PanelId::Timeline],
+            "низ + право"
+        );
 
-        // перенос таймлайна наверх не меняет его места относительно соседей
+        // перенос таймлайна наверх:
+        // Top (Toolbar, Timeline) -> Right (Layers) -> Bottom (Status)
         let mut app = PixeshApp::new();
         app.timeline_edge = Edge::Top;
         app.status_edge = Edge::Bottom;
         assert_eq!(
             app.draw_order(),
-            vec![PanelId::Toolbar, PanelId::Timeline, PanelId::Status, PanelId::Layers],
-            "таймлайн наверху, статус внизу — но таймлайн всё равно раньше"
+            vec![PanelId::Toolbar, PanelId::Timeline, PanelId::Layers, PanelId::Status],
+            "таймлайн наверху, статус внизу"
         );
     }
 
