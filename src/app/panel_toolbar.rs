@@ -307,7 +307,8 @@ impl PixeshApp {
                 // Label "Size"
                 ui.label(egui::RichText::new("Size:").size(18.0).color(DIM));
                 
-                let slider_w = 100.0;
+                let slider_w = 100.0
+                
                 ui.add_sized(
                     Vec2::new(slider_w, btn_h),
                     egui::Slider::new(&mut self.brush, 1.0..=max).show_value(false),
@@ -327,12 +328,21 @@ impl PixeshApp {
                 );
 
                 ui.add_space(-4.0);
-                if toggle_btn(ui, "Round", self.brush_shape == BrushShape::Round) {
-                    self.brush_shape = BrushShape::Round;
+
+                let round_brush_tex = self.round_brush_tex.get_or_insert_with(|| {
+                    load_icon_texture(ui, "round_brush_icon", include_bytes!("../../tex/tools/round_brush.png"))
+                });
+                if icon_btn_tip(ui, round_brush_tex.id(), self.brush_shape == BrushShape::Round, "Round brush") {
+                     self.brush_shape = BrushShape::Round; 
                 }
+
                 ui.add_space(-4.0);
-                if toggle_btn(ui, "Square", self.brush_shape == BrushShape::Square) {
-                    self.brush_shape = BrushShape::Square;
+                
+                let square_brush_tex = self.square_brush_tex.get_or_insert_with(|| {
+                    load_icon_texture(ui, "square_brush_icon", include_bytes!("../../tex/tools/square_brush.png"))
+                });
+                if icon_btn_tip(ui, square_brush_tex.id(), self.brush_shape == BrushShape::Square, "Square brush") {
+                     self.brush_shape = BrushShape::Square; 
                 }
             }
             ui.add_space(6.0);
