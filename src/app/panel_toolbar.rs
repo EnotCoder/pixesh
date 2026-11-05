@@ -307,19 +307,22 @@ impl PixeshApp {
                 // Label "Size"
                 ui.label(egui::RichText::new("Size:").size(18.0).color(DIM));
                 
-                let slider_w = 100.0
-                
-                ui.add_sized(
-                    Vec2::new(slider_w, btn_h),
-                    egui::Slider::new(&mut self.brush, 1.0..=max).show_value(false),
+                ui.style_mut().text_styles.insert(
+                    egui::TextStyle::Button,
+                    egui::FontId::proportional(28.0),
                 );
 
-                // Current size value
-                let val_text = format!("{}", self.brush.round() as i32);
-                ui.add_sized(Vec2::new(30.0, btn_h), egui::Label::new(egui::RichText::new(val_text).size(20.0).color(TEXT)));
+                let mut h = self.brush as i32;
+                ui.add_sized(
+                    Vec2::new(btn_h, btn_h),
+                    egui::DragValue::new(&mut h).range(1..=MAX_SIDE),
+                );
+                self.brush = h as f32;
 
                 ui.add_space(6.0);
+                
                 separator(ui);
+                
                 ui.add_space(6.0);
 
                 ui.style_mut().text_styles.insert(
