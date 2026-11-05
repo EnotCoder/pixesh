@@ -2,8 +2,8 @@ use eframe::egui::Color32;
 
 use super::Document;
 
-// Bitmap font 5x7 для ASCII 32-126 (space through ~)
-// Каждый символ = 5 байт, каждый байт = колонка (LSB = верхний ряд)
+// Bitmap font 5x7 for ASCII 32-126 (space through ~)
+// Each glyph = 5 bytes, each byte = column (LSB = top row)
 
 const FONT: [[u8; 5]; 95] = [
     [0x00,0x00,0x00,0x00,0x00], // 32 space

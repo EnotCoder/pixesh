@@ -14,7 +14,7 @@ impl PixeshApp {
         let id = PanelId::Toolbar.ui_id(edge);
         let mut body = |ui: &mut egui::Ui| self.toolbar_body(ui);
         let frame = egui::Frame::new().fill(PANEL);
-        // тулбар — горизонтальная полоса, ему разрешены только верх и низ
+        // Toolbar is a horizontal strip, restricted to Top or Bottom
         if edge == Edge::Top {
             egui::TopBottomPanel::top(id)
                 .frame(frame)
@@ -160,7 +160,7 @@ impl PixeshApp {
                 if resp.clicked() { self.tool = Tool::Text; }
             }
 
-            // Effects tool — открывает панель эффектов
+            // Effects tool — opens the effects dialog panel
             {
                 let sz = ROW_H + 16.0;
                 let (rect, resp) = ui.allocate_exact_size(Vec2::splat(sz), Sense::click());
@@ -181,7 +181,7 @@ impl PixeshApp {
                 p.rect_filled(draw_rect, 0.0, bg);
                 p.rect_stroke(draw_rect, 0.0, Stroke::new(4.0_f32, BORDER), egui::StrokeKind::Inside);
 
-                // пиксельная «искорка» — две наложенные четырёхконечные звезды
+                // Pixel sparkle icon: two overlaid 4-point stars
                 let c = draw_rect.center();
                 let r = draw_rect.width() * 0.22;
                 let star = |p: &egui::Painter, c: Pos2, r: f32, thick: f32, col: Color32| {

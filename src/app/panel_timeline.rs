@@ -27,10 +27,9 @@ impl PixeshApp {
     pub(crate) fn ui_timeline(&mut self, ctx: &egui::Context) {
         let edge = self.timeline_edge;
         let id = PanelId::Timeline.ui_id(edge);
-        // resizable: тянем край мышкой. У нижней панель растёт только вверх,
-        // вниз просто сжимается обратно. Размер хранится в памяти egui между
-        // кадрами и переживает перезапуск — в app.ron, вместе с Id панели.
-        // Край входит в Id намеренно, см. PanelId::ui_id.
+        // Resizable panel edge dragging. Size is stored in egui memory across
+        // frames and persisted in app.ron alongside the panel Id.
+        // Edge is included in Id intentionally (see PanelId::ui_id).
         let screen = ctx.screen_rect();
         let mut body = |ui: &mut egui::Ui| self.timeline_body(ui);
         if edge.is_vertical() {
@@ -149,13 +148,9 @@ impl PixeshApp {
                 ui.add_space(6.0);
 
                 // frame thumbnails
-                // auto_shrink([false, false]) обязателен: по умолчанию он TRUE,
-                // и при scroll_enabled[1] == false область схлопывается по высоте
-                // до контента. TopBottomPanel сохраняет rect из Frame::show, а тот
-                // считается по content_ui.min_rect() — по фактически занятому
-                // месту. Пока область не растянута на всю панель, в память пишется
-                // высота шапки+ряда, и на следующем кадре высота берётся оттуда:
-                // панель прыгает обратно после отпускания кнопки.
+                // auto_shrink([false, false]) is required: defaults to true,
+                // which collapses the area vertically to its content when scroll_enabled[1] is false.
+                // Keeping it expanded ensures egui records the full panel height so resizing does not jump back.
                 egui::ScrollArea::horizontal()
                     .auto_shrink([false, false])
                     .show(ui, |ui| {

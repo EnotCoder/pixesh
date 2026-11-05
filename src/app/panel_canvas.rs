@@ -362,8 +362,8 @@ impl PixeshApp {
 
                 match tool {
                     Tool::Effects => {
-                        // инструмент только открывает панель эффектов,
-                        // сам холст он не меняет
+                        // The effects tool only opens the effects panel,
+                        // it does not interact directly with the canvas
                     }
                     Tool::Transform => {
                         if let Some(sel_rect) = self.docs[i].sel {

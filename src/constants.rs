@@ -1,21 +1,21 @@
 use eframe::egui::{Color32, Id};
 
-// какие инструменты есть
+// Available editing tools
 #[derive(PartialEq, Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
 pub enum Tool { Brush, Eraser, Fill, Eyedropper, Select, Move, Text, Transform, Effects }
 
-// фон при экспорте PNG
+// Background type for PNG export
 #[derive(PartialEq, Clone, Copy)]
 pub enum ExportBg { Transparent, White, Black, Checker }
 
-// форма (маска) кисти
+// Brush shape / mask
 #[derive(PartialEq, Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
 pub enum BrushShape { Round, Square }
 
-// ── раскладка панелей ──
+// ── Panel layout ──
 
-/// Какой край окна занимает панель. Панели можно перетаскивать между краями,
-/// но не на любой: полосу кадров бессмысленно прижимать к боку окна.
+/// Which edge of the window a panel occupies. Panels can be dragged between edges,
+/// but not to any edge: for example, the timeline strip does not make sense on a side edge.
 #[derive(PartialEq, Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
 pub enum Edge { Top, Bottom, Left, Right }
 
@@ -24,10 +24,10 @@ impl Edge {
         matches!(self, Edge::Left | Edge::Right)
     }
 
-    /// Порядок групп при отрисовке.
-    /// Верхняя панель (Toolbar) идёт до боковых, чтобы растягиваться на всю ширину.
-    /// Боковые панели (Layers) идут до нижних панелей (Status, Timeline),
-    /// чтобы Status и Timeline не задевали (не перекрывали снизу) боковую панель Layers.
+    /// Render group ordering.
+    /// The top panel (Toolbar) is rendered first to stretch across full window width.
+    /// Side panels (Layers) are rendered next, before bottom panels (Status, Timeline),
+    /// so that Status and Timeline do not clip under or overlap the Layers side panel.
     pub fn draw_group(self) -> usize {
         match self {
             Edge::Top => 0,
@@ -37,8 +37,8 @@ impl Edge {
         }
     }
 
-    /// Края, на которые панель разрешено перетаскивать. Тулбар, статус-бар и
-    /// таймлайн — горизонтальные полосы, панель слоёв — вертикальный список.
+    /// Edges to which a panel is allowed to be dragged. Toolbar, status bar, and
+    /// timeline are horizontal strips, while the layers panel is a vertical list.
     pub fn allowed_for(self) -> &'static [Edge] {
         const H: &[Edge] = &[Edge::Top, Edge::Bottom];
         const V: &[Edge] = &[Edge::Left, Edge::Right];
@@ -46,15 +46,13 @@ impl Edge {
     }
 }
 
-/// Какая из перетаскиваемых панелей. Порядок вариантов задаёт канонический
-/// порядок отрисовки внутри одного края — он не меняется от того, куда панель
-/// перетащили, иначе панели на одном краю прыгали бы местами при каждом
-/// переносе.
+/// Identifies draggable panels. The enum variant order defines the canonical
+/// draw order within the same edge — it remains stable so panels on the same edge
+/// do not jump around when moved.
 #[derive(PartialEq, Eq, Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
 pub enum PanelId { Toolbar, Status, Timeline, Layers }
 
-/// Порядок панели внутри одного края. Нужен sort_by_key, который сортирует
-/// по целому, а не по перечислению (derive Ord тащит за собой лишнее).
+/// Ordering of a panel within an edge. Used with `sort_by_key`.
 pub(crate) fn p_order(p: PanelId) -> usize {
     match p {
         PanelId::Toolbar => 0,
@@ -65,8 +63,8 @@ pub(crate) fn p_order(p: PanelId) -> usize {
 }
 
 impl PanelId {
-    /// Стартовый край. Панели на одном краю идут именно в этом порядке:
-    /// первая отрисованная оказывается у самого края окна.
+    /// Default edge. Panels on the same edge are rendered in this order:
+    /// the first rendered one sits closest to the outer window edge.
     pub fn default_edge(self) -> Edge {
         match self {
             PanelId::Toolbar => Edge::Top,
@@ -85,72 +83,62 @@ impl PanelId {
         }
     }
 
-    /// Собственный край панели, по которому судим, горизонтальная она или
-    /// вертикальная. Одинаков для всех краёв, допустимых для панели.
+    /// Inherent shape edge used to determine whether the panel is horizontal or vertical.
     pub fn shape_edge(self) -> Edge {
         self.default_edge()
     }
 
-    /// Стабильный Id для egui. Край входит в Id намеренно: PanelState лежит в
-    /// egui::Memory по Id и для боковой панели читается как rect.width(), а для
-    /// верхней/нижней как rect.height(). Без края в Id панель, переехавшая с
-    /// низа на бок, прочитала бы старые 1400 px как ширину и раздулась до
-    /// max_width. С краем в Id каждая ориентация помнит свой размер отдельно.
+    /// Stable Id for egui. The edge is intentionally included in the Id:
+    /// egui stores PanelState by Id, reading width for side panels and height
+    /// for top/bottom panels. Distinguishing by edge prevents size corruption
+    /// when dragging panels across edges.
     pub fn ui_id(self, edge: Edge) -> Id {
         Id::new((self.name(), format!("{:?}", edge)))
     }
 }
 
-// ── цвета темы ──
-pub const BG: Color32 = Color32::from_rgb(24, 24, 24);          // самый тёмный (фон холста)
-pub const PANEL: Color32 = Color32::from_rgb(32, 32, 32);       // панели
-pub const PANEL_LIGHT: Color32 = Color32::from_rgb(44, 44, 44); // панели чуть светлее
-pub const BORDER: Color32 = Color32::from_rgb(80, 80, 80);      // границы
-pub const TEXT: Color32 = Color32::from_rgb(220, 220, 220);      // текст
-pub const ACCENT: Color32 = Color32::from_rgb(200, 120, 60);     // акцент (выделение)
-pub const HOVER: Color32 = Color32::from_rgb(60, 60, 60);       // наведение мыши
-pub const DIM: Color32 = Color32::from_rgb(120, 120, 120);      // приглушённый текст
+// ── Theme colors ──
+pub const BG: Color32 = Color32::from_rgb(24, 24, 24);          // Darkest (canvas background)
+pub const PANEL: Color32 = Color32::from_rgb(32, 32, 32);       // Panels background
+pub const PANEL_LIGHT: Color32 = Color32::from_rgb(44, 44, 44); // Lighter panel elements
+pub const BORDER: Color32 = Color32::from_rgb(80, 80, 80);      // Widget borders
+pub const TEXT: Color32 = Color32::from_rgb(220, 220, 220);      // Text color
+pub const ACCENT: Color32 = Color32::from_rgb(200, 120, 60);     // Accent / selection
+pub const HOVER: Color32 = Color32::from_rgb(60, 60, 60);       // Hover state
+pub const DIM: Color32 = Color32::from_rgb(120, 120, 120);      // Dimmed text
 
-// ── палитра на клавишах ──
-/// Готовые цвета, выбираемые клавишами 1–9. Индекс массива плюс один равен
-/// цифре на клавиатуре.
+// ── Numeric key palette ──
+/// Preset colors mapped to keys 1–9. Index plus one corresponds to the key.
+/// Full opacity (alpha 255) is preserved; opacity is modified independently.
 ///
-/// Альфа везде 255 не случайно: пресет — это конкретный непрозрачный цвет.
-/// Прозрачность регулируется отдельно (`,` и `.`), и клавиша пресета не должна
-/// её сбрасывать молча.
-///
-/// Порядок: три канала RGB, затем их сочетания, затем нейтральные — так, чтобы
-/// под рукой были и цвета, и инструменты обводки с заливкой.
+/// Order: RGB channels, then combinations, then neutrals — putting both colors
+/// and stroke/fill tones within immediate reach.
 pub const NUM_PALETTE: [[u8; 4]; 9] = [
-    [255, 0, 0, 255],     // 1 красный
-    [0, 255, 0, 255],     // 2 зелёный
-    [0, 0, 255, 255],     // 3 синий
-    [255, 255, 0, 255],   // 4 жёлтый
-    [0, 255, 255, 255],   // 5 циан
-    [255, 0, 255, 255],   // 6 пурпурный
-    [255, 255, 255, 255], // 7 белый
-    [128, 128, 128, 255], // 8 серый
-    [0, 0, 0, 255],       // 9 чёрный
+    [255, 0, 0, 255],     // 1 Red
+    [0, 255, 0, 255],     // 2 Green
+    [0, 0, 255, 255],     // 3 Blue
+    [255, 255, 0, 255],   // 4 Yellow
+    [0, 255, 255, 255],   // 5 Cyan
+    [255, 0, 255, 255],   // 6 Magenta
+    [255, 255, 255, 255], // 7 White
+    [128, 128, 128, 255], // 8 Gray
+    [0, 0, 0, 255],       // 9 Black
 ];
 
-// ── размеры ──
-pub const FONT_SZ: f32 = 20.0;    // размер шрифта в пикселях
-pub const CHAR_W: f32 = 11.0;     // примерная ширина одного символа (для расчётов)
-pub const ROW_H: f32 = 22.0;      // высота строки в пикселях
-pub const PANEL_PAD: f32 = 12.0;   // отступ от краёв панели (слои, цвет)
-pub const CHECKER_PX: f32 = 8.0;  // желаемый экранный размер клетки шахматки (прозрачный фон)
+// ── Dimensions ──
+pub const FONT_SZ: f32 = 20.0;    // Font size in pixels
+pub const CHAR_W: f32 = 11.0;     // Approximate character width for layout calculations
+pub const ROW_H: f32 = 22.0;      // Row height in pixels
+pub const PANEL_PAD: f32 = 12.0;   // Panel padding
+pub const CHECKER_PX: f32 = 8.0;  // Checkerboard square size on screen for transparent background
 
-/// Максимальный размер стороны холста — тот же предел, что у DragValue
-/// в диалогах изменения размера и масштаба.
+/// Maximum canvas side dimension in pixels (matches DragValue limit in dialogs).
 pub const MAX_SIDE: i32 = 4096;
 
-/// Возвращает пару (W, H), в которой изменённая сторона согласована с другой
-/// по пропорциям исходного холста.
+/// Returns a (W, H) pair where the edited side is matched to the other side
+/// preserving the aspect ratio of the original canvas.
 ///
-/// Опорой служит именно `orig_w`/`orig_h`, а не текущая пара `w`/`h`. Если
-/// брать за опору вторую сторону, пропорции «поедут»: у холста 64x48 шаг W=100
-/// даёт H=75, а следующий шаг H=76 вернул бы W=101 — и с каждым щелчком
-/// расхождение накапливалось бы. Якорь не меняется, поэтому дрейфа нет.
+/// Anchored against `orig_w`/`orig_h` rather than current `w`/`h` to prevent drift.
 pub fn linked_side(orig_w: i32, orig_h: i32, w: i32, h: i32, edited_w: bool) -> (i32, i32) {
     let clamp = |v: i32| v.clamp(1, MAX_SIDE);
     if edited_w {
@@ -168,16 +156,15 @@ mod linked_tests {
 
     #[test]
     fn width_edit_keeps_aspect() {
-        // 100x50 -> ширина 200, высота обязана стать 100
+        // 100x50 -> width 200, height must become 100
         assert_eq!(linked_side(100, 50, 200, 50, true), (200, 100));
     }
 
     #[test]
     fn height_edit_keeps_aspect() {
-        // 100x50 — пропорция 2, поэтому H=200 это четырехкратное увеличение
-        // и ширина обязана стать 400, а не 200
+        // 100x50: ratio is 2, so H=200 is 4x and width must be 400
         assert_eq!(linked_side(100, 50, 100, 200, false), (400, 200));
-        // а вот H=100 — ровно вдвое
+        // H=100 is exactly double
         assert_eq!(linked_side(100, 50, 100, 100, false), (200, 100));
     }
 
@@ -187,22 +174,21 @@ mod linked_tests {
         assert_eq!(linked_side(64, 64, 64, 32, false), (32, 32));
     }
 
-    /// Главное свойство: последовательность правок не уходит от пропорций.
-    /// Раньше считая от показанных значений, второй шаг дал бы 101 вместо 100.
+    /// Key property: successive edits do not drift from the original aspect ratio.
+    /// Previously calculating from displayed values caused 101 instead of 100 on second step.
     #[test]
     fn successive_edits_do_not_drift() {
         let (ow, oh) = (64, 48);
         let (w, h) = linked_side(ow, oh, 100, 48, true);
         assert_eq!((w, h), (100, 75));
         let (w, h) = linked_side(ow, oh, w, 76, false);
-        assert_eq!((w, h), (101, 76), "ширина считается от якоря, а не от 100");
+        assert_eq!((w, h), (101, 76), "width calculated from anchor, not from 100");
         let (w, h) = linked_side(ow, oh, 202, h, true);
         assert_eq!((w, h), (202, 152));
     }
 
-    /// Пропорция итоговой пары совпадает с исходной с точностью до округления.
-    /// Случаи, где результат упрётся в предел 4096, пропускаем: там пропорция
-    /// ломается намеренно, это проверяет отдельный тест про кламп.
+    /// Result ratio matches original ratio within one pixel rounding.
+    /// Cases hitting MAX_SIDE 4096 are skipped here and tested in clamp test.
     #[test]
     fn result_stays_within_one_pixel_of_the_original_ratio() {
         for (ow, oh) in [(64, 48), (100, 50), (37, 91), (16, 16), (5, 3)] {
@@ -210,10 +196,10 @@ mod linked_tests {
                 let expect = target as f64 * oh as f64 / ow as f64;
                 if !(1.0..=MAX_SIDE as f64).contains(&expect.round()) { continue; }
                 let (w, h) = linked_side(ow, oh, target, oh, true);
-                assert_eq!(w, target, "{ow}x{oh}, ширина не должна меняться");
+                assert_eq!(w, target, "{ow}x{oh}, width must stay untouched");
                 assert!(
                     (h as f64 - expect).abs() <= 0.5,
-                    "{ow}x{oh} -> {w}x{h}, ожидалось ~{expect}"
+                    "{ow}x{oh} -> {w}x{h}, expected ~{expect}"
                 );
             }
         }
@@ -222,16 +208,16 @@ mod linked_tests {
     #[test]
     fn values_are_clamped_to_the_dialog_range() {
         assert_eq!(linked_side(1, 4096, 4096, 4096, true).1, 4096);
-        // крошечная высота и огромная ширина не должны обнулить высоту
+        // tiny height and huge width must not zero out the height
         let (_, h) = linked_side(4096, 1, 4096, 1, true);
         assert_eq!(h, 1);
         let (w, _) = linked_side(1, 4096, 1, 4096, false);
         assert_eq!(w, 1);
-        // и наоборот: узкий холст при огромной ширине упрётся в предел
+        // narrow canvas at large width clamps to MAX_SIDE
         assert_eq!(linked_side(37, 91, 4096, 91, true).1, MAX_SIDE);
     }
 
-    /// Вырожденный якорь не должен ронять расчёт (деление на ноль).
+    /// Degenerate anchor avoids division by zero.
     #[test]
     fn degenerate_anchor_passes_values_through() {
         assert_eq!(linked_side(0, 10, 5, 10, true), (5, 10));

@@ -1,4 +1,4 @@
-//! Панель эффектов: список эффектов из Pixelorama + их параметры + превью.
+//! Effects panel: Pixelorama effects list + parameters + live preview.
 
 use eframe::egui::{self, Color32, ColorImage, Pos2, Rect, Sense, Stroke, Vec2};
 
@@ -8,7 +8,7 @@ use crate::color::lerp_color;
 use crate::constants::*;
 use crate::ui::check_row;
 
-/// Максимальный размер картинки-превью (в пикселях холста).
+/// Maximum preview image dimension in canvas pixels.
 const PREVIEW_MAX: usize = 64;
 
 impl PixeshApp {
@@ -45,7 +45,7 @@ impl PixeshApp {
                 );
                 ui2.spacing_mut().item_spacing = Vec2::new(4.0, 5.0);
 
-                // ── заголовок ──
+                // ── Title ──
                 ui2.horizontal(|ui| {
                     ui.label(egui::RichText::new("Effects").size(28.0 * font).color(TEXT));
                     ui.label(
@@ -56,10 +56,9 @@ impl PixeshApp {
                 });
                 ui2.add_space(2.0);
 
-                // ── категории ──
-                // Активную категорию читаем ВНУТРИ замыкания: клик по кнопке
-                // меняет self.effect прямо здесь, и следующая строка обязана
-                // видеть уже новый эффект, иначе кадр нарисует старую категорию.
+                // ── Categories ──
+                // Active category is evaluated inside the closure so immediate clicks
+                // update the category and render the corresponding list in the same frame
                 ui2.horizontal_wrapped(|ui| {
                     let active = self.effect.def().cat;
                     for cat in effects::CATS {
@@ -75,9 +74,8 @@ impl PixeshApp {
                 });
                 ui2.add_space(2.0);
 
-                // ── список эффектов + параметры ──
-                // обе секции в одном скролл-блоке: так колесо не «перехватывается»
-                // между двумя соседними ScrollArea
+                // ── Effects list + parameters ──
+                // Both sections share one scroll area to prevent nested scroll wheel capture
                 let cur_cat = self.effect.def().cat;
                 let names: Vec<(effects::EffectKind, &'static str)> = effects::EFFECTS
                     .iter()
@@ -91,7 +89,7 @@ impl PixeshApp {
                     .max_height(scroll_h)
                     .auto_shrink([true, false])
                     .show(&mut ui2, |ui| {
-                        // список эффектов текущей категории
+                        // Current category effect list
                         ui.horizontal_wrapped(|ui| {
                             for (kind, name) in names {
                                 if seg_btn(ui, name, kind == cur_kind, font) {
@@ -104,8 +102,7 @@ impl PixeshApp {
                         line(ui, rect.width() - pad * 2.0);
                         ui.add_space(4.0);
 
-                        // Описание параметров читаем заново: клик по списку выше
-                        // уже мог сменить эффект в этом же кадре.
+                        // Reload parameter definitions: clicked effect might have changed this frame
                         let param_defs = self.effect.def().params;
                         if param_defs.is_empty() {
                             ui.label(egui::RichText::new("no parameters").size(sz).color(DIM));
@@ -118,24 +115,17 @@ impl PixeshApp {
                 ui2.add_space(4.0);
                 line(&mut ui2, rect.width() - pad * 2.0);
 
-                // ── превью + область применения ──
-                // кнопки внизу занимают ~50, остаток отдаём превью — так панель
-                // не остаётся с пустым местом, а превью получается крупнее
+                // ── Preview + application scope ──
                 const BUTTONS_H: f32 = 52.0;
-                // во сколько раз превью меньше доступной высоты
                 const PREVIEW_SCALE: f32 = 1.0 / 1.3;
-                // сдвиг рисунка; раскладку не трогаем (иначе колонка справа поедет)
                 const PREVIEW_DX: f32 = 4.0;
                 const PREVIEW_DY: f32 = 8.0;
                 let spare = ui2.available_height() - BUTTONS_H - 8.0;
-                // DY вычитаем: сдвиг не меняет раскладку, но двигает низ картинки
-                // на столько же вниз. Без этого вычитания превью наползает на
-                // нижний край панели, как только свободного места становится мало.
                 let prev_sz = ((spare - PREVIEW_DY) * font * PREVIEW_SCALE).clamp(0.0, 240.0);
                 ui2.horizontal(|ui| {
                     let (r, _) = ui.allocate_exact_size(Vec2::splat(prev_sz), Sense::hover());
                     let r = r.translate(Vec2::new(PREVIEW_DX, PREVIEW_DY));
-                    // шахматка
+                    // Checkerboard background
                     let cell = 8.0;
                     let p = ui.painter();
                     let cols = (r.width() / cell).ceil() as i32;
@@ -186,8 +176,7 @@ impl PixeshApp {
                             });
                         }
                         ui.add_space(4.0);
-                        // add_space в top_down добавляет высоту, поэтому горизонтальный
-                        // сдвиг делаем через horizontal-раскладку
+                        // add_space in top_down adds height, so horizontal offset uses horizontal layout
                         ui.horizontal(|ui| {
                             ui.add_space(24.0);
                             check_row(ui, "All layers", self.effect_all_layers, font, |v| {
@@ -204,19 +193,15 @@ impl PixeshApp {
                     });
                 });
 
-                // ── кнопки ──
-                // прижимаем их к низу панели: съедаем всю оставшуюся высоту
-                // (в top_down add_space добавляет именно высоту, что тут и нужно)
-                // btn_min_w делает кнопку высотой font + 2*8, считаем так же,
-                // иначе увеличенный текст вылезет за нижний край
+                // ── Action buttons ──
+                // Pin buttons to the bottom
                 let btn_font = 22.0 * font;
                 let btn_h = btn_font + 16.0;
                 const BTN_MARGIN: f32 = 8.0;
                 ui2.add_space((ui2.available_height() - btn_h - BTN_MARGIN).max(0.0));
                 let bw = (rect.width() - pad * 2.0 - 8.0) / 3.0;
                 ui2.horizontal(|ui| {
-                    // кегль задаём только здесь: общий TextStyle::Button трогал бы
-                    // ещё и DragValue в RGBA-строках, и те перестали бы влезать
+                    // Set font size locally to keep button text clean
                     ui.style_mut().text_styles.insert(
                         egui::TextStyle::Button,
                         egui::FontId::proportional(btn_font),
@@ -234,14 +219,13 @@ impl PixeshApp {
                 });
             });
 
-        // превью считаем после отрисовки — параметры к этому моменту актуальны
+        // Compute preview after rendering when parameters are up-to-date
         self.update_effect_preview(ctx, tab);
     }
 
-    /// Строка одного параметра: слайдер / чекбокс / сегменты / цвет.
+    /// Parameter control row: slider / checkbox / segments / color.
     fn param_row(&mut self, ui: &mut egui::Ui, pd: &effects::ParamDef, font: f32) {
-        // pd мог достаться от предыдущего эффекта (клик по списку приходит
-        // в том же кадре) — тогда параметра с таким именем просто нет
+        // If parameter does not exist for the current effect, skip
         if !self.effect.has(pd.name) { return; }
         let sz = 21.0 * font;
         let h = 28.0 * font;
@@ -253,14 +237,14 @@ impl PixeshApp {
                 check_row(ui, pd.name, v, font, |nv| self.effect.set_flag(pd.name, nv));
             }
             PT::C => {
-                // строка 1: название + образец цвета
+                // Row 1: label + color swatch
                 ui.horizontal(|ui| {
                     ui.add_sized(
                         Vec2::new(label_w, h),
                         egui::Label::new(egui::RichText::new(pd.name).size(sz).color(TEXT)),
                     );
                     let cur = self.effect.color(pd.name);
-                    // клик по образцу — взять текущий цвет приложения
+                    // Click swatch to adopt current app brush color
                     let (sw, resp) = ui.allocate_exact_size(Vec2::new(56.0, h), Sense::click());
                     let t_hov = ui.ctx().animate_bool(resp.id.with("hov"), resp.hovered());
                     let p = ui.painter();
@@ -279,7 +263,7 @@ impl PixeshApp {
                     }
                     resp.on_hover_text("Use the current brush color");
                 });
-                // строка 2: точные значения каналов (с отступом под название)
+                // Row 2: channel values
                 ui.horizontal(|ui| {
                     ui.add_space(label_w);
                     let cur = self.effect.color(pd.name);
@@ -379,8 +363,8 @@ impl PixeshApp {
         }
     }
 
-    /// Пересчитывает картинку-превью: берёт текущий слой, при необходимости
-    /// уменьшает, применяет эффект и заливает результат в текстуру.
+    /// Recomputes the preview image: grabs the active layer, downsizes if needed,
+    /// applies effect, and uploads result into texture.
     fn update_effect_preview(&mut self, ctx: &egui::Context, tab: usize) {
         let (w, h) = (self.docs[tab].width, self.docs[tab].height);
         if w == 0 || h == 0 {
@@ -394,10 +378,8 @@ impl PixeshApp {
             self.docs[tab].active_layer,
             self.docs[tab].active_frame,
         );
-        // Слой, который влезает в превью целиком, считаем каждый кадр — это
-        // дёшево и превью всегда актуально. Крупный пересчитываем только при
-        // смене параметров, но не реже раза в 0.4 с, иначе правки на холсте
-        // (у них нет общего счётчика) не попадали бы в превью.
+        // Small layers that fit completely into the preview are recomputed every frame cheaply.
+        // Larger layers recompute on parameter changes or at least once every 0.4s.
         let now = ctx.input(|i| i.time);
         let cheap = w * h <= PREVIEW_MAX * PREVIEW_MAX;
         let stale = sig != self.effect_prev_sig || now - self.effect_prev_time > 0.4;
@@ -429,7 +411,7 @@ impl PixeshApp {
     }
 }
 
-/// Пиксели слоя, уменьшенные nearest-neighbour'ом до `max_dim` по большей стороне.
+/// Downscales layer pixels using nearest-neighbour to `max_dim` along longest side.
 fn preview_source(doc: &Document, max_dim: usize) -> (Vec<Color32>, usize, usize) {
     let (w, h) = (doc.width, doc.height);
     let Some(cel) = doc.layers.get(doc.active_layer).and_then(|l| l.cels.get(doc.active_frame))
@@ -458,14 +440,14 @@ fn rgba_bytes(px: &[Color32]) -> Vec<u8> {
     raw
 }
 
-// ── маленькие виджеты в стиле остальной панели ────────
+// ── Small panel styling widgets ────────
 
 fn line(ui: &mut egui::Ui, w: f32) {
     let (r, _) = ui.allocate_exact_size(Vec2::new(w, 2.0), Sense::hover());
     ui.painter().hline(r.x_range(), r.center().y, Stroke::new(2.0_f32, BORDER));
 }
 
-/// Компактная кнопка-переключатель (категория / эффект / вариант).
+/// Compact toggle segment button (category / effect / variant).
 fn seg_btn(ui: &mut egui::Ui, label: &str, active: bool, font: f32) -> bool {
     let sz = 20.0 * font;
     let w = label.len() as f32 * CHAR_W * (sz / FONT_SZ) + 20.0;

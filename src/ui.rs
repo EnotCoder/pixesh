@@ -58,8 +58,8 @@ pub fn toggle_btn(ui: &mut egui::Ui, label: &str, active: bool) -> bool {
     let font_sz = font_id.size;
     let label_w = label.len() as f32 * CHAR_W * (font_sz / FONT_SZ);
     let pad_x = 14.0;
-    let h = ROW_H + 16.0; // Стандартная высота как у остальных кнопок
-    let w = (label_w + pad_x * 2.0).max(80.0); // Минимальная ширина для симметрии
+    let h = ROW_H + 16.0; // Standard button height matching other buttons
+    let w = (label_w + pad_x * 2.0).max(80.0); // Minimum width for symmetry
     let size = Vec2::new(w, h);
     let (rect, resp) = ui.allocate_exact_size(size, Sense::click());
 
@@ -124,28 +124,21 @@ pub fn separator(ui: &mut egui::Ui) {
     );
 }
 
-/// Строка-чекбокс в общем пиксельном стиле: рамка без скруглений, заливка
-/// акцентом при включении. `font` — множитель относительно базового 19 px,
-/// чтобы одна и та же функция годилась и для панели эффектов, и для диалогов.
-///
-/// Живёт здесь, а не в панели эффектов, потому что чекбоксы нужны ещё в
-/// диалогах изменения размера и масштаба.
+/// Checkbox row in pixel-art style: crisp rectangular border, accent fill when checked.
+/// `font` is a scale multiplier against base 19 px, allowing reuse in dialogs and panels.
 pub fn check_row(ui: &mut egui::Ui, label: &str, value: bool, font: f32, mut set: impl FnMut(bool)) {
     let sz = 19.0 * font;
     let row_h = sz + 12.0;
     let cbs = 18.0;
     let font_id = egui::FontId::proportional(sz);
-    // Ширина подписи нужна до отрисовки: квадратик ставим по центру именно
-    // ВИДИМОГО содержимого, а не строки.
+    // Label width is measured upfront: the checkbox and label are centered as visible content
     let text_w = ui
         .fonts(|f| f.layout_no_wrap(label.to_owned(), font_id.clone(), TEXT).size().x);
 
     let w = ui.available_width().min(170.0);
     let (row, _) = ui.allocate_exact_size(Vec2::new(w, row_h), Sense::hover());
 
-    // Раньше квадратик прижимался к row.min.x, а строка шире видимой части
-    // примерно на 40 px. Центрировалась строка целиком, поэтому видимый блок
-    // уезжал влево на половину этой пустоты — на «Lock ratio» это −22 px.
+    // Center visible content (checkbox + spacing + text) within the row
     let content_w = cbs + 8.0 + text_w;
     let cb_rect = Rect::from_min_size(
         Pos2::new(
@@ -167,7 +160,7 @@ pub fn check_row(ui: &mut egui::Ui, label: &str, value: bool, font: f32, mut set
     if value {
         p.rect_filled(cb_rect.shrink(4.0), 0.0, ACCENT);
     }
-    // id с нейтральным префиксом: функцией пользуются несколько диалогов
+    // Neutral id prefix so multiple dialogs can share check_row safely
     if ui.interact(row, egui::Id::new(("check_row", label)), Sense::click()).clicked()
         || ui.interact(cb_rect, egui::Id::new(("check_row_inner", label)), Sense::click()).clicked()
     {

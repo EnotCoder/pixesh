@@ -93,9 +93,8 @@ impl Document {
         Ok(())
     }
 
-/// Открывает картинку в этот документ. Имя берётся из пути файла.
-/// Ошибка декодирования возвращается, а не проглатывается: иначе перетащенный
-/// не-картинкой файл выглядел бы как «ничего не произошло».
+/// Loads an image into this document. Tab name is inferred from file path.
+/// Decoding errors are returned instead of swallowed to surface failures.
 #[allow(dead_code)]
     pub(crate) fn load_png(&mut self, path: &str) -> Result<(), String> {
         let img = match image::open(path) {
@@ -126,8 +125,7 @@ impl Document {
         self.tex = None;
         self.canvas_dirty = true;
         self.needs_zoom_fit = true;
-        // только что открыли с диска — незакрытых правок нет, несмотря на
-        // push_undo() выше, который ставит флаг в true
+        // Freshly opened from disk — no unsaved modifications despite push_undo() above
         self.unsaved = false;
 
         let p = std::path::Path::new(path);
@@ -308,7 +306,7 @@ mod tests {
         d
     }
 
-    /// Кладёт ряд пикселей в PNG и возвращает путь.
+    /// Writes a slice of pixels into a PNG and returns the file path.
     fn write_png(name: &str, w: u32, h: u32, px: &[(u32, u32, [u8; 4])]) -> PathBuf {
         let mut img = image::RgbaImage::from_pixel(w, h, image::Rgba([0, 0, 0, 0]));
         for &(x, y, c) in px {
@@ -323,7 +321,7 @@ mod tests {
     fn load_png_reads_size_and_pixels() {
         let path = write_png("load_ok.png", 4, 3, &[(1, 2, [255, 0, 0, 255])]);
         let mut d = Document::new("t");
-        d.load_png(path.to_str().unwrap()).expect("должно открыться");
+        d.load_png(path.to_str().unwrap()).expect("must open successfully");
 
         assert_eq!((d.width, d.height), (4, 3));
         let px = &d.layers[0].cels[0];
@@ -335,10 +333,9 @@ mod tests {
     fn load_png_marks_document_as_saved() {
         let path = write_png("load_saved.png", 2, 2, &[]);
         let mut d = Document::new("t");
-        // push_undo внутри ставит unsaved = true — свежеоткрытый файл должен
-        // считаться сохранённым
+        // push_undo sets unsaved = true internally; fresh file from disk must be marked saved
         assert!(d.load_png(path.to_str().unwrap()).is_ok());
-        assert!(!d.unsaved, "файл только что открыт с диска");
+        assert!(!d.unsaved, "file freshly opened from disk");
     }
 
     #[test]
@@ -347,7 +344,7 @@ mod tests {
         std::fs::write(&path, b"definitely not a png").unwrap();
         let mut d = Document::new("t");
         let err = d.load_png(path.to_str().unwrap()).unwrap_err();
-        assert!(!err.is_empty(), "ошибка должна быть непустой");
+        assert!(!err.is_empty(), "error string must not be empty");
     }
 
     #[test]
@@ -362,6 +359,6 @@ mod tests {
         let before = d.layers[0].cels[0].clone();
         assert!(d.load_png("/nope/missing.png").is_err());
         assert_eq!((d.width, d.height), (16, 16));
-        assert_eq!(d.layers[0].cels[0], before, "неудачная загрузка не меняет холст");
+        assert_eq!(d.layers[0].cels[0], before, "failed load must not modify canvas");
     }
 }

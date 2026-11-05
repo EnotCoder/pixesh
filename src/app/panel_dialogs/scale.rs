@@ -61,8 +61,7 @@ impl PixeshApp {
                     self.scale_h = h as f32;
                 });
                 child_ui.add_space(10.0);
-                // пропорции держим от размера холста, а не от показанной пары:
-                // иначе каждая правка сдвигала бы их всё дальше
+                // Keep aspect ratio linked to original canvas dimensions to avoid cumulative drift
                 let (ow, oh) = (self.docs[i].width as i32, self.docs[i].height as i32);
                 let now_w = self.scale_w as i32;
                 let now_h = self.scale_h as i32;
@@ -82,8 +81,7 @@ impl PixeshApp {
                     check_row(ui, "Lock ratio", lock, 1.2, |v| {
                         lock = v;
                         self.scale_lock_ratio = v;
-                        // включение сразу приводит пару в порядок: иначе после
-                        // свободной правки W высота осталась бы от другой пропорции
+                        // Enabling lock immediately realigns the pair with the original aspect ratio
                         if v {
                             let (w, h) = linked_side(
                                 self.docs[i].width as i32,

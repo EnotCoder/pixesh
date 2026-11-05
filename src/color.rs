@@ -1,21 +1,21 @@
 use eframe::egui::Color32;
 
 // ── HSV → RGB ────────────────────────────────────────
-// конвертирует Hue/Saturation/Value в красный/зелёный/синий (0–255 каждый)
+// Converts Hue/Saturation/Value to Red/Green/Blue (each 0–255)
 // h: 0–360, s: 0–255, v: 0–255
-// возвращает (r, g, b) каждый 0–255
+// returns (r, g, b) each 0–255
 pub fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (u8, u8, u8) {
-    // нормализуем S и V в 0..1
+    // Normalize S and V to 0..1
     let s = s / 255.0;
     let v = v / 255.0;
-    // сектор цветового круга (0..5)
+    // Color circle sector (0..5)
     let hi = (h / 60.0) as i32 % 6;
     let f = h / 60.0 - (hi as f32);
-    // вспомогательные значения
+    // Auxiliary values
     let p = v * (1.0 - s);
     let q = v * (1.0 - s * f);
     let t = v * (1.0 - s * (1.0 - f));
-    // выбор тройки из 6 вариантов
+    // Pick the color triple out of 6 permutations
     let (r, g, b) = match hi {
         0 => (v, t, p),
         1 => (q, v, p),
@@ -24,12 +24,12 @@ pub fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (u8, u8, u8) {
         4 => (t, p, v),
         _ => (v, p, q),
     };
-    // обратно в 0..255
+    // Map back to 0..255
     ((r * 255.0) as u8, (g * 255.0) as u8, (b * 255.0) as u8)
 }
 
 // ── RGB → HSV ────────────────────────────────────────
-// обратная конвертация (r, g, b: 0–255) → (h: 0–360, s: 0–255, v: 0–255)
+// Reverse conversion (r, g, b: 0–255) → (h: 0–360, s: 0–255, v: 0–255)
 pub fn rgb_to_hsv(r: u8, g: u8, b: u8) -> (f32, f32, f32) {
     let rf = r as f32 / 255.0;
     let gf = g as f32 / 255.0;
@@ -37,7 +37,7 @@ pub fn rgb_to_hsv(r: u8, g: u8, b: u8) -> (f32, f32, f32) {
     let mx = rf.max(gf).max(bf);
     let mn = rf.min(gf).min(bf);
     let d = mx - mn;
-    // рассчитываем оттенок по положению в цветовом круге
+    // Calculate hue based on position in color circle
     let h = if d == 0.0 {
         0.0
     } else if mx == rf {
@@ -47,7 +47,7 @@ pub fn rgb_to_hsv(r: u8, g: u8, b: u8) -> (f32, f32, f32) {
     } else {
         60.0 * ((rf - gf) / d + 4.0)
     };
-    // насыщенность = размах / максимум
+    // Saturation = spread / maximum
     let s = if mx == 0.0 { 0.0 } else { d / mx * 255.0 };
     (if h < 0.0 { h + 360.0 } else { h }, s, mx * 255.0)
 }

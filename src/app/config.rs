@@ -1,29 +1,26 @@
-//! Сохранение настроек между запусками.
+//! Persisting user preferences across application launches.
 //!
-//! Размеры панелей и геометрия окна персистятся сами: egui держит их в
-//! `egui::Memory`, а eframe сериализует всю память в app.ron, когда включена
-//! фича `persistence`. Нам остаётся только состояние, о котором egui не знает.
+//! Panel sizes and window geometry are persisted by egui memory mechanism:
+//! egui keeps them in `egui::Memory`, while eframe serializes the memory into app.ron.
+//! This module manages custom application state that egui does not track.
 
 use crate::constants::{BrushShape, Edge, Tool};
 
-/// Стартовая директория для нативных диалогов открытия/сохранения.
-/// Нужна только rfd, на Android нативных диалогов нет.
+/// Initial directory for native file dialogs.
 pub(crate) fn default_dir() -> String {
     std::env::var("HOME")
         .or_else(|_| std::env::var("EXTERNAL_STORAGE")) // Android fallback
         .unwrap_or_else(|_| "/".into())
 }
 
-/// Ключ настроек в хранилище eframe (RON внутри app.ron).
+/// Key used in eframe storage (serialized as RON).
 #[cfg_attr(not(feature = "persistence"), allow(dead_code))]
 pub(crate) const PREFS_KEY: &str = "pixesh_prefs";
 
-/// Настройки, которые переживают перезапуск.
+/// Preferences that persist across restarts.
 ///
-/// `#[serde(default)]` на структуре — не украшение: без него добавление любого
-/// нового поля ломает чтение всех ранее сохранённых файлов, и пользователь
-/// молча получает дефолты. С `default` старый файл читается частично — новое
-/// поле берётся из `Default`, остальное из файла.
+/// `#[serde(default)]` ensures missing fields in older configuration files
+/// fall back to defaults without breaking deserialization.
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 #[serde(default)]
 pub(crate) struct Prefs {
@@ -31,8 +28,7 @@ pub(crate) struct Prefs {
     pub show_right_panel: bool,
     pub show_status_bar: bool,
     pub show_timeline: bool,
-    /// Какие края окна занимают панели. Перетаскиванием меняются на лету и
-    /// переживают перезапуск вместе с размерами (размеры egui хранит сам).
+    /// Edge assignment for draggable panels.
     pub toolbar_edge: Edge,
     pub layers_edge: Edge,
     pub status_edge: Edge,
@@ -43,8 +39,7 @@ pub(crate) struct Prefs {
     pub brush: f32,
     pub brush_shape: BrushShape,
     pub tool: Tool,
-    /// Текущий цвет как RGBA. HSV и RGB-поля из него пересчитываются при
-    /// загрузке: хранить все три отдельно нельзя, они обязаны быть согласованы.
+    /// Current color stored as RGBA.
     pub rgba: [u8; 4],
     pub color_history: Vec<[u8; 4]>,
 }

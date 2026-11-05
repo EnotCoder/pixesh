@@ -1,35 +1,28 @@
-//! Перетаскивание панелей между краями окна.
+//! Dragging and docking panels between window edges.
 //!
-//! За панель тянут за ручку-«грип» в начале её тела. Сделано именно отдельной
-//! ручкой, а не полосой вдоль внутреннего ребра: внутреннее ребро таймлайна
-//! занято кнопками Delete/Duplicate/Add, и полоса-приёмник перехватывала бы их
-//! нажатия. Ручка ничего не перекрывает, поэтому вёрстку панелей менять не
-//! пришлось — только добавить один элемент в начало.
-//!
-//! Пока панель тащат, по краям окна подсвечиваются зоны-приёмники. Цель
-//! выбирается по позиции курсора, а не по наведению на виджет: так подсветка
-//! ничего не перехватывает и работает, даже когда курсор над холстом.
+//! Panels are dragged using a dedicated grab-handle icon at the panel's start.
+//! While dragging, eligible drop zones light up at the screen edges.
+//! Target edge is calculated from cursor position in normalized screen coordinates.
 
 use eframe::egui::{self, Color32, CursorIcon, Pos2, Rect, Sense, Vec2};
 
 use crate::app::PixeshApp;
 use crate::constants::*;
 
-/// Размер ручки в пикселях.
+/// Grab handle size in pixels.
 const GRAB: f32 = 22.0;
 
-/// Насколько близко к краю надо подвести курсор, чтобы сработала зона.
+/// Distance threshold from the window edge to activate a drop zone.
 const EDGE_ZONE: f32 = 140.0;
 
 impl PixeshApp {
-    /// Ручка в начале панели. Возвращает ничего: перенос целиком держит в
-    /// состоянии, зоны рисует ui_panel_drag.
+    /// Grab handle rendered at the start of a panel.
     pub(crate) fn grab_handle(&mut self, ui: &mut egui::Ui, p: PanelId) {
         let (_rect, resp) = ui.allocate_exact_size(Vec2::splat(GRAB), Sense::click_and_drag());
         let painter = ui.painter().clone();
         let r = resp.rect;
         let hot = resp.hovered() || resp.dragged();
-        // три пары точек — классический «грип», читается как ручка
+        // Three dot pairs — classic grip pattern
         for row in 0..3 {
             for col in 0..2 {
                 let c = Pos2::new(
@@ -66,16 +59,16 @@ impl PixeshApp {
         }
     }
 
-    /// Зоны-приёмники и подсветка активной. Вызывается после отрисовки холста.
+    /// Drop zones and active drop target highlight. Drawn after canvas rendering.
     pub(crate) fn ui_panel_drag(&mut self, ctx: &egui::Context) {
-        // диалог должен перехватывать мышь целиком
+        // Any open dialog captures pointer interactions completely
         if self.dialog_open() {
             self.cancel_panel_drag();
             return;
         }
         let Some(panel) = self.dragging_panel else { return };
 
-        // курсор мог уйти за пределы окна — тогда зон не рисуем
+        // If the pointer leaves window boundaries, do not draw zones
         if let Some(pos) = ctx.input(|i| i.pointer.interact_pos()) {
             self.drop_edge = edge_at(pos, panel, ctx.screen_rect());
         }
@@ -102,20 +95,15 @@ impl PixeshApp {
         }
     }
 
-    /// Перенос не начат или уже завершён — сбрасываем состояние.
+    /// Dragging cancelled or completed — reset state.
     pub(crate) fn cancel_panel_drag(&mut self) {
         self.dragging_panel = None;
         self.drop_edge = None;
     }
 }
 
-/// Ближайший край из разрешённых для этой панели. Сравниваем доли экрана, а не
-/// абсолютные расстояния: на широком окне до левого края далеко даже когда
-/// курсор мысленно «у левого края».
-///
-/// Расстояние считается до *каждого* края отдельно, а не до ближайшего из двух
-/// параллельных: для верхней/нижней пары «до ближайшего» — одно и то же число,
-/// и панель, которую тянут к нижнему краю, выдала бы Top.
+/// Closest edge among those permitted for this panel.
+/// Compares normalized window fractions rather than absolute pixel distances.
 fn edge_at(pos: Pos2, panel: PanelId, screen: Rect) -> Option<Edge> {
     let (w, h) = (screen.width().max(1.0), screen.height().max(1.0));
     let dist = |e: Edge| -> f32 {
@@ -135,7 +123,7 @@ fn edge_at(pos: Pos2, panel: PanelId, screen: Rect) -> Option<Edge> {
         .map(|(_, e)| e)
 }
 
-/// Полоса-приёмник у края окна.
+/// Target docking drop zone rect along a window edge.
 fn zone_rect(screen: Rect, edge: Edge) -> Rect {
     match edge {
         Edge::Top => Rect::from_min_max(
@@ -177,7 +165,7 @@ mod tests {
         assert_eq!(e, Some(Edge::Bottom));
     }
 
-    /// Таймлайн нельзя прижать к боку окна — приёмников там нет вовсе.
+    /// Timeline cannot dock to a side edge — no drop targets there.
     #[test]
     fn horizontal_panels_never_resolve_to_a_side_edge() {
         for p in [PanelId::Toolbar, PanelId::Status, PanelId::Timeline] {
@@ -190,13 +178,13 @@ mod tests {
                 let e = edge_at(pos, p, screen()).unwrap();
                 assert!(
                     !e.is_vertical(),
-                    "{p:?} предложил боковой край {e:?} при курсоре {pos:?}"
+                    "{p:?} resolved to side edge {e:?} at cursor {pos:?}"
                 );
             }
         }
     }
 
-    /// И наоборот: панель слоёв не уезжает на верх или низ.
+    /// Layers panel never resolves to top or bottom.
     #[test]
     fn the_layers_panel_never_resolves_to_a_horizontal_edge() {
         for pos in [
@@ -205,18 +193,18 @@ mod tests {
             Pos2::new(500.0, 400.0),
         ] {
             let e = edge_at(pos, PanelId::Layers, screen()).unwrap();
-            assert!(e.is_vertical(), "{e:?} для панели слоёв при {pos:?}");
+            assert!(e.is_vertical(), "{e:?} for layers panel at {pos:?}");
         }
     }
 
-    /// Зона приёмника должна лежать у своего края и не залезать на соседний.
+    /// Drop zone should stay along its edge without overlapping adjacent halves.
     #[test]
     fn drop_zones_sit_at_their_own_edges() {
         let s = screen();
         let top = zone_rect(s, Edge::Top);
         assert!((top.min.y - s.min.y).abs() < 0.01);
         assert!((top.max.x - s.max.x).abs() < 0.01);
-        assert!(top.height() < s.height() / 2.0, "зона не должна закрывать пол-окна");
+        assert!(top.height() < s.height() / 2.0, "zone must not cover half the window");
 
         let left = zone_rect(s, Edge::Left);
         assert!((left.min.x - s.min.x).abs() < 0.01);
@@ -229,13 +217,13 @@ mod tests {
         assert!((right.max.x - s.max.x).abs() < 0.01);
     }
 
-    /// Каждой панели доступны ровно два края, и они противоположны.
+    /// Every panel has exactly two eligible edges, and they are opposite.
     #[test]
     fn every_panel_has_exactly_two_opposite_edges() {
         for p in [PanelId::Toolbar, PanelId::Status, PanelId::Timeline, PanelId::Layers] {
             let a = p.shape_edge().allowed_for();
             assert_eq!(a.len(), 2, "{p:?}");
-            assert_ne!(a[0], a[1], "{p:?}: края должны быть противоположны");
+            assert_ne!(a[0], a[1], "{p:?}: edges must be opposite");
         }
     }
 }

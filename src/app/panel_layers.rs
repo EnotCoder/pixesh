@@ -11,8 +11,7 @@ impl PixeshApp {
         let id = PanelId::Layers.ui_id(edge);
         let def_w = 280.0;
         let mut body = |ui: &mut egui::Ui| self.layers_body(ctx, ui);
-        // панель слоёв — вертикальный список, ей разрешены только левый и
-        // правый края
+        // Layers panel is a vertical list, restricted to Left or Right edges
         let panel = if edge == Edge::Left {
             egui::SidePanel::left(id)
         } else {

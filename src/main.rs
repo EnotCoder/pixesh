@@ -1,5 +1,5 @@
-// без этой строки Windows открывает рядом с окном чёрное окно консоли:
-// main печатает в stdout только панорамные сообщения, терять нечего
+// Without this attribute Windows opens a black console window alongside the app:
+// main prints nothing to stdout, so hiding the console is safe.
 #![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
 
 use eframe::egui;
@@ -8,8 +8,8 @@ use eframe::egui;
 fn main() -> eframe::Result {
     let native_options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_inner_size([1400.0, 900.0])   // начальный размер окна
-            .with_min_inner_size([400.0, 300.0]) // минимальный размер
+            .with_inner_size([1400.0, 900.0])   // initial window size
+            .with_min_inner_size([400.0, 300.0]) // minimum window size
             .with_maximized(true),
         ..Default::default()
     };

@@ -10,7 +10,7 @@ impl PixeshApp {
         let id = PanelId::Status.ui_id(edge);
         let mut body = |ui: &mut egui::Ui| self.status_body(ui);
         let frame = egui::Frame::new().fill(PANEL);
-        // статус-бар — горизонтальная полоса, только верх или низ
+        // Status bar is a horizontal strip, restricted to Top or Bottom
         if edge == Edge::Top {
             egui::TopBottomPanel::top(id)
                 .frame(frame)
@@ -129,8 +129,8 @@ impl PixeshApp {
                             );
                         }
 
-                        // временная подсказка: сюда попадают сообщения вроде
-                        // «nothing selected», чтобы Ctrl+C/Ctrl+V не были безмолвными
+                        // Ephemeral status hint: displays feedback such as
+                        // "nothing selected" so shortcuts like Ctrl+C/Ctrl+V are not silent
                         if !self.status_hint.is_empty() {
                             separator(ui);
                             ui.label(
