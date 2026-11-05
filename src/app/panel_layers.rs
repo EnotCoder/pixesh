@@ -76,7 +76,7 @@ impl PixeshApp {
                     
                     let p = ui.painter();
                     p.rect_filled(cb_rect, 0.0, PANEL_LIGHT);
-                    p.rect_stroke(cb_rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
+                    p.rect_stroke(cb_rect, 0.0, Stroke::new(4.0_f32, BORDER), egui::StrokeKind::Outside);
                     
                     if t_visible > 0.0 {
                         let inner = cb_rect.shrink(3.0 * (1.0 - t_visible));
@@ -212,7 +212,7 @@ impl PixeshApp {
                     
                     ui.painter().rect_filled(pv, 0.0, pc);
                     let border_color = lerp_color(BORDER, Color32::WHITE, t_hover);
-                    ui.painter().rect_stroke(pv, 0.0, Stroke::new(4.0, border_color), egui::StrokeKind::Outside);
+                    ui.painter().rect_stroke(pv, 0.0, Stroke::new(4.0_f32, border_color), egui::StrokeKind::Outside);
 
                     ui.add_space(PANEL_PAD);
                     ui.vertical(|ui| {
@@ -262,7 +262,7 @@ impl PixeshApp {
                                 
                                 ui.painter().rect_filled(draw_r, 0.0, c);
                                 let b_col = lerp_color(BORDER, Color32::WHITE, t_hov);
-                                ui.painter().rect_stroke(draw_r, 0.0, Stroke::new(2.0, b_col), egui::StrokeKind::Outside);
+                                ui.painter().rect_stroke(draw_r, 0.0, Stroke::new(2.0_f32, b_col), egui::StrokeKind::Outside);
                                 if resp.clicked() {
                                     self.color = c;
                                     self.rgb_r = c.r() as f32;
@@ -310,12 +310,12 @@ impl PixeshApp {
                     if let Some(tex) = &self.sv_tex {
                         let p = ui.painter();
                         p.image(tex.id(), rect, Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
-                        p.rect_stroke(rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
+                        p.rect_stroke(rect, 0.0, Stroke::new(2.0_f32, BORDER), egui::StrokeKind::Outside);
 
                         let cx = rect.min.x + (self.hsv_s / 255.0) * rect.width();
                         let cy = rect.min.y + (1.0 - self.hsv_v / 255.0) * rect.height();
                         let cc = if self.hsv_v > 180.0 { Color32::BLACK } else { Color32::WHITE };
-                        p.circle_stroke(Pos2::new(cx, cy), 4.0, Stroke::new(3.0, cc));
+                        p.circle_stroke(Pos2::new(cx, cy), 4.0, Stroke::new(3.0_f32, cc));
                         p.circle_filled(Pos2::new(cx, cy), 2.0, cc);
                     }
 
@@ -350,10 +350,10 @@ impl PixeshApp {
                     let stex = self.h_tex.as_ref().unwrap();
                     let sp = ui.painter();
                     sp.image(stex.id(), srect, Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
-                    sp.rect_stroke(srect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
+                    sp.rect_stroke(srect, 0.0, Stroke::new(2.0_f32, BORDER), egui::StrokeKind::Outside);
 
                     let hy = srect.min.y + (self.hsv_h / 360.0) * srect.height();
-                    sp.hline(srect.x_range(), hy, Stroke::new(4.0, Color32::WHITE));
+                    sp.hline(srect.x_range(), hy, Stroke::new(4.0_f32, Color32::WHITE));
 
                     let spick = sresp.dragged_by(egui::PointerButton::Primary)
                         || sresp.clicked_by(egui::PointerButton::Primary);
@@ -389,10 +389,10 @@ impl PixeshApp {
 
                     let ap = ui.painter();
                     ap.image(atex.id(), arect, Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
-                    ap.rect_stroke(arect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
+                    ap.rect_stroke(arect, 0.0, Stroke::new(2.0_f32, BORDER), egui::StrokeKind::Outside);
 
                     let ay = arect.min.y + (1.0 - self.rgb_a / 255.0) * arect.height();
-                    ap.hline(arect.x_range(), ay, Stroke::new(4.0, Color32::WHITE));
+                    ap.hline(arect.x_range(), ay, Stroke::new(4.0_f32, Color32::WHITE));
 
                     let apick = aresp.dragged_by(egui::PointerButton::Primary)
                         || aresp.clicked_by(egui::PointerButton::Primary);

@@ -15,11 +15,11 @@ impl PixeshApp {
                 let (rect, _) = ui.allocate_exact_size(size, egui::Sense::hover());
                 let p = ui.painter();
                 p.rect_filled(rect, 0.0, PANEL);
-                p.rect_stroke(rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
+                p.rect_stroke(rect, 0.0, Stroke::new(4.0_f32, BORDER), egui::StrokeKind::Outside);
 
                 // ── logo ──
                 let logo_tex = self.logo_tex.get_or_insert_with(|| {
-                    load_icon_texture(ui, "logo", include_bytes!("../../../logo.png"))
+                    load_icon_texture(ui, "logo", include_bytes!("../../../img/logo.png"))
                 });
                 let logo_sz = Vec2::splat(56.0);
                 let lr = Rect::from_center_size(Pos2::new(rect.center().x, rect.min.y + 54.0), logo_sz);
@@ -69,7 +69,7 @@ impl PixeshApp {
                     let resp = ui.interact(cell_rect, egui::Id::new(("welcome_action", i)), Sense::click());
                     let bg = if resp.clicked() { ACCENT } else if resp.hovered() { HOVER } else { PANEL_LIGHT };
                     p.rect_filled(cell_rect, 0.0, bg);
-                    p.rect_stroke(cell_rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
+                    p.rect_stroke(cell_rect, 0.0, Stroke::new(2.0_f32, BORDER), egui::StrokeKind::Outside);
                     if resp.clicked() {
                         picked = Some(i);
                     }
@@ -102,7 +102,7 @@ impl PixeshApp {
                     self.welcome_show_again = !self.welcome_show_again;
                 }
                 p.rect_filled(cb_rect, 0.0, PANEL);
-                p.rect_stroke(cb_rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
+                p.rect_stroke(cb_rect, 0.0, Stroke::new(4.0_f32, BORDER), egui::StrokeKind::Outside);
                 if self.welcome_show_again {
                     p.rect_filled(cb_rect.shrink(5.0), 0.0, ACCENT);
                 }
@@ -124,7 +124,7 @@ impl PixeshApp {
                 let close_resp = ui.interact(close_rect, egui::Id::new("welcome_close"), Sense::click());
                 let close_bg = if close_resp.clicked() { ACCENT } else if close_resp.hovered() { HOVER } else { PANEL };
                 p.rect_filled(close_rect, 0.0, close_bg);
-                p.rect_stroke(close_rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
+                p.rect_stroke(close_rect, 0.0, Stroke::new(4.0_f32, BORDER), egui::StrokeKind::Outside);
                 p.text(close_rect.center(), egui::Align2::CENTER_CENTER, "Close", egui::FontId::proportional(22.0), TEXT);
 
                 // ── handle close + persist ──

@@ -44,7 +44,7 @@ pub fn btn_min_w(ui: &mut egui::Ui, label: &str, min_w: f32) -> bool {
         p.rect_filled(rect.translate(Vec2::new(0.0, 2.0)), 0.0, BORDER);
     }
     p.rect_filled(draw_rect, 0.0, bg);
-    p.rect_stroke(draw_rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Inside);
+    p.rect_stroke(draw_rect, 0.0, Stroke::new(4.0_f32, BORDER), egui::StrokeKind::Inside);
     p.text(draw_rect.center(), egui::Align2::CENTER_CENTER, label, font_id, TEXT);
 
     resp.clicked()
@@ -79,7 +79,7 @@ pub fn toggle_btn(ui: &mut egui::Ui, label: &str, active: bool) -> bool {
         p.rect_filled(rect.translate(Vec2::new(0.0, 2.0)), 0.0, BORDER);
     }
     p.rect_filled(draw_rect, 0.0, bg);
-    p.rect_stroke(draw_rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Inside);
+    p.rect_stroke(draw_rect, 0.0, Stroke::new(4.0_f32, BORDER), egui::StrokeKind::Inside);
     p.text(draw_rect.center(), egui::Align2::CENTER_CENTER, label, font_id, TEXT);
 
     resp.clicked()
@@ -107,7 +107,7 @@ pub fn icon_btn_tip(ui: &mut egui::Ui, tex_id: egui::TextureId, active: bool, ti
     }
     p.rect_filled(draw_rect, 0.0, bg);
     p.image(tex_id, draw_rect, Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
-    p.rect_stroke(draw_rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Inside);
+    p.rect_stroke(draw_rect, 0.0, Stroke::new(4.0_f32, BORDER), egui::StrokeKind::Inside);
 
     let resp = resp.on_hover_text(tip);
     resp.clicked()
@@ -120,7 +120,7 @@ pub fn separator(ui: &mut egui::Ui) {
     ui.painter().vline(
         rect.center().x,
         rect.y_range(),
-        Stroke::new(4.0, BORDER),
+        Stroke::new(4.0_f32, BORDER),
     );
 }
 
@@ -163,7 +163,7 @@ pub fn check_row(ui: &mut egui::Ui, label: &str, value: bool, font: f32, mut set
         TEXT,
     );
     p.rect_filled(cb_rect, 0.0, PANEL);
-    p.rect_stroke(cb_rect, 0.0, Stroke::new(3.0, BORDER), egui::StrokeKind::Outside);
+    p.rect_stroke(cb_rect, 0.0, Stroke::new(3.0_f32, BORDER), egui::StrokeKind::Outside);
     if value {
         p.rect_filled(cb_rect.shrink(4.0), 0.0, ACCENT);
     }

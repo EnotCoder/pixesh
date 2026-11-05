@@ -272,8 +272,8 @@ impl PixeshApp {
                         ];
 
                         // dark base pass (shadow), then white core pass — classic ants
-                        dashes_rect(p, &edges, off, dash, gap, Stroke::new(5.0, Color32::BLACK));
-                        dashes_rect(p, &edges, off, dash, gap, Stroke::new(2.5, Color32::WHITE));
+                        dashes_rect(p, &edges, off, dash, gap, Stroke::new(5.0_f32, Color32::BLACK));
+                        dashes_rect(p, &edges, off, dash, gap, Stroke::new(2.5_f32, Color32::WHITE));
                     }
 
                     // grid
@@ -283,14 +283,14 @@ impl PixeshApp {
                             p.vline(
                                 canvas_rect.min.x + x as f32 * zoom,
                                 canvas_rect.y_range(),
-                                Stroke::new(2.0, gc),
+                                Stroke::new(2.0_f32, gc),
                             );
                         }
                         for y in 0..=self.docs[i].height {
                             p.hline(
                                 canvas_rect.x_range(),
                                 canvas_rect.min.y + y as f32 * zoom,
-                                Stroke::new(2.0, gc),
+                                Stroke::new(2.0_f32, gc),
                             );
                         }
                     }
@@ -315,11 +315,11 @@ impl PixeshApp {
                             if shape == BrushShape::Round {
                                 let c = cr.center();
                                 let r = cr.width().min(cr.height()) / 2.0;
-                                p.circle_stroke(c, r, Stroke::new(3.0, Color32::from_black_alpha(180)));
-                                p.circle_stroke(c, r, Stroke::new(1.5, Color32::WHITE));
+                                p.circle_stroke(c, r, Stroke::new(3.0_f32, Color32::from_black_alpha(180)));
+                                p.circle_stroke(c, r, Stroke::new(1.5_f32, Color32::WHITE));
                             } else {
-                                p.rect_stroke(cr, 0.0, Stroke::new(3.0, Color32::from_black_alpha(180)), egui::StrokeKind::Outside);
-                                p.rect_stroke(cr, 0.0, Stroke::new(1.5, Color32::WHITE), egui::StrokeKind::Outside);
+                                p.rect_stroke(cr, 0.0, Stroke::new(3.0_f32, Color32::from_black_alpha(180)), egui::StrokeKind::Outside);
+                                p.rect_stroke(cr, 0.0, Stroke::new(1.5_f32, Color32::WHITE), egui::StrokeKind::Outside);
                             }
                         } else {
                             self.cursor_px = None;
@@ -520,7 +520,7 @@ impl PixeshApp {
 
                             for &c in &corners {
                                 ui.painter().rect_filled(Rect::from_center_size(c, Vec2::splat(handle_size)), 0.0, ACCENT);
-                                ui.painter().rect_stroke(Rect::from_center_size(c, Vec2::splat(handle_size)), 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Outside);
+                                ui.painter().rect_stroke(Rect::from_center_size(c, Vec2::splat(handle_size)), 0.0, Stroke::new(2.0_f32, BORDER), egui::StrokeKind::Outside);
                             }
                         }
                     }

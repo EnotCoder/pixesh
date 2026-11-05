@@ -96,7 +96,7 @@ impl PixeshApp {
             painter.rect_stroke(
                 zone,
                 0.0,
-                egui::Stroke::new(if active { 6.0 } else { 3.0 }, ACCENT),
+                egui::Stroke::new(if active { 6.0_f32 } else { 3.0_f32 }, ACCENT),
                 egui::StrokeKind::Inside,
             );
         }

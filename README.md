@@ -1,6 +1,6 @@
 # Pixesh
 
-![Pixesh](pixesh.png)
+![Pixesh](img/pixesh.png)
 
 A minimal pixel art editor built with Rust and egui.
 

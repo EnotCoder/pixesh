@@ -34,7 +34,7 @@ impl PixeshApp {
                 let (rect, _) = ui.allocate_exact_size(size, Sense::hover());
                 let p = ui.painter();
                 p.rect_filled(rect, 0.0, PANEL);
-                p.rect_stroke(rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
+                p.rect_stroke(rect, 0.0, Stroke::new(4.0_f32, BORDER), egui::StrokeKind::Outside);
 
                 let pad = 10.0;
                 let body = rect.shrink2(Vec2::splat(pad));
@@ -161,7 +161,7 @@ impl PixeshApp {
                             Color32::WHITE,
                         );
                     }
-                    p.rect_stroke(r, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
+                    p.rect_stroke(r, 0.0, Stroke::new(4.0_f32, BORDER), egui::StrokeKind::Outside);
 
                     ui.vertical(|ui| {
                         let info = format!(
@@ -271,7 +271,7 @@ impl PixeshApp {
                     p.rect_stroke(
                         sw,
                         0.0,
-                        Stroke::new(2.0, lerp_color(BORDER, Color32::WHITE, t_hov)),
+                        Stroke::new(2.0_f32, lerp_color(BORDER, Color32::WHITE, t_hov)),
                         egui::StrokeKind::Outside,
                     );
                     if resp.clicked() {
@@ -462,7 +462,7 @@ fn rgba_bytes(px: &[Color32]) -> Vec<u8> {
 
 fn line(ui: &mut egui::Ui, w: f32) {
     let (r, _) = ui.allocate_exact_size(Vec2::new(w, 2.0), Sense::hover());
-    ui.painter().hline(r.x_range(), r.center().y, Stroke::new(2.0, BORDER));
+    ui.painter().hline(r.x_range(), r.center().y, Stroke::new(2.0_f32, BORDER));
 }
 
 /// Компактная кнопка-переключатель (категория / эффект / вариант).
@@ -481,7 +481,7 @@ fn seg_btn(ui: &mut egui::Ui, label: &str, active: bool, font: f32) -> bool {
         p.rect_filled(rect.translate(Vec2::new(0.0, 2.0)), 0.0, BORDER);
     }
     p.rect_filled(rect, 0.0, bg);
-    p.rect_stroke(rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Inside);
+    p.rect_stroke(rect, 0.0, Stroke::new(2.0_f32, BORDER), egui::StrokeKind::Inside);
     p.text(rect.center(), egui::Align2::CENTER_CENTER, label, egui::FontId::proportional(sz), TEXT);
     resp.clicked()
 }

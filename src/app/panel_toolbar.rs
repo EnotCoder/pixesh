@@ -44,7 +44,7 @@ impl PixeshApp {
                 let panel_bottom = ui.max_rect().bottom();
                 let panel_left = ui.max_rect().left();
                 let panel_right = ui.max_rect().right();
-                ui.painter().hline(panel_left..=panel_right, panel_bottom, Stroke::new(4.0, BORDER));
+                ui.painter().hline(panel_left..=panel_right, panel_bottom, Stroke::new(4.0_f32, BORDER));
     }
 
     /// Main tool row (logo + tools + grid + zoom + brush controls).
@@ -54,7 +54,7 @@ impl PixeshApp {
 
             // logo
             let logo_tex = self.logo_tex.get_or_insert_with(|| {
-                load_icon_texture(ui, "logo", include_bytes!("../../logo.png"))
+                load_icon_texture(ui, "logo", include_bytes!("../../img/logo.png"))
             });
             let logo_sz = Vec2::splat((ROW_H + 6.0) * 1.5);
             let (lr, lresp) = ui.allocate_exact_size(logo_sz, Sense::click());
@@ -154,7 +154,7 @@ impl PixeshApp {
                 }
                 p.rect_filled(draw_rect, 0.0, bg);
                 p.text(draw_rect.center(), egui::Align2::CENTER_CENTER, "T", egui::FontId::proportional(24.0), TEXT);
-                p.rect_stroke(draw_rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Inside);
+                p.rect_stroke(draw_rect, 0.0, Stroke::new(4.0_f32, BORDER), egui::StrokeKind::Inside);
                 
                 let resp = resp.on_hover_text("Text (T)");
                 if resp.clicked() { self.tool = Tool::Text; }
@@ -179,7 +179,7 @@ impl PixeshApp {
                     p.rect_filled(rect.translate(Vec2::new(0.0, 2.0)), 0.0, BORDER);
                 }
                 p.rect_filled(draw_rect, 0.0, bg);
-                p.rect_stroke(draw_rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Inside);
+                p.rect_stroke(draw_rect, 0.0, Stroke::new(4.0_f32, BORDER), egui::StrokeKind::Inside);
 
                 // пиксельная «искорка» — две наложенные четырёхконечные звезды
                 let c = draw_rect.center();
@@ -242,7 +242,7 @@ impl PixeshApp {
             let t_grid = ui.ctx().animate_bool(grid_resp.id.with("grid_anim"), is_grid);
 
             p.rect_filled(cb_rect, 0.0, PANEL);
-            p.rect_stroke(cb_rect, 0.0, Stroke::new(4.0, BORDER), egui::StrokeKind::Outside);
+            p.rect_stroke(cb_rect, 0.0, Stroke::new(4.0_f32, BORDER), egui::StrokeKind::Outside);
             
             if t_grid > 0.0 {
                 let inner = cb_rect.shrink(4.0 * (1.0 - t_grid));
@@ -360,7 +360,7 @@ impl PixeshApp {
                 let bg = lerp_color(PANEL, HOVER, t_active);
                 let p = ui.painter();
                 p.rect_filled(tab_rect, 0.0, bg);
-                p.rect_stroke(tab_rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Inside);
+                p.rect_stroke(tab_rect, 0.0, Stroke::new(2.0_f32, BORDER), egui::StrokeKind::Inside);
 
                 // tab label
                 p.text(
@@ -407,7 +407,7 @@ impl PixeshApp {
             let bg = lerp_color(PANEL, HOVER, t_plus);
             
             ui.painter().rect_filled(plus_rect, 0.0, bg);
-            ui.painter().rect_stroke(plus_rect, 0.0, Stroke::new(2.0, BORDER), egui::StrokeKind::Inside);
+            ui.painter().rect_stroke(plus_rect, 0.0, Stroke::new(2.0_f32, BORDER), egui::StrokeKind::Inside);
             let tab_plus_tex = self.tab_plus_tex.get_or_insert_with(|| {
                 load_icon_texture(ui, "tab_plus", include_bytes!("../../tex/layers/plus_layer.png"))
             });

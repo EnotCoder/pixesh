@@ -146,6 +146,6 @@ impl PixeshApp {
                 let panel_left = ui.max_rect().left();
                 let panel_right = ui.max_rect().right();
                 let panel_top = ui.max_rect().top();
-                ui.painter().hline(panel_left..=panel_right, panel_top, Stroke::new(8.0, BORDER));
+                ui.painter().hline(panel_left..=panel_right, panel_top, Stroke::new(8.0_f32, BORDER));
     }
 }

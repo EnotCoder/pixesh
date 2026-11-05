@@ -189,7 +189,7 @@ impl PixeshApp {
                                 );
 
                                 // border
-                                let bw = if is_active { 4.0 } else { 2.0 };
+                                let bw = if is_active { 4.0_f32 } else { 2.0_f32 };
                                 let bc = if is_active { ACCENT } else { BORDER };
                                 p.rect_stroke(rect, 0.0, Stroke::new(bw, bc), egui::StrokeKind::Outside);
 
@@ -205,6 +205,6 @@ impl PixeshApp {
                 let panel_left = ui.max_rect().left();
                 let panel_right = ui.max_rect().right();
                 let panel_top = ui.max_rect().top();
-                ui.painter().hline(panel_left..=panel_right, panel_top, Stroke::new(8.0, BORDER));
+                ui.painter().hline(panel_left..=panel_right, panel_top, Stroke::new(8.0_f32, BORDER));
     }
 }
