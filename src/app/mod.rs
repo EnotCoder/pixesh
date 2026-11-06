@@ -111,19 +111,19 @@ pub(crate) struct Document {
     pub(crate) transform_corner: Option<usize>,
 }
 
-/// Сторона холста по умолчанию. Совпадает с размером `img/pixel_logo.png`,
-/// чтобы маскот лёг на холст один в один, без всякого ужатия.
+/// Default canvas side. Matches the size of `img/pixel_logo.png` so the
+/// mascot lands on the canvas one-to-one, without any downscaling.
 const MASCOT_SIDE: usize = 32;
 
-/// Пиксели совы из `img/pixel_logo.png`, приведённые к размеру стартового холста.
+/// Owl pixels from `img/pixel_logo.png`, resized to the startup canvas size.
 ///
-/// Источник ровно такого же размера, как холст, так что `resize` здесь просто
-/// копирует. Фильтр оставлен nearest неспроста: если размеры когда-нибудь
-/// разойдутся, nearest сохранит пиксель-арт стиль совы, а сглаживание на
-/// заметном уменьшении превратило бы маскот в пёстрое пятно.
+/// The source is exactly the same size as the canvas, so `resize` is just a
+/// copy here. The nearest filter is deliberate: if the sizes ever diverge,
+/// nearest keeps the owl's pixel-art look, whereas smoothing on a noticeable
+/// downscale would turn the mascot into a mottled blob.
 ///
-/// `None` — если картинка не декодируется: тогда холст просто останется
-/// пустым, приложение при этом не упадёт.
+/// `None` if the image fails to decode: the canvas simply stays empty and the
+/// application does not crash.
 fn logo_pixels(w: usize, h: usize) -> Option<Vec<Color32>> {
     let img = image::load_from_memory(include_bytes!("../../img/pixel_logo.png"))
         .ok()?
@@ -151,13 +151,13 @@ impl Document {
         doc
     }
 
-    /// Документ по умолчанию: чистый холст 32×32, залитый совой из
-    /// `img/pixel_logo.png`. Нужен, чтобы при запуске и при закрытии последней
-    /// вкладки холст не выглядел пустым серым квадратом.
+    /// Default document: a clean 32×32 canvas filled with the owl from
+    /// `img/pixel_logo.png`. This exists so that on startup and when the last
+    /// tab is closed the canvas does not look like an empty grey square.
     pub(crate) fn new_logo(name: &str) -> Self {
         let mut doc = Document::new_sized(name, MASCOT_SIDE, MASCOT_SIDE);
-        // Длина проверяется на месте: если размеры когда-нибудь разойдутся
-        // с размером картинки, документ остаётся пустым, а не падает по индексу.
+        // The length is checked in place: if the sizes ever diverge from the
+        // image size, the document stays empty instead of panicking on an index.
         if let Some(px) = logo_pixels(doc.width, doc.height)
             .filter(|px| px.len() == doc.width * doc.height)
         {
@@ -267,9 +267,9 @@ pub struct PixeshApp {
     pub(crate) show_scale: bool,
     pub(crate) scale_w: f32,
     pub(crate) scale_h: f32,
-    /// Держать пропорции: ввод W тянет за собой H и наоборот.
-    /// По умолчанию выключено, иначе тот, кто правит одну сторону, получал бы
-    /// тихо подменённую вторую.
+    /// Keep the aspect ratio: entering W also changes H and vice versa.
+    /// Disabled by default, otherwise editing one side would silently
+    /// overwrite the other.
     pub(crate) scale_lock_ratio: bool,
     pub(crate) resize_lock_ratio: bool,
     pub(crate) show_export: bool,
@@ -284,18 +284,18 @@ pub struct PixeshApp {
     pub(crate) show_status_bar: bool,
     pub(crate) show_timeline: bool,
 
-    /// Край окна для каждой перетаскиваемой панели
+    /// Window edge for each draggable panel
     pub(crate) toolbar_edge: Edge,
     pub(crate) layers_edge: Edge,
     pub(crate) status_edge: Edge,
     pub(crate) timeline_edge: Edge,
 
-    // ── перетаскивание панелей между краями ──
-    /// Край, на который в данный момент наведён курсор при переносе
+    // ── dragging panels between edges ──
+    /// Edge the cursor is currently hovering over during a move
     pub(crate) drop_edge: Option<Edge>,
-    /// Панель, которую сейчас тащим
+    /// Panel currently being dragged
     pub(crate) dragging_panel: Option<PanelId>,
-    /// Откуда начали тащить — отменяем перенос, если бросили туда же
+    /// Where the drag started — the move is cancelled if dropped in the same place
     pub(crate) drag_from_edge: Edge,
     pub(crate) show_quit_dialog: bool,
     pub(crate) show_welcome: bool,
@@ -313,19 +313,19 @@ pub struct PixeshApp {
     pub(crate) text_buffer: String,
     pub(crate) text_scale: i32,
 
-    /// Временная подсказка в статус-баре (буфер обмена, выделение и т.п.)
+    /// Transient status-bar hint (clipboard, selection, etc.)
     pub(crate) status_hint: String,
     pub(crate) status_hint_until: f64,
-    /// Время последнего кадра — чтобы hint() гасил подсказку без доступа к ctx
+    /// Time of the last frame — lets hint() expire a hint without access to ctx
     pub(crate) last_time: f64,
 
-    // ── панель эффектов (порты из Pixelorama) ──
+    // ── effects panel (ports from Pixelorama) ──
     pub(crate) show_effects: bool,
     pub(crate) effect: effects::EffectParams,
-    /// на сколько слоёв/кадров применять эффект
+    /// how many layers/frames the effect applies to
     pub(crate) effect_all_layers: bool,
     pub(crate) effect_all_frames: bool,
-    /// кэш превью: сигнатура параметров + текстура
+    /// preview cache: parameter signature + texture
     pub(crate) effect_prev_sig: String,
     pub(crate) effect_prev_tex: Option<egui::TextureHandle>,
     pub(crate) effect_prev_px: Vec<Color32>,
@@ -340,8 +340,8 @@ pub struct PixeshApp {
 
 impl PixeshApp {
     pub fn new() -> Self {
-        // дефолты настроек живут в одном месте — в Prefs, иначе «что было при
-        // первом запуске» и «что лежит в файле» разъезжаются
+        // preference defaults live in one place — Prefs — otherwise "what was
+        // there on first launch" and "what is in the file" drift apart
         let prefs = Self::initial_prefs();
         Self {
             docs: vec![Document::new_logo("Untitled")],
@@ -411,13 +411,13 @@ impl PixeshApp {
 }
 
 impl PixeshApp {
-    /// Настройки по умолчанию. Без фичи persistence файла нет, поэтому
-    /// Preferences просто превращается в набор исходных значений полей.
+    /// Default preferences. Without the persistence feature there is no file,
+    /// so Preferences simply becomes a set of initial field values.
     fn initial_prefs() -> config::Prefs {
         config::Prefs::default()
     }
 
-    /// Край, на котором сейчас панель.
+    /// The edge the panel is currently on.
     pub(crate) fn edge_of(&self, p: PanelId) -> Edge {
         match p {
             PanelId::Toolbar => self.toolbar_edge,
@@ -446,14 +446,14 @@ impl PixeshApp {
         }
     }
 
-    /// Порядок отрисовки панелей: по группам краёв, а внутри края — по
-    /// каноническому порядку. Возвращает только видимые панели.
+    /// Panel draw order: grouped by edge, and within an edge by canonical
+    /// order. Only visible panels are returned.
     ///
-    /// Вынесено отдельно и без egui, чтобы поведение можно было проверить
-    /// тестом: главное свойство здесь — что все горизонтальные полосы идут
-    /// раньше боковых. Иначе верхняя панель, нарисованная после боковой,
-    /// получила бы не всю ширину окна: egui вырезает панели из остатка
-    /// прямоугольника строго в порядке вызовов.
+    /// Kept separate and free of egui so the behaviour can be covered by a
+    /// test: the key property here is that all horizontal strips come before
+    /// side panels. Otherwise a top panel drawn after a side panel would not
+    /// get the full window width: egui carves panels out of the remaining
+    /// rectangle strictly in call order.
     pub(crate) fn draw_order(&self) -> Vec<PanelId> {
         let mut out: Vec<PanelId> = [PanelId::Toolbar, PanelId::Status, PanelId::Timeline, PanelId::Layers]
             .into_iter()
@@ -463,9 +463,9 @@ impl PixeshApp {
         out
     }
 
-    /// Ставит текущий цвет сразу во все представления: Color32, RGBA-поля
-    /// и HSV. Держать их по отдельности нельзя — пикер и слайдеры пишут в
-    /// одни и те же поля, и рассинхрон виден пользователю.
+    /// Writes the current colour into every representation at once: Color32,
+    /// RGBA fields and HSV. They cannot be kept separately — the picker and the
+    /// sliders write to the same fields, and any desync is visible to the user.
     pub(crate) fn set_color(&mut self, c: Color32) {
         self.color = c;
         self.rgb_r = c.r() as f32;
@@ -478,12 +478,11 @@ impl PixeshApp {
         self.hsv_v = v;
     }
 
-    /// Подправить HSV и пересчитать из него RGB. `color`, `rgb_*` и `hsv_*`
-    /// обязаны оставаться согласованными — иначе пикер и слайдеры разъезжаются.
+    /// Adjust HSV and recompute RGB from it. `color`, `rgb_*` and `hsv_*` must
+    /// stay consistent — otherwise the picker and the sliders drift apart.
     ///
-    /// Оттенок заворачивается по кругу, а не упирается в clamp: диапазон
-    /// 0–360° — это замкнутое кольцо, и на границе вращение не должно
-    /// останавливаться.
+    /// Hue wraps around instead of being clamped: the 0–360° range is a closed
+    /// ring, and rotation must not stop at the boundary.
     pub(crate) fn bump_hsv(&mut self, dh: f32, ds: f32, dv: f32) {
         self.hsv_h = (self.hsv_h + dh).rem_euclid(360.0);
         self.hsv_s = (self.hsv_s + ds).clamp(0.0, 255.0);
@@ -495,8 +494,8 @@ impl PixeshApp {
         self.color = Color32::from_rgba_unmultiplied(r, g, b, self.rgb_a as u8);
     }
 
-    /// Прозрачность правится отдельным методом: она не входит в HSV, поэтому
-    /// пересчёт оттенка ей не нужен, а цвет менять нельзя.
+    /// Opacity is edited by a separate method: it is not part of HSV, so it
+    /// needs no hue recalculation, and the colour must not change.
     pub(crate) fn bump_alpha(&mut self, d: f32) {
         self.rgb_a = (self.rgb_a + d).clamp(0.0, 255.0);
         self.color = Color32::from_rgba_unmultiplied(
@@ -507,20 +506,21 @@ impl PixeshApp {
         );
     }
 
-    /// Клавиши 1–9: подставить готовый цвет из `NUM_PALETTE`. Индекс нулевой,
-    /// то есть клавиша «1» — это `NUM_PALETTE[0]`.
+    /// Keys 1–9: apply a ready-made colour from `NUM_PALETTE`. The index is
+    /// zero-based, so the "1" key is `NUM_PALETTE[0]`.
     ///
-    /// `set_color` сам разносит цвет по `color`, `rgb_*` и `hsv_*`, поэтому
-    /// пикер и слайдеры сразу показывают новое значение.
+    /// `set_color` propagates the colour to `color`, `rgb_*` and `hsv_*`, so
+    /// the picker and the sliders show the new value immediately.
     pub(crate) fn pick_preset(&mut self, idx: usize) {
         let [r, g, b, a] = NUM_PALETTE[idx];
         self.set_color(Color32::from_rgba_unmultiplied(r, g, b, a));
         self.push_history(self.color);
     }
 
-    /// Кладёт цвет в историю, убирая дубликат и удерживая длину в пределе.
-    /// Раньше эта логика жила только в пипетке, и держать её в двух местах
-    /// нельзя: изменение лимита забылось бы в одном из них.
+    /// Adds a colour to the history, removing duplicates and keeping the
+    /// length capped. This logic used to live only in the eyedropper, and
+    /// having it in two places is unsafe: a limit change would be forgotten
+    /// in one of them.
     pub(crate) fn push_history(&mut self, c: Color32) {
         self.color_history.retain(|&x| x != c);
         self.color_history.push(c);
@@ -536,17 +536,17 @@ impl PixeshApp {
             || self.show_effects
     }
 
-    /// Показать сообщение в статус-баре на пару секунд.
+    /// Show a message in the status bar for a couple of seconds.
     pub(crate) fn hint(&mut self, msg: impl Into<String>) {
         self.status_hint = msg.into();
         self.status_hint_until = self.last_time + 2.5;
     }
 
-    /// Снимок сохраняемого состояния. Список намеренно короткий: сюда попадает
-    /// только то, что имеет смысл помнить между запусками. Флаги диалогов
-    /// (show_resize/show_export/show_settings/show_panels/show_text/
-    /// show_effects/show_quit_dialog) сюда НЕ идут — иначе при запуске вылезет
-    /// диалог, и «закрытое окно» будет открываться само.
+    /// Snapshot of the persisted state. The list is deliberately short: only
+    /// things that make sense to remember between launches belong here.
+    /// Dialog flags (show_resize/show_export/show_settings/show_panels/
+    /// show_text/show_effects/show_quit_dialog) do NOT go here — otherwise a
+    /// dialog would pop up on startup and a "closed window" would reopen itself.
     #[cfg_attr(not(feature = "persistence"), allow(dead_code))]
     pub(crate) fn prefs(&self) -> config::Prefs {
         config::Prefs {
@@ -578,8 +578,8 @@ impl PixeshApp {
         }
     }
 
-    /// Восстанавливает состояние из файла. Метода `App::restore` в eframe 0.31
-    /// нет — читать хранилище приходится здесь, в замыкании создания.
+    /// Restores state from the file. eframe 0.31 has no `App::restore`
+    /// method — the storage has to be read here, in the creation closure.
     pub(crate) fn load_prefs(&mut self, storage: Option<&dyn eframe::Storage>) {
         let prefs = config::Prefs::load(storage);
 
@@ -620,9 +620,9 @@ impl PixeshApp {
         self.renaming_layer = None;
     }
 
-    /// Открывает картинку в НОВОЙ вкладке. Общая точка для Ctrl+L и для
-    /// перетаскивания файла в окно, поэтому загрузка не зависит от наличия rfd.
-    /// Возвращает имя файла, если открыть удалось.
+    /// Opens an image in a NEW tab. The shared entry point for Ctrl+L and for
+    /// dropping a file onto the window, so loading does not depend on rfd.
+    /// Returns the file name if it was opened successfully.
     pub(crate) fn open_path(&mut self, path: &std::path::Path) -> Option<String> {
         let path_str = path.to_string_lossy().into_owned();
         let name = path
@@ -638,15 +638,15 @@ impl PixeshApp {
                 Some(name)
             }
             Err(e) => {
-                // вкладку не создаём: пустая вкладка с именем файла только путает
+                // do not create a tab: an empty tab named after the file only confuses
                 self.hint(format!("{}: {}", name, e));
                 None
             }
         }
     }
 
-    /// Применить выбранный эффект к слоям документа.
-    /// Один вызов = одна запись в undo, и только если что-то реально изменилось.
+    /// Applies the selected effect to the document layers.
+    /// One call = one undo entry, and only if something actually changed.
     pub(crate) fn apply_effect_to(&mut self, tab: usize) {
         let doc = &mut self.docs[tab];
         let sel = doc.sel;
@@ -662,8 +662,8 @@ impl PixeshApp {
             vec![doc.active_layer]
         };
 
-        // сначала считаем результат в стороне — если ничего не изменилось,
-        // не засоряем ни состояние документа, ни стек undo
+        // compute the result on the side first — if nothing changed, pollute
+        // neither the document state nor the undo stack
         let mut results: Vec<(usize, usize, Vec<Color32>)> = Vec::new();
         for &li in &layers {
             if li >= doc.layers.len() { continue; }
@@ -685,7 +685,7 @@ impl PixeshApp {
         }
         doc.canvas_dirty = true;
         doc.sel_tex = None;
-        // превью пересчитается при следующем открытии панели
+        // the preview will be recalculated the next time the panel is opened
         self.effect_prev_sig.clear();
     }
 
@@ -712,17 +712,17 @@ impl PixeshApp {
         }
     }
 
-    /// Перетаскивание файлов из файлового менеджера в окно.
-    /// Каждый файл открывается отдельной вкладкой, активной становится последняя.
-    /// Само подсвечивание при перетаскивании — в draw_drop_overlay.
+    /// Dragging files from the file manager into the window.
+    /// Each file opens in its own tab, and the last one becomes active.
+    /// The highlight during dragging itself is in draw_drop_overlay.
     pub(crate) fn handle_dropped_files(&mut self, ctx: &egui::Context) {
         let dropped = ctx.input(|i| i.raw.dropped_files.clone());
         if dropped.is_empty() { return; }
         let mut opened = 0usize;
         let mut failed = 0usize;
         for file in &dropped {
-            // path опционален: для «виртуальных» файлов (например, из
-            // встроенного браузера) его нет, и открыть такой нечего
+            // path is optional: "virtual" files (for example from an embedded
+            // browser) have none, and there is nothing to open for them
             let Some(path) = file.path.as_ref() else {
                 failed += 1;
                 continue;
@@ -739,12 +739,12 @@ impl PixeshApp {
                 self.hint(format!("{} images opened", opened));
             }
         } else if failed > 1 {
-            // про один файл open_path уже сообщил конкретную причину
+            // for a single file open_path has already reported the specific reason
             self.hint(format!("{} files could not be opened", failed));
         }
     }
 
-    /// Рамка «отпустите, чтобы открыть» поверх всего окна, пока файл над ним.
+    /// A "release to open" frame over the whole window while a file is above it.
     fn draw_drop_overlay(&self, ctx: &egui::Context) {
         let hovered = ctx.input(|i| !i.raw.hovered_files.is_empty());
         if !hovered { return; }
@@ -788,8 +788,8 @@ impl PixeshApp {
 
 // ── eframe::App ──────────────────────────────────────
 impl eframe::App for PixeshApp {
-    /// eframe вызывает это раз в auto_save_interval и при выходе. Метода
-    /// restore в eframe 0.31 нет, поэтому чтение живёт в load_prefs.
+    /// eframe calls this once per auto_save_interval and on exit. eframe 0.31
+    /// has no restore method, so reading lives in load_prefs.
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         #[cfg(feature = "persistence")]
         eframe::set_value(storage, config::PREFS_KEY, &self.prefs());
@@ -797,8 +797,9 @@ impl eframe::App for PixeshApp {
         let _ = storage;
     }
 
-    /// Дефолт — 30 секунд. Столько теряется при падении, а панель тянут
-    /// мышкой и вполне можно успеть за это время закрыть приложение.
+    /// Default is 30 seconds. That is how much is lost on a crash, and a panel
+    /// is dragged with the mouse, so there is plenty of time to close the app
+    /// in the meantime.
     fn auto_save_interval(&self) -> std::time::Duration {
         std::time::Duration::from_secs(10)
     }
@@ -810,8 +811,8 @@ impl eframe::App for PixeshApp {
         self.handle_dropped_files(ctx);
 
         // ── Desktop-style layout for everyone ──
-        // порядок панелей вычисляется из раскладки: сначала верхние и нижние
-        // полосы, потом боковые, потом холст
+        // panel order is computed from the layout: top and bottom strips
+        // first, then side panels, then the canvas
         for p in self.draw_order() {
             match p {
                 PanelId::Toolbar => self.ui_toolbar(ctx),
@@ -988,7 +989,7 @@ mod tests {
     }
 }
 
-// ── сохранение настроек ───────────────────────────────
+// ── preference persistence ───────────────────────────
 #[cfg(feature = "persistence")]
 #[cfg(test)]
 mod prefs_tests {
@@ -1019,7 +1020,7 @@ mod prefs_tests {
     #[test]
     fn panel_visibility_survives_a_restart() {
         let mut first = PixeshApp::new();
-        // прячем тулбар и таймлайн — как это делает диалог панелей
+        // hide the toolbar and timeline — as the panels dialog does
         first.show_top_panel = false;
         first.show_timeline = false;
         first.show_status_bar = false;
@@ -1054,8 +1055,9 @@ mod prefs_tests {
         assert_eq!(second.arrow_speed, 33.0);
     }
 
-    /// Цвет хранится как RGBA, а HSV/RGB-поля из него пересчитываются —
-    /// иначе пикер и слайдеры показывали бы разные цвета.
+    /// The colour is stored as RGBA, and the HSV/RGB fields are recomputed
+    /// from it — otherwise the picker and the sliders would show different
+    /// colours.
     #[test]
     fn color_is_restored_consistently_across_representations() {
         let mut first = PixeshApp::new();
@@ -1076,8 +1078,9 @@ mod prefs_tests {
         assert_eq!(second.color_history, vec![Color32::from_rgb(1, 2, 3)]);
     }
 
-    /// 0–360° — замкнутое кольцо: за порогом цвет должен вернуться к красному,
-    /// а не застрять на clamp. Иначе клавишей оттенка замкнуть круг нельзя.
+    /// 0–360° is a closed ring: past the threshold the colour must wrap back
+    /// to red instead of getting stuck at the clamp. Otherwise the hue key
+    /// could not complete the circle.
     #[test]
     fn bump_hsv_wraps_hue_around_the_wheel() {
         let mut app = PixeshApp::new();
@@ -1089,8 +1092,8 @@ mod prefs_tests {
         assert_eq!(app.hsv_h, 358.0, "и обратно, через 0");
     }
 
-    /// Шаг насыщенности и яркости ограничен диапазоном: иначе цветовые поля
-    /// ушли бы за 255 и пересчёт через u8 начал бы врать.
+    /// Saturation and value steps are bounded by the range: otherwise the
+    /// colour fields would go past 255 and the u8 round-trip would start to lie.
     #[test]
     fn bump_hsv_clamps_saturation_and_value() {
         let mut app = PixeshApp::new();
@@ -1104,8 +1107,9 @@ mod prefs_tests {
         assert_eq!(app.hsv_s, 250.0, "и обратно вниз работает");
     }
 
-    /// Главный инвариант: что ни подправь в HSV, `color`, `rgb_*` и `hsv_*`
-    /// обязаны описывать один и тот же цвет. На этом держатся пикер и слайдеры.
+    /// The main invariant: whatever you adjust in HSV, `color`, `rgb_*` and
+    /// `hsv_*` must describe the same colour. The picker and sliders rely on
+    /// this.
     #[test]
     fn bump_hsv_keeps_every_colour_representation_in_sync() {
         let mut app = PixeshApp::new();
@@ -1121,13 +1125,13 @@ mod prefs_tests {
         assert_eq!(app.rgb_b, b as f32, "rgb_b не совпал");
     }
 
-    /// Прозрачность живёт отдельно от HSV: её изменение не должно сдвигать
-    /// ни цвет, ни hsv_*.
+    /// Opacity lives separately from HSV: changing it must not shift either
+    /// the colour or hsv_*.
     ///
-    /// Сравнивать здесь `color.r()` с исходным нельзя: egui хранит `Color32`
-    /// премультиплицированным, поэтому у полупрозрачного цвета `r()` отдаёт
-    /// уже умноженный на альфу канал. Проверяем собственные поля приложения,
-    /// которые как раз ведут себя как неумноженные.
+    /// `color.r()` cannot be compared with the original here: egui stores
+    /// `Color32` premultiplied, so for a semi-transparent colour `r()` returns
+    /// the channel already multiplied by alpha. We check the app's own fields,
+    /// which behave as non-premultiplied values.
     #[test]
     fn bump_alpha_leaves_the_colour_itself_alone() {
         let mut app = PixeshApp::new();
@@ -1153,8 +1157,8 @@ mod prefs_tests {
         assert_eq!(app.color, Color32::from_rgb(0, 0, 0), "клавиша 9 — чёрный");
     }
 
-    /// Пресет — готовый непрозрачный цвет. Если бы он брал текущую альфу,
-    /// затемнённый до 128 красный оставался бы полупрозрачным и после «1».
+    /// A preset is a ready-made opaque colour. If it reused the current alpha,
+    /// red dimmed to 128 would stay semi-transparent even after pressing "1".
     #[test]
     fn pick_preset_always_uses_full_opacity() {
         let mut app = PixeshApp::new();
@@ -1167,7 +1171,7 @@ mod prefs_tests {
     #[test]
     fn pick_preset_keeps_every_colour_representation_in_sync() {
         let mut app = PixeshApp::new();
-        app.pick_preset(4); // циан
+        app.pick_preset(4); // cyan
         let (r, g, b) = crate::color::hsv_to_rgb(app.hsv_h, app.hsv_s, app.hsv_v);
         assert_eq!(
             (app.color.r(), app.color.g(), app.color.b()),
@@ -1190,7 +1194,7 @@ mod prefs_tests {
         assert_eq!(app.color_history.len(), 4, "история ограничена четырьмя");
         assert_eq!(app.color_history[0], Color32::from_rgb(20, 0, 0), "старые выпали");
 
-        // уже имеющийся цвет не плодит дубликат, а встаёт в конец
+        // an existing colour does not create a duplicate but moves to the end
         app.push_history(Color32::from_rgb(20, 0, 0));
         assert_eq!(app.color_history.len(), 4, "дубликат не добавил длины");
         assert_eq!(
@@ -1200,8 +1204,8 @@ mod prefs_tests {
         );
     }
 
-    /// Главная защита от раздражающего бага: диалоги не должны вылезать
-    /// при запуске, даже если в файле что-то о них есть.
+    /// The main protection against an annoying bug: dialogs must not pop up on
+    /// startup, even if the file contains something about them.
     #[test]
     fn dialogs_never_restore() {
         let mut first = PixeshApp::new();
@@ -1225,8 +1229,8 @@ mod prefs_tests {
         assert!(second.renaming_layer.is_none());
     }
 
-    /// Эффекты сохранять не просили, и инструмент Effects без открытой панели
-    /// бессмысленен — приводим к кисти.
+    /// Nobody asked to persist effects, and the Effects tool is meaningless
+    /// without an open panel — fall back to the brush.
     #[test]
     fn effects_tool_is_not_restored() {
         let mut first = PixeshApp::new();
@@ -1240,7 +1244,7 @@ mod prefs_tests {
         assert!(!second.show_welcome);
     }
 
-    /// Пустое хранилище = первый запуск: ничего не ломается, всё живо.
+    /// Empty storage = first launch: nothing breaks, everything is alive.
     #[test]
     fn first_run_without_a_file_is_all_defaults() {
         let mut app = PixeshApp::new();
@@ -1253,18 +1257,20 @@ mod prefs_tests {
     }
 }
 
-// ── раскладка панелей ────────────────────────────────
+// ── panel layout ─────────────────────────────────────
 #[cfg(test)]
 mod layout_tests {
     use super::*;
 
-    /// Главное свойство порядка отрисовки: верхняя полоса (Toolbar) раньше
-    /// боковых, а боковые панели (Layers) — раньше нижних полос (Status, Timeline),
-    /// чтобы нижние панели не задевали панель слоёв (не заходили под неё).
+    /// The key property of the draw order: the top strip (Toolbar) comes before
+    /// side panels, and side panels (Layers) come before bottom strips (Status,
+    /// Timeline), so the bottom panels do not collide with the layers panel
+    /// (do not run underneath it).
     #[test]
     fn layers_panel_drawn_before_bottom_panels() {
         let mut app = PixeshApp::new();
-        // стандартное расположение: тулбар вверху, слои справа, статус и таймлайн внизу
+        // standard arrangement: toolbar on top, layers on the right, status and
+        // timeline at the bottom
         app.toolbar_edge = Edge::Top;
         app.layers_edge = Edge::Right;
         app.status_edge = Edge::Bottom;
@@ -1289,12 +1295,13 @@ mod layout_tests {
         );
     }
 
-    /// Взаимный порядок панелей не зависит от того, на каком краю они стоят:
-    /// он определяется группой краёв (Top -> Left/Right -> Bottom), а внутри одного края —
-    /// каноническим порядком.
+    /// The relative order of panels does not depend on which edge they are on:
+    /// it is determined by the edge group (Top -> Left/Right -> Bottom), and
+    /// within one edge by the canonical order.
     #[test]
     fn order_inside_an_edge_is_stable() {
-        // все три горизонтальные наверху, слои слева: Top (Toolbar, Status, Timeline) -> Left (Layers)
+        // all three horizontal panels on top, layers on the left:
+        // Top (Toolbar, Status, Timeline) -> Left (Layers)
         let mut app = PixeshApp::new();
         app.toolbar_edge = Edge::Top;
         app.status_edge = Edge::Top;
@@ -1306,7 +1313,8 @@ mod layout_tests {
             "верх + лево"
         );
 
-        // те же панели, но Toolbar, Status, Timeline внизу, слои справа:
+        // the same panels, but Toolbar, Status, Timeline at the bottom, layers
+        // on the right:
         // Right (Layers) -> Bottom (Toolbar, Status, Timeline)
         let mut app = PixeshApp::new();
         app.toolbar_edge = Edge::Bottom;
@@ -1319,7 +1327,7 @@ mod layout_tests {
             "низ + право"
         );
 
-        // перенос таймлайна наверх:
+        // move the timeline to the top:
         // Top (Toolbar, Timeline) -> Right (Layers) -> Bottom (Status)
         let mut app = PixeshApp::new();
         app.timeline_edge = Edge::Top;
@@ -1342,8 +1350,8 @@ mod layout_tests {
         assert_eq!(order, vec![PanelId::Toolbar, PanelId::Layers]);
     }
 
-    /// Перенос не должен уводить панель на запрещённый край, даже если его
-    /// подсунули руками (например, правкой файла настроек).
+    /// A move must not take a panel to a forbidden edge, even if it was forced
+    /// in by hand (for example by editing the settings file).
     #[test]
     fn set_edge_refuses_forbidden_edges() {
         let mut app = PixeshApp::new();
@@ -1359,10 +1367,11 @@ mod layout_tests {
 
     #[test]
     fn panel_ids_differ_per_edge_so_sizes_do_not_mix() {
-        // ключевой момент: PanelState лежит в egui::Memory по Id, и для боковой
-        // панели читается как rect.width(), а для горизонтальной как
-        // rect.height(). Разные Id на каждый край — иначе панель, переехавшая с
-        // низа на бок, прочитала бы старую высоту как ширину
+        // key point: PanelState lives in egui::Memory keyed by Id, and for a
+        // side panel it is read as rect.width(), while for a horizontal panel
+        // it is read as rect.height(). Different Ids per edge — otherwise a
+        // panel moved from the bottom to a side would read the old height as
+        // its width
         assert_ne!(
             PanelId::Timeline.ui_id(Edge::Bottom),
             PanelId::Timeline.ui_id(Edge::Top)
@@ -1371,7 +1380,7 @@ mod layout_tests {
             PanelId::Layers.ui_id(Edge::Left),
             PanelId::Layers.ui_id(Edge::Right)
         );
-        // и при этом Id уникальны между панелями
+        // and the Ids are unique between panels as well
         assert_ne!(
             PanelId::Timeline.ui_id(Edge::Top),
             PanelId::Toolbar.ui_id(Edge::Top)
@@ -1396,8 +1405,8 @@ mod layout_tests {
         assert_eq!(second.status_edge, Edge::Bottom);
     }
 
-    /// Файл настроек от старой версии без полей краёв читается как исходная
-    /// раскладка, а не как «панели перепутаны».
+    /// A settings file from an older version without edge fields is read as
+    /// the original layout, not as "panels got mixed up".
     #[test]
     fn layout_without_edge_fields_keeps_the_original_arrangement() {
         let mut store = config::MemStore::default();
@@ -1423,8 +1432,8 @@ mod layout_tests {
             &mut store,
             config::PREFS_KEY,
             &config::Prefs {
-                timeline_edge: Edge::Left, // мусор в файле
-                layers_edge: Edge::Top,     // мусор в файле
+                timeline_edge: Edge::Left, // garbage in the file
+                layers_edge: Edge::Top,     // garbage in the file
                 ..Default::default()
             },
         );

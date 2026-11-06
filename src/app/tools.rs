@@ -88,9 +88,10 @@ impl Document {
 
                 if let Some(buf) = self.sel_buffer.take() {
                     if was_pasting {
-                        // handle_*_press для вставки выходит раньше, не снимая
-                        // снимок, и commit_pending_paste мы здесь не зовём — без этого
-                        // Ctrl+Z не откатывал бы перетащенный блок
+                        // handle_*_press returns early for a paste without
+                        // taking a snapshot, and we do not call
+                        // commit_pending_paste here — without this Ctrl+Z
+                        // would not revert the dragged block
                         self.push_undo();
                     }
                     let pixels = self.pixels_mut(self.active_layer);
@@ -248,9 +249,10 @@ impl Document {
 
                 if let Some(buf) = self.sel_buffer.take() {
                     if was_pasting {
-                        // handle_*_press для вставки выходит раньше, не снимая
-                        // снимок, и commit_pending_paste мы здесь не зовём — без этого
-                        // Ctrl+Z не откатывал бы перетащенный блок
+                        // handle_*_press returns early for a paste without
+                        // taking a snapshot, and we do not call
+                        // commit_pending_paste here — without this Ctrl+Z
+                        // would not revert the dragged block
                         self.push_undo();
                     }
                     let pixels = self.pixels_mut(self.active_layer);
@@ -334,8 +336,9 @@ impl Document {
     }
 
     pub(crate) fn delete_selection(&mut self) {
-        // Незавершённая вставка лежит в sel_buffer и на слой ещё не попала:
-        // стирать прямоугольник значило бы вырезать старое содержимое под ним.
+        // An unfinished paste lives in sel_buffer and has not reached the
+        // layer yet: erasing the rectangle would cut out the old content
+        // underneath it.
         if self.pasting { return; }
         if let Some((x0, y0, x1, y1)) = self.sel {
             self.push_undo();
@@ -359,18 +362,18 @@ impl Document {
         self.clear_move_state();
     }
 
-    /// Ctrl+A: выделить весь холст целиком, как в Photoshop.
+    /// Ctrl+A: select the whole canvas, like in Photoshop.
     pub(crate) fn select_all(&mut self) {
-        // Плавающая вставка ещё не легла на слой. Подтверждаем её: иначе
-        // замена sel оставила бы pasting=true с опустошённым sel_buffer,
-        // и Enter дальше вёл бы себя странно.
+        // The floating paste has not landed on the layer yet. Commit it first:
+        // otherwise replacing sel would leave pasting=true with an emptied
+        // sel_buffer, and Enter would then behave strangely.
         self.commit_pending_paste();
-        // Диапазон включительный, поэтому -1: холст шириной w имеет
-        // координаты 0..=w-1, и выходить за них нельзя — delete_selection
-        // упадёт по индексу.
+        // The range is inclusive, hence -1: a canvas of width w has coordinates
+        // 0..=w-1, and going outside them is not allowed — delete_selection
+        // would panic on the index.
         self.sel = Some((0, 0, self.width as i32 - 1, self.height as i32 - 1));
-        // Остаток перетаскивания скрывается рисовальщиком, пока sel пуст.
-        // Обнуляем, иначе при снятом выделении старый маркиз вернулся бы.
+        // The drag remainder is hidden by the painter while sel is empty.
+        // Clear it, otherwise the old marquee would come back after deselecting.
         self.sel_start = None;
         self.sel_end = None;
         self.clear_move_state();
@@ -403,8 +406,8 @@ impl Document {
         self.clear_move_state();
     }
 
-    /// Отменяет незавершённую вставку: плавающее выделение исчезает,
-    /// слой при этом не менялся, поэтому отменять в истории нечего.
+    /// Cancels an unfinished paste: the floating selection disappears, the
+    /// layer was never modified, so there is nothing to undo in history.
     pub(crate) fn cancel_pending_paste(&mut self) -> bool {
         if !self.pasting { return false; }
         self.pasting = false;
@@ -416,13 +419,13 @@ impl Document {
         true
     }
 
-    /// Копирует содержимое выделения в буфер обмена.
-    /// Возвращает false, если выделения нет.
+    /// Copies the contents of the selection to the clipboard.
+    /// Returns false if there is no selection.
     pub(crate) fn copy_selection(&mut self) -> bool {
         let Some((x0, y0, x1, y1)) = self.sel else { return false };
 
-        // Пока вставка не подтверждена, на экране лежит sel_buffer, а не
-        // пиксели слоя — копировать надо именно его.
+        // While the paste is unconfirmed, the screen shows sel_buffer rather
+        // than the layer pixels — that is what must be copied.
         if self.pasting {
             let Some(buf) = self.sel_buffer.clone() else { return false };
             self.clipboard = Some(buf);
@@ -449,11 +452,11 @@ impl Document {
         true
     }
 
-    /// Вставляет буфер обмена «плавающим» выделением, сразу готовым к
-    /// перетаскиванию мышью. Возвращает false, если буфер пуст.
+    /// Pastes the clipboard as a "floating" selection that is immediately
+    /// ready to be dragged with the mouse. Returns false if the clipboard is empty.
     pub(crate) fn paste_clipboard(&mut self) -> bool {
-        // Незавершённую вставку сначала фиксируем, иначе Ctrl+V поверх Ctrl+V
-        // потерял бы первую копию.
+        // Commit the unfinished paste first, otherwise Ctrl+V over Ctrl+V
+        // would lose the first copy.
         self.commit_pending_paste();
 
         let Some(clip) = self.clipboard.clone() else { return false };
@@ -465,8 +468,8 @@ impl Document {
 
         let w = self.width as i32;
         let h = self.height as i32;
-        // Есть исходное выделение — вставляем со сдвигом от него, иначе блок
-        // лёг бы ровно на своё место и «переставить» его было бы не видно.
+        // If there is an existing selection, paste offset from it; otherwise
+        // the block would land exactly in place and the "move" would be invisible.
         let (mut cx, mut cy) = match self.sel {
             Some((x0, y0, ..)) => (x0 + 2, y0 + 2),
             None => ((w - cw) / 2, (h - ch) / 2),
@@ -484,7 +487,7 @@ impl Document {
         self.canvas_move_current = None;
         self.sel_tex = None;
         self.pasting = true;
-        // сразу в режиме перетаскивания, чтобы можно было сразу схватить
+        // start in drag mode right away so it can be grabbed immediately
         let center = (cx + cw / 2, cy + ch / 2);
         self.sel_move_origin = Some(center);
         self.sel_move_current = Some(center);
@@ -503,7 +506,7 @@ mod tests {
 
     fn red() -> Color32 { Color32::from_rgb(255, 0, 0) }
 
-    /// Документ 16x16 с заданными пикселями на активном слое.
+    /// A 16x16 document with the given pixels on the active layer.
     fn doc_with(px: &[(i32, i32, Color32)]) -> Document {
         let mut d = Document::new_sized("t", 16, 16);
         {
@@ -541,12 +544,12 @@ mod tests {
     fn select_all_covers_the_whole_canvas() {
         let mut d = doc_with(&[]);
         d.select_all();
-        // Диапазон включительный: координаты идут до w-1/h-1, не до w/h.
+        // The range is inclusive: coordinates go up to w-1/h-1, not w/h.
         assert_eq!(d.sel, Some((0, 0, W - 1, W - 1)));
     }
 
-    /// Главная защита от путаницы шириной и высотой: на прямоугольном холсте
-    /// выделение обязано повторять его форму, а не стать квадратом.
+    /// The main protection against width/height confusion: on a rectangular
+    /// canvas the selection must follow its shape instead of becoming square.
     #[test]
     fn select_all_respects_non_square_documents() {
         let mut d = Document::new_sized("t", 8, 5);
@@ -564,8 +567,9 @@ mod tests {
         assert_eq!(d.sel_end, None, "остаток перетаскивания убран");
     }
 
-    /// Плавающая вставка ещё не легла на слой. Если просто заменить sel,
-    /// pasting осталась бы true с пустым sel_buffer — Enter вёл бы себя странно.
+    /// The floating paste has not landed on the layer yet. If sel were simply
+    /// replaced, pasting would stay true with an empty sel_buffer — Enter would
+    /// behave strangely.
     #[test]
     fn select_all_finishes_a_pending_paste() {
         let mut d = doc_with(&[(3, 3, red())]);
@@ -608,7 +612,7 @@ mod tests {
         d.copy_selection();
         d.paste_clipboard();
 
-        // хватаем плавающий блок (он уже на 4,4) и тащим на +6,+6 → 10,10
+        // grab the floating block (already at 4,4) and drag it by +6,+6 → 10,10
         d.sel_move_origin = Some((5, 5));
         d.sel_move_current = Some((11, 11));
         d.handle_move_release();
@@ -657,7 +661,7 @@ mod tests {
         d.sel = Some((2, 2, 4, 4));
         d.copy_selection();
         d.paste_clipboard();
-        // прямоугольник вставки ещё не записан на слой — стирать нечего
+        // the paste rectangle has not been written to the layer yet — nothing to erase
         d.delete_selection();
         assert_eq!(at(&d, 2, 2), red(), "Delete не вырезал старые пиксели");
         assert!(d.pasting, "и не сбросил незавершённую вставку");
@@ -669,10 +673,10 @@ mod tests {
         d.sel = Some((2, 2, 2, 2));
         d.copy_selection();
         d.paste_clipboard();
-        // первый блок висит незавершённым
+        // the first block is left unfinished
         d.paste_clipboard();
         assert!(d.pasting, "вторая вставка снова незавершённая");
-        // первая успела зафиксироваться
+        // the first one has been committed by now
         assert_eq!(at(&d, 4, 4), red());
     }
 }

@@ -7,7 +7,7 @@ use super::PixeshApp;
 impl PixeshApp {
     pub(crate) fn handle_input(&mut self, ctx: &egui::Context) {
         let text_focused = ctx.memory(|m| m.focused().is_some());
-        // гасим подсказку из статус-бара, когда она отжила своё
+        // clear the status-bar hint once it has expired
         let now = ctx.input(|i| i.time);
         if now > self.status_hint_until {
             self.status_hint.clear();
@@ -104,19 +104,20 @@ impl PixeshApp {
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::G) {
                     self.docs[self.active_tab].grid = !self.docs[self.active_tab].grid;
                 }
-                // цвет: W/S яркость, A/D насыщенность, I/K оттенок
+                // colour: W/S value, A/D saturation, I/K hue
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::W) { self.bump_hsv(0.0, 0.0, 5.0); }
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::S) { self.bump_hsv(0.0, 0.0, -5.0); }
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::A) { self.bump_hsv(0.0, -5.0, 0.0); }
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::D) { self.bump_hsv(0.0, 5.0, 0.0); }
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::I) { self.bump_hsv(-5.0, 0.0, 0.0); }
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::K) { self.bump_hsv(5.0, 0.0, 0.0); }
-                // , / . = прозрачность
+                // , / . = opacity
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::Comma) { self.bump_alpha(-5.0); }
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::Period) { self.bump_alpha(5.0); }
-                // 1–9 = готовые цвета из NUM_PALETTE.
-                // Индекс называется idx, а не i: замыкание ctx.input_mut(|i| …)
-                // уже заняло имя i, и затенение сломало бы соседние обработчики.
+                // 1–9 = preset colours from NUM_PALETTE.
+                // The index is called idx rather than i: the ctx.input_mut(|i| …)
+                // closure already uses the name i, and shadowing would break
+                // the surrounding handlers.
                 for (idx, key) in [
                     egui::Key::Num1,
                     egui::Key::Num2,
@@ -163,12 +164,12 @@ impl PixeshApp {
             if i.consume_key(egui::Modifiers::NONE, egui::Key::Delete) {
                 self.docs[self.active_tab].delete_selection();
             }
-            // Enter = подтвердить вставку, иначе обрезать холст по выделению
+            // Enter = commit the paste, otherwise crop the canvas to the selection
             if self.docs[self.active_tab].sel.is_some() && !self.dialog_open() && self.renaming_layer.is_none() {
                 if i.consume_key(egui::Modifiers::NONE, egui::Key::Enter) {
                     let doc = &mut self.docs[self.active_tab];
                     if doc.pasting {
-                        // вставка не ложилась на слой — обрезать тут нечего
+                        // the paste never landed on the layer — nothing to crop here
                         doc.commit_pending_paste();
                     } else {
                         doc.crop_to_selection();
@@ -178,7 +179,7 @@ impl PixeshApp {
             // Escape
             if i.consume_key(egui::Modifiers::NONE, egui::Key::Escape) {
                 if self.docs[self.active_tab].cancel_pending_paste() {
-                    // вставку отменили: слой не тронут, просто убираем блок
+                    // paste cancelled: the layer was not touched, just remove the block
                 } else if self.docs[self.active_tab].transforming {
                     self.docs[self.active_tab].transforming = false;
                     self.docs[self.active_tab].transform_corner = None;
@@ -209,17 +210,18 @@ impl PixeshApp {
                     self.docs[self.active_tab].deselect();
                 }
             }
-            // Ctrl-перехватчики не забираем, пока открыт диалог или правится
-            // имя слоя: там Ctrl+C/Ctrl+V/Ctrl+A принадлежат текстовому полю.
+            // Do not take over Ctrl shortcuts while a dialog is open or a layer
+            // name is being edited: there Ctrl+C/Ctrl+V/Ctrl+A belong to the
+            // text field.
             let clip_ok = !self.dialog_open() && self.renaming_layer.is_none();
             // Ctrl+D = deselect
             if i.consume_key(egui::Modifiers::CTRL, egui::Key::D) {
                 self.docs[self.active_tab].deselect();
             }
-            // Ctrl+A = выделить весь холст, как в Photoshop.
-            // Guard общий с Ctrl+C/Ctrl+V не зря: egui-поле TextEdit само
-            // использует Ctrl+A, чтобы выделить весь текст, и без этой
-            // проверки мы отбирали бы его у поля.
+            // Ctrl+A = select the whole canvas, like in Photoshop.
+            // The guard is shared with Ctrl+C/Ctrl+V for a reason: the egui
+            // TextEdit field itself uses Ctrl+A to select all text, and
+            // without this check we would take it away from the field.
             if clip_ok && i.consume_key(egui::Modifiers::CTRL, egui::Key::A) {
                 self.docs[self.active_tab].select_all();
             }
@@ -229,7 +231,7 @@ impl PixeshApp {
                     self.docs[self.active_tab].flatten_layers();
                 }
             }
-            // Y = copy selection, Ctrl+C = то же.
+            // Y = copy selection, Ctrl+C = same.
             if i.consume_key(egui::Modifiers::NONE, egui::Key::Y)
                 || (clip_ok && i.consume_key(egui::Modifiers::CTRL, egui::Key::C))
             {
@@ -239,7 +241,7 @@ impl PixeshApp {
                     self.status_hint_until = now + 2.0;
                 }
             }
-            // P = paste selection, Ctrl+V = то же
+            // P = paste selection, Ctrl+V = same
             if i.consume_key(egui::Modifiers::NONE, egui::Key::P)
                 || (clip_ok && i.consume_key(egui::Modifiers::CTRL, egui::Key::V))
             {
@@ -250,8 +252,8 @@ impl PixeshApp {
                 }
             }
             // X = toggle transform (when selection exists).
-            // text_focused нужен: иначе «x», набранный в поле текста или в
-            // DragValue, переключал бы инструмент под рукой.
+            // text_focused is needed: otherwise "x" typed into a text field or
+            // a DragValue would switch the tool out from under the user.
             if i.consume_key(egui::Modifiers::NONE, egui::Key::X) && !text_focused {
                 let tab = self.active_tab;
                 let has_sel = self.docs[tab].sel.is_some();
@@ -290,8 +292,8 @@ impl PixeshApp {
         });
 
         // scroll zoom / brush size.
-        // Пока открыт диалог, колесо должно прокручивать панель внутри него,
-        // а не зумить холст под ней.
+        // While a dialog is open, the wheel should scroll the panel inside it
+        // rather than zoom the canvas underneath.
         if !self.dialog_open() {
             let scroll = ctx.input(|i| i.raw_scroll_delta.y);
             if scroll != 0.0 {

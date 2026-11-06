@@ -1,18 +1,19 @@
-//! Эффекты, портированные из открытого кода Pixelorama
+//! Effects ported from the open-source Pixelorama project
 //! (<https://github.com/Orama-Interactive/Pixelorama>).
 //!
-//! В оригинале эффекты — это GLSL-шейдеры (`src/Shaders/Effects/*.gdshaderinc`),
-//! а список и категории берутся из меню Effects
+//! In the original the effects are GLSL shaders
+//! (`src/Shaders/Effects/*.gdshaderinc`), and the list and categories come
+//! from the Effects menu
 //! (`src/UI/TopMenuContainer/TopMenuContainer.gd::_setup_effects_menu`).
-//! Здесь те же эффекты переписаны в обычный CPU-код поверх `Vec<Color32>`.
+//! Here the same effects are rewritten as ordinary CPU code over `Vec<Color32>`.
 //!
-//! Структура пакета повторяет оригинальную:
-//!   * `Cat`      — категории меню (Transform / Color / Procedural / Blur);
-//!   * `EffectDef` — описание эффекта: имя, категория и список параметров;
-//!   * `EffectParams` — значения параметров (числа / флаги / цвета).
+//! The package structure mirrors the original:
+//!   * `Cat`      — menu categories (Transform / Color / Procedural / Blur);
+//!   * `EffectDef` — effect description: name, category and parameter list;
+//!   * `EffectParams` — parameter values (numbers / flags / colours).
 //!
-//! Значения параметров хранятся «плоско» (по имени), чтобы список эффектов
-//! можно было расширять новыми строками в `EFFECTS` без правок логики.
+//! Parameter values are stored "flat" (by name) so the effect list can be
+//! extended with new rows in `EFFECTS` without touching the logic.
 
 use std::collections::HashMap;
 
@@ -20,7 +21,7 @@ use eframe::egui::Color32;
 
 use crate::color::{hsv_to_rgb, rgb_to_hsv};
 
-// ── категории (как в меню Effects оригинала) ──────────
+// ── categories (as in the original Effects menu) ──────
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Cat {
@@ -43,19 +44,19 @@ impl Cat {
 
 pub const CATS: [Cat; 4] = [Cat::Transform, Cat::Color, Cat::Procedural, Cat::Blur];
 
-// ── типы параметров ───────────────────────────────────
+// ── parameter types ───────────────────────────────────
 
 #[derive(Clone, Copy)]
 pub enum PT {
-    /// ползунок с шагом 1
+    /// slider with a step of 1
     I(i32, i32),
-    /// ползунок с дробным шагом
+    /// slider with a fractional step
     F(f32, f32),
-    /// чекбокс
+    /// checkbox
     B,
-    /// выбор цвета
+    /// colour picker
     C,
-    /// сегментированный выбор из нескольких вариантов
+    /// segmented choice between several options
     E(&'static [&'static str]),
 }
 
@@ -80,7 +81,7 @@ const fn e_(name: &'static str, labels: &'static [&'static str]) -> ParamDef {
     ParamDef { name, ty: PT::E(labels) }
 }
 
-// ── сами эффекты ──────────────────────────────────────
+// ── the effects themselves ─────────────────────────────
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum EffectKind {
@@ -114,8 +115,8 @@ pub struct EffectDef {
     pub params: &'static [ParamDef],
 }
 
-/// Порядок вариантов `EffectKind` обязан совпадать с порядком `EFFECTS`
-/// (проверяется тестом внизу файла).
+/// The order of `EffectKind` variants must match the order of `EFFECTS`
+/// (enforced by the test at the bottom of the file).
 pub static EFFECTS: &[EffectDef] = &[
     // ── Transform ────────────────────────────────────
     EffectDef {
@@ -281,21 +282,21 @@ pub fn def(kind: EffectKind) -> &'static EffectDef {
     &EFFECTS[kind as usize]
 }
 
-/// Значения параметров эффекта. Хранятся по имени, а не по индексу,
-/// чтобы добавление параметра в `EFFECTS` не ломало существующий код.
+/// Parameter values for an effect. Stored by name rather than by index so
+/// adding a parameter to `EFFECTS` does not break existing code.
 pub struct EffectParams {
     pub kind: EffectKind,
-    /// числа (ползунки) — целые и дробные хранятся вместе
+    /// numbers (sliders) — integers and floats are stored together
     pub num: Vec<f64>,
-    /// чекбоксы и варианты сегментированного выбора (индекс в `E`)
+    /// checkboxes and segmented-choice values (index into `E`)
     pub flag: Vec<f64>,
-    /// цвета
+    /// colours
     pub col: Vec<Color32>,
 }
 
 impl EffectParams {
-    /// Параметры по умолчанию для эффекта (значения — середины диапазонов,
-    /// как в диалогах Pixelorama).
+    /// Default parameters for an effect (values are the midpoints of the
+    /// ranges, as in the Pixelorama dialogs).
     pub fn new(kind: EffectKind) -> Self {
         let d = def(kind);
         let mut num = Vec::new();
@@ -316,9 +317,9 @@ impl EffectParams {
         def(self.kind)
     }
 
-    /// Есть ли параметр с таким именем у текущего эффекта.
-    /// Нужна UI: список параметров может оказаться от предыдущего эффекта,
-    /// и обращаться к нему по имени тогда нельзя.
+    /// Whether the current effect has a parameter with this name.
+    /// Needed by the UI: the parameter list may still be from the previous
+    /// effect, and then it cannot be addressed by name.
     pub fn has(&self, name: &str) -> bool {
         self.def().params.iter().any(|p| p.name == name)
     }
@@ -368,16 +369,16 @@ impl EffectParams {
         panic!("unknown color effect param: {name}");
     }
 
-    // ── доступ к значениям ──
+    // ── value access ──
     pub fn f(&self, name: &str) -> f32 {
         self.num[self.num_ix(name)] as f32
     }
-    /// Ссылка на числовой параметр — для слайдеров в UI.
+    /// Reference to a numeric parameter — for UI sliders.
     pub fn num_mut(&mut self, name: &str) -> &mut f64 {
         let i = self.num_ix(name);
         &mut self.num[i]
     }
-    /// Целое значение ползунка (округлённое).
+    /// Integer slider value (rounded).
     pub fn i(&self, name: &str) -> i32 {
         self.num[self.num_ix(name)].round() as i32
     }
@@ -388,7 +389,7 @@ impl EffectParams {
         let i = self.flag_ix(name);
         self.flag[i] = if v { 1.0 } else { 0.0 };
     }
-    /// Индекс выбранного варианта для `PT::E`.
+    /// Index of the selected option for `PT::E`.
     pub fn choice(&self, name: &str) -> usize {
         self.flag[self.flag_ix(name)].round().max(0.0) as usize
     }
@@ -404,8 +405,8 @@ impl EffectParams {
         self.col[i] = c;
     }
 
-    /// Подпись состояния — используется как ключ кэша превью и как ID
-    /// анимации egui, чтобы не пересчитывать превью без изменений.
+    /// State signature — used as the preview cache key and as the egui
+    /// animation ID so the preview is not recomputed without changes.
     pub fn signature(&self) -> String {
         let d = self.def();
         let mut s = String::with_capacity(64);
@@ -424,11 +425,11 @@ impl EffectParams {
     }
 }
 
-/// Значения по умолчанию — как в диалогах Pixelorama.
+/// Default values — as in the Pixelorama dialogs.
 fn default_num(pd: &ParamDef) -> f64 {
     let name = pd.name;
-    // Одни и те же имена встречаются в разных эффектах, поэтому часть
-    // умолчаний различается по диапазону параметра.
+    // The same names occur in different effects, so some defaults differ by
+    // the parameter range.
     let (lo, hi) = match pd.ty {
         PT::I(lo, hi) => (lo, hi),
         PT::F(lo, hi) => (lo as i32, hi as i32),
@@ -441,8 +442,8 @@ fn default_num(pd: &ParamDef) -> f64 {
         "Origin" => 32.0,
         // Color
         "Contrast" => 100.0,
-        "Saturation" if lo < 0 => 0.0,   // сдвиг в HSV
-        "Saturation" => 100.0,           // множитель в Brightness/Contrast
+        "Saturation" if lo < 0 => 0.0,   // shift in HSV
+        "Saturation" => 100.0,           // multiplier in Brightness/Contrast
         "Black" => 0.0,
         "White" => 1.0,
         "Gamma" => 1.0,
@@ -453,8 +454,8 @@ fn default_num(pd: &ParamDef) -> f64 {
         "Dither" => 0.0,
         // Procedural
         "Width" => 1.0,
-        // тень по умолчанию сдвинута на 5,5 (так в DropShadow.gdshaderinc),
-        // а у Offset & Scale сдвиг по умолчанию нулевой
+        // the shadow is offset by 5,5 by default (as in DropShadow.gdshaderinc),
+        // while Offset & Scale has a zero offset by default
         "Offset X" | "Offset Y" => match (lo, hi) {
             (-32, 32) => 5.0,
             _ => 0.0,
@@ -466,20 +467,20 @@ fn default_num(pd: &ParamDef) -> f64 {
         "Size X" | "Size Y" => 2.0,
         "Amount" => 8.0,
         "Radius" => 1.0,
-        // Hue/Value — нейтральное смещение
+        // Hue/Value — neutral shift
         "Hue" | "Value" => 0.0,
         _ => 0.0,
     }
 }
 
 fn default_bool(name: &str) -> bool {
-    // чекбоксы каналов и горизонтальное отражение — включены, остальное выключено
+    // channel checkboxes and horizontal mirroring are on, everything else is off
     matches!(name, "Red" | "Green" | "Blue" | "Horizontal")
 }
 
 fn default_color(name: &str) -> Color32 {
     match name {
-        // тень и контур по умолчанию чёрные
+        // shadow and outline are black by default
         "Color" => Color32::from_rgb(0, 0, 0),
         "Shadow" => Color32::from_rgb(0, 0, 0),
         "Mid" => Color32::from_rgb(128, 128, 128),
@@ -490,9 +491,9 @@ fn default_color(name: &str) -> Color32 {
     }
 }
 
-// ── преобразования цвета ──────────────────────────────
+// ── colour conversions ────────────────────────────────
 
-/// sRGB канал → линейный (для корректной яркости, как в Desaturate.gdshaderinc).
+/// sRGB channel → linear (for correct luminance, as in Desaturate.gdshaderinc).
 #[inline]
 fn srgb_to_linear(x: f32) -> f32 {
     if x < 0.04045 { x / 12.92 } else { ((x + 0.055) / 1.055).powf(2.4) }
@@ -509,7 +510,7 @@ fn q(v: f32) -> f32 { v.clamp(0.0, 1.0) }
 #[inline]
 fn b255(v: f32) -> u8 { (q(v) * 255.0 + 0.5) as u8 }
 
-/// `Color32` → нелинейный RGBA в диапазоне 0..1.
+/// `Color32` → non-linear RGBA in the 0..1 range.
 #[inline]
 fn rgba(c: Color32) -> [f32; 4] {
     let s = c.to_srgba_unmultiplied();
@@ -524,7 +525,7 @@ fn pack(c: [f32; 4]) -> Color32 {
 #[inline]
 fn lerp(a: f32, b: f32, t: f32) -> f32 { a + (b - a) * t }
 
-/// Пиксель внутри выделения? `None` — выделения нет, значит весь слой.
+/// Is the pixel inside the selection? `None` means no selection, i.e. the whole layer.
 #[inline]
 fn in_sel(sel: Option<(i32, i32, i32, i32)>, x: i32, y: i32) -> bool {
     match sel {
@@ -533,8 +534,8 @@ fn in_sel(sel: Option<(i32, i32, i32, i32)>, x: i32, y: i32) -> bool {
     }
 }
 
-/// Сдвиг значения по шкале 0..max: с клампом или с переносом через край
-/// (флаг `Wrap Overflowing` в оригинальных шейдерах).
+/// Shifts a value along the 0..max scale: clamped, or wrapped across the edge
+/// (the `Wrap Overflowing` flag in the original shaders).
 #[inline]
 fn shift_scale(v: i32, d: i32, max: i32, wrap: bool) -> i32 {
     if d == 0 { return v; }
@@ -542,9 +543,9 @@ fn shift_scale(v: i32, d: i32, max: i32, wrap: bool) -> i32 {
     if wrap { s.rem_euclid(max.max(1)) } else { s.clamp(0, max) }
 }
 
-// ── главная точка входа ───────────────────────────────
+// ── main entry point ──────────────────────────────────
 
-/// Применяет эффект к пикселям слоя. `pixels.len()` должен быть `w * h`.
+/// Applies an effect to layer pixels. `pixels.len()` must be `w * h`.
 pub fn apply(
     pixels: &mut Vec<Color32>,
     w: usize,
@@ -615,7 +616,7 @@ fn fx_invert(
     out
 }
 
-// Desaturate.gdshaderinc — яркость считается в линейном пространстве.
+// Desaturate.gdshaderinc — luminance is computed in linear space.
 fn fx_desaturate(
     src: &[Color32],
     w: usize,
@@ -653,7 +654,7 @@ fn fx_desaturate(
     out
 }
 
-// HSV.gdshaderinc — сдвиги в градусах / процентах, как в оригинале.
+// HSV.gdshaderinc — shifts in degrees / percent, as in the original.
 fn fx_hsv(
     src: &[Color32],
     w: usize,
@@ -687,7 +688,7 @@ fn fx_hsv(
     out
 }
 
-// BrightnessContrast.gdshaderinc — матрицы насыщенности/контраста/яркости.
+// BrightnessContrast.gdshaderinc — saturation/contrast/brightness matrices.
 fn fx_brightness_contrast(
     src: &[Color32],
     w: usize,
@@ -717,7 +718,7 @@ fn fx_brightness_contrast(
                     c[k] = if wrap { (c[k] + sh).rem_euclid(1.0) } else { q(c[k] + sh) };
                 }
             }
-            // матрица насыщенности (вклад каналов одинаковый: 1.0)
+            // saturation matrix (equal channel contribution: 1.0)
             let mut s = [0.0f32; 3];
             for (k, out_ch) in s.iter_mut().enumerate() {
                 let mut acc = 0.0;
@@ -726,7 +727,7 @@ fn fx_brightness_contrast(
                 }
                 *out_ch = acc;
             }
-            // контраст, затем яркость
+            // contrast, then brightness
             for v in s.iter_mut() {
                 *v = q(*v * contrast + t + bright);
             }
@@ -736,7 +737,7 @@ fn fx_brightness_contrast(
     out
 }
 
-// ColorCurves.gdshaderinc — на канал: гамма + чёрная/белая точка.
+// ColorCurves.gdshaderinc — per channel: gamma + black/white point.
 fn curve(x: f32, gamma: f32, black: f32, white: f32) -> f32 {
     if (white - black).abs() < 1e-6 { return q(x); }
     let t = q((x - black) / (white - black));
@@ -775,8 +776,8 @@ fn fx_color_curves(
     out
 }
 
-// Palettize.gdshaderinc — ближайший цвет из палитры (евклидово расстояние).
-// Сама палитра строится из изображения алгоритмом median cut.
+// Palettize.gdshaderinc — nearest palette colour (Euclidean distance).
+// The palette itself is built from the image with the median-cut algorithm.
 fn fx_palettize(
     src: &[Color32],
     w: usize,
@@ -796,7 +797,7 @@ fn fx_palettize(
     let palette = median_cut(&colors, &weights, want);
     if palette.is_empty() { return src.to_vec(); }
 
-    // запоминаем сопоставление: у пиксель-арта мало уникальных цветов
+    // remember the mapping: pixel art has few unique colours
     let mut cache: HashMap<[u8; 4], Color32> = HashMap::new();
     let mut out = src.to_vec();
     for y in 0..h {
@@ -804,7 +805,7 @@ fn fx_palettize(
             if !in_sel(sel, x as i32, y as i32) { continue; }
             let i = y * w + x;
             let key = src[i].to_srgba_unmultiplied();
-            if key[3] <= 2 { continue; } // прозрачные не трогаем (alpha <= 0.01 в шейдере)
+            if key[3] <= 2 { continue; } // leave transparent pixels alone (alpha <= 0.01 in the shader)
             let mapped = *cache.entry(key).or_insert_with(|| {
                 let mut best = palette[0];
                 let mut bd = i32::MAX;
@@ -824,8 +825,8 @@ fn fx_palettize(
     out
 }
 
-/// Median cut: делим цветовое пространство на `want` коробок по самому
-/// длинному каналу, цветом коробки считаем взвешенное среднее.
+/// Median cut: split the colour space into `want` boxes along the longest
+/// channel, and use the weighted average as each box's colour.
 fn median_cut(colors: &[[u8; 4]], weights: &[u32], want: usize) -> Vec<[u8; 4]> {
     if colors.is_empty() { return Vec::new(); }
     let mut boxes: Vec<Vec<usize>> = vec![(0..colors.len()).collect()];
@@ -872,14 +873,14 @@ fn median_cut(colors: &[[u8; 4]], weights: &[u32], want: usize) -> Vec<[u8; 4]> 
                 }
                 wsum += wt;
             }
-            // взвешенное среднее по цвету коробки
+            // weighted average for the box colour
             let avg = |a: u64| a.checked_div(wsum).unwrap_or(0) as u8;
             [avg(acc[0]), avg(acc[1]), avg(acc[2]), avg(acc[3])]
         })
         .collect()
 }
 
-// Posterize.gdshaderinc — с шахматным дизерингом.
+// Posterize.gdshaderinc — with checkerboard dithering.
 fn fx_posterize(
     src: &[Color32],
     w: usize,
@@ -908,7 +909,7 @@ fn fx_posterize(
     out
 }
 
-// GradientMap.gdshaderinc — яркость → цвет из трёх опорных точек.
+// GradientMap.gdshaderinc — luminance → colour from three anchor points.
 fn fx_gradient_map(
     src: &[Color32],
     w: usize,
@@ -965,7 +966,7 @@ fn fx_outline(
             let orig = rgba(src[i]);
             let mut contrary = false;
             'scan: for dy in -wi..=wi {
-                // профиль кисти: ромб / круг / квадрат
+                // brush profile: diamond / circle / square
                 let off = match brush {
                     0 => width - (dy as f32).abs(),
                     1 => ((width + 0.5) * (width + 0.5) - (dy * dy) as f32).sqrt().floor(),
@@ -981,7 +982,7 @@ fn fx_outline(
                     } else {
                         rgba(src[ny as usize * w + nx as usize])[3]
                     };
-                    // «противоположный» сосед: пустой снаружи / заполненный внутри
+                    // the "opposite" neighbour: empty outside / filled inside
                     let hit = if inside { !oob && na > 0.0 } else { oob || na <= 0.0 };
                     if hit { contrary = true; break 'scan; }
                 }
@@ -1007,7 +1008,7 @@ fn fx_outline(
     out
 }
 
-// DropShadow.gdshaderinc — тень из альфы, сдвинутой на offset.
+// DropShadow.gdshaderinc — shadow from alpha shifted by the offset.
 fn fx_drop_shadow(
     src: &[Color32],
     w: usize,
@@ -1023,7 +1024,7 @@ fn fx_drop_shadow(
         for x in 0..w {
             if !in_sel(sel, x as i32, y as i32) { continue; }
             let orig = rgba(src[y * w + x]);
-            // тень не рисуется поверх самого спрайта
+            // the shadow is not drawn on top of the sprite itself
             if orig[3] > 0.0 || ox == 0 && oy == 0 {
                 out[y * w + x] = pack(orig);
                 continue;
@@ -1034,7 +1035,7 @@ fn fx_drop_shadow(
                 out[y * w + x] = pack(orig);
                 continue;
             }
-            // тень обрезается выделением в своей точке
+            // the shadow is clipped by the selection at its own position
             let mut s = if in_sel(sel, sx, sy) {
                 rgba(src[sy as usize * w + sx as usize])[3] * sc[3]
             } else {
@@ -1052,7 +1053,7 @@ fn fx_drop_shadow(
     out
 }
 
-// Gradient.gdshaderinc — упрощён до двух опорных цветов + дизеринг 4x4.
+// Gradient.gdshaderinc — simplified to two anchor colours + 4x4 dithering.
 const BAYER4: [[f32; 4]; 4] = [
     [0.0, 8.0, 2.0, 10.0],
     [12.0, 4.0, 14.0, 6.0],
@@ -1095,7 +1096,7 @@ fn fx_gradient(
             let v = (y as f32 + 0.5) / h as f32;
 
             let mut m = if shape == 0 {
-                // линейный градиент вокруг центра, с поворотом
+                // linear gradient around the centre, with rotation
                 let ox = u - 0.5;
                 let oy = v - 0.5;
                 let mut t = ox * cs - oy * sn;
@@ -1103,7 +1104,7 @@ fn fx_gradient(
                 t /= size;
                 t - (pos - 0.5)
             } else {
-                // радиальный градиент от центра
+                // radial gradient from the centre
                 let ox = u * 2.0 - 1.0;
                 let oy = v * 2.0 - 1.0;
                 (ox * ox + oy * oy).sqrt()
@@ -1126,7 +1127,7 @@ fn fx_gradient(
                 lerp(from[3], to[3], t),
             ];
             if !in_range { g[3] = 0.0; }
-            // рисуем градиент поверх, используя его альфу
+            // draw the gradient on top using its alpha
             out[y * w + x] = pack([
                 lerp(orig[0], g[0], g[3]),
                 lerp(orig[1], g[1], g[3]),
@@ -1140,7 +1141,7 @@ fn fx_gradient(
 
 // ── Blur ──────────────────────────────────────────────
 
-// Pixelize.gdshaderinc — выборка из «крупного пикселя».
+// Pixelize.gdshaderinc — sample from a "large pixel".
 fn fx_pixelize(
     src: &[Color32],
     w: usize,
@@ -1162,14 +1163,14 @@ fn fx_pixelize(
     out
 }
 
-/// Сэмпл с клампом по краям (текстура в шейдере — repeat_disable/clamp).
+/// Sample with clamping at the edges (the texture in the shader is repeat_disable/clamp).
 #[inline]
 fn at(src: &[Color32], w: i32, h: i32, x: i32, y: i32) -> [f32; 4] {
     rgba(src[y.clamp(0, h - 1) as usize * w as usize + x.clamp(0, w - 1) as usize])
 }
 
-/// Накопление цветов с весами: rgb усредняется с весом альфы,
-/// альфа — обычным взвешенным средним (как в шейдерах автора).
+/// Weighted colour accumulation: rgb is averaged weighted by alpha, while
+/// alpha is a plain weighted average (as in the author's shaders).
 struct Acc { r: f64, g: f64, b: f64, a: f64, w: f64 }
 
 impl Acc {
@@ -1194,7 +1195,7 @@ impl Acc {
     }
 }
 
-// GaussianBlur.gdshaderinc — все четыре варианта из оригинала.
+// GaussianBlur.gdshaderinc — all four variants from the original.
 fn fx_gaussian_blur(
     src: &[Color32],
     w: usize,
@@ -1209,7 +1210,7 @@ fn fx_gaussian_blur(
     let hi = h as i32;
     let mut buf: Vec<Color32> = src.to_vec();
 
-    // промежуточный проход для «multi-pass» вариантов
+    // intermediate pass for the "multi-pass" variants
     let pass = |input: &[Color32], dx: bool, iterations: i32, sigma_scale: f32| -> Vec<Color32> {
         let mut out = input.to_vec();
         for y in 0..hi {
@@ -1229,7 +1230,7 @@ fn fx_gaussian_blur(
     };
 
     match kind {
-        // Xor's Gaussian Blur — спиральное семплирование
+        // Xor's Gaussian Blur — spiral sampling
         0 => {
             const ITER: i32 = 16;
             const QUALITY: i32 = 4;
@@ -1254,13 +1255,13 @@ fn fx_gaussian_blur(
                 }
             }
         }
-        // Monk's Multi-Pass Blur — разделяемый, с затуханием по итерациям
+        // Monk's Multi-Pass Blur — separable, with decay over iterations
         1 => {
             let iter = amount.max(1);
             let horiz = pass(src, true, iter, (iter as f32 * 0.8).sqrt().max(1.0));
             buf = pass(&horiz, false, iter, (iter as f32 * 0.8).sqrt().max(1.0));
         }
-        // NoDev's Single-Pass Blur — линейное семплирование в обе стороны
+        // NoDev's Single-Pass Blur — linear sampling in both directions
         2 => {
             let n = amount;
             let sigma = (amount as f32 * 0.7).max(1.0);
@@ -1308,7 +1309,7 @@ fn fx_offset_scale(
     for y in 0..h {
         for x in 0..w {
             if !in_sel(sel, x as i32, y as i32) { continue; }
-            // uv сдвигаем на offset, затем масштабируем от центра
+            // shift uv by the offset, then scale from the centre
             let u = (x as f32 + 0.5 - ox) / w as f32;
             let v = (y as f32 + 0.5 - oy) / h as f32;
             let mut zu = (u - 0.5) / scale + 0.5;
@@ -1351,7 +1352,7 @@ fn fx_mirror(
     out
 }
 
-/// Rotation/NearestNeighbour.gdshader — поворот вокруг центра холста.
+/// Rotation/NearestNeighbour.gdshader — rotation around the canvas centre.
 fn fx_rotate(
     src: &[Color32],
     w: usize,
@@ -1371,7 +1372,7 @@ fn fx_rotate(
             if !in_sel(sel, x as i32, y as i32) { continue; }
             let dx = x as f32 - cx;
             let dy = y as f32 - cy;
-            // обратный поворот: destination -> source
+            // inverse rotation: destination -> source
             let sx = (cos * dx + sin * dy + cx).round() as i32;
             let sy = (-sin * dx + cos * dy + cy).round() as i32;
             if sx >= 0 && sy >= 0 && sx < w as i32 && sy < h as i32 {
@@ -1470,7 +1471,7 @@ mod tests {
         let mut p = EffectParams::new(EffectKind::Invert);
         apply(&mut px, w, h, &p, None);
         assert_eq!(px[0].to_srgba_unmultiplied(), [245, 235, 225, 255]);
-        // гасим R — он должен остаться 245 (инверсии не было)
+        // disable R — it should stay 245 (no inversion happened)
         p.set_flag("Red", false);
         apply(&mut px, w, h, &p, None);
         assert_eq!(

@@ -68,15 +68,16 @@ impl Default for Prefs {
 }
 
 impl Prefs {
-    /// Читает настройки из хранилища eframe. Любая проблема — дефолты:
-    /// битый файл не должен мешать запуску приложения.
+    /// Reads settings from eframe storage. Any problem yields defaults: a
+    /// corrupt file must not prevent the application from starting.
     pub(crate) fn load(storage: Option<&dyn eframe::Storage>) -> Self {
         #[cfg(feature = "persistence")]
         let mut prefs: Self = storage
             .and_then(|s| eframe::get_value(s, PREFS_KEY))
             .unwrap_or_default();
-        // на Android eframe не выдаёт каталог данных (storage_dir -> None),
-        // так что файла там нет by design: остаются дефолты
+        // on Android eframe does not provide a data directory
+        // (storage_dir -> None), so there is no file there by design:
+        // defaults remain
         #[cfg(not(feature = "persistence"))]
         let mut prefs: Self = {
             let _ = storage;
@@ -86,23 +87,23 @@ impl Prefs {
         prefs
     }
 
-    /// Приводит значения из файла к допустимым. Файл лежит в каталоге данных
-    /// приложения и остаётся руками редактируемым, а RON не проверит, что
-    /// `brush` — положительное число. Без этого слайдер в диалоге настроек
-    /// разъезжается, а кисть рисует точку за пределами холста.
+    /// Brings values from the file into valid ranges. The file lives in the
+    /// application data directory and remains hand-editable, while RON does
+    /// not check that `brush` is a positive number. Without this the settings
+    /// dialog slider drifts and the brush paints a spot outside the canvas.
     fn sanitize(&mut self) {
         self.arrow_speed = finite_or(self.arrow_speed, Self::default().arrow_speed)
             .clamp(1.0, 100.0);
         self.zoom_speed = finite_or(self.zoom_speed, Self::default().zoom_speed)
             .clamp(0.005, 5.0);
-        // дальше тулбар всё равно поджимает кисть под размер холста
+        // the toolbar clamps the brush to the canvas size anyway
         self.brush = finite_or(self.brush, Self::default().brush).clamp(1.0, 512.0);
         if self.color_history.len() > 4 {
             self.color_history.truncate(4);
         }
-        // файл редактируется руками, края могут оказаться недопустимыми
-        // (например, таймлайн на боку). Разрешённые краё�� выводим из дефолтного
-        // края панели, а не из испорченного.
+        // the file is hand-edited, so edges may be invalid (for example, the
+        // timeline on a side). Derive allowed edges from the panel's default
+        // edge rather than from the corrupted value.
         let d = Self::default();
         self.toolbar_edge = clamp_edge(self.toolbar_edge, d.toolbar_edge);
         self.layers_edge = clamp_edge(self.layers_edge, d.layers_edge);
@@ -111,9 +112,9 @@ impl Prefs {
     }
 }
 
-/// Оставляет край, если панели он разрешён, иначе возвращает дефолтный.
-/// `default_edge` задаёт, о какой панели речь: горизонтальные (тулбар,
-/// статус, таймлайн) могут ходить только между верхним и нижним краем.
+/// Keeps the edge if it is allowed for the panel, otherwise returns the default.
+/// `default_edge` identifies which panel this is about: horizontal ones
+/// (toolbar, status, timeline) may only move between the top and bottom edges.
 pub(crate) fn clamp_edge(loaded: Edge, default_edge: Edge) -> Edge {
     if default_edge.allowed_for().contains(&loaded) {
         loaded
@@ -122,9 +123,9 @@ pub(crate) fn clamp_edge(loaded: Edge, default_edge: Edge) -> Edge {
     }
 }
 
-/// Хранилище в памяти для тестов. Так тесты идут через настоящий
-/// `eframe::get_value`, а не через подставной разбор строки. Вынесено из
-/// `mod tests`, чтобы им можно было пользоваться и другим тестовым модулям.
+/// In-memory storage for tests. This way tests go through the real
+/// `eframe::get_value` instead of a fake string parser. Kept outside
+/// `mod tests` so other test modules can use it too.
 #[cfg(all(feature = "persistence", test))]
 #[derive(Default)]
 pub(crate) struct MemStore(std::cell::RefCell<std::collections::HashMap<String, String>>);
@@ -140,8 +141,8 @@ impl eframe::Storage for MemStore {
     fn flush(&mut self) {}
 }
 
-/// f32::clamp на NaN возвращает NaN, поэтому нечисловые значения отсекаем
-/// до клампа, а не после.
+/// f32::clamp returns NaN for NaN, so non-finite values are filtered out
+/// before clamping, not after.
 fn finite_or(v: f32, fallback: f32) -> f32 {
     if v.is_finite() { v } else { fallback }
 }
@@ -184,7 +185,7 @@ mod tests {
         assert_eq!(back.color_history, vec![[1, 2, 3, 4], [5, 6, 7, 8]]);
     }
 
-    /// Пустое хранилище — обычный первый запуск, должны быть дефолты.
+    /// Empty storage — an ordinary first launch; defaults are expected.
     #[test]
     fn empty_storage_yields_defaults() {
         let p = Prefs::load(None);
@@ -197,8 +198,8 @@ mod tests {
         assert_eq!(p2.tool, Tool::Brush);
     }
 
-    /// Файл от прошлой версии, где части полей ещё нет, читается частично,
-    /// а не отбрасывается целиком.
+    /// A file from a previous version that lacks some fields is read
+    /// partially instead of being discarded entirely.
     #[test]
     fn missing_fields_fall_back_to_defaults() {
         let mut store = MemStore::default();
@@ -210,7 +211,7 @@ mod tests {
         assert_eq!(p.tool, Tool::Brush);
     }
 
-    /// Нечитаемый файл не должен ронять запуск.
+    /// An unreadable file must not crash startup.
     #[test]
     fn corrupt_file_yields_defaults() {
         let mut store = MemStore::default();
@@ -220,8 +221,8 @@ mod tests {
         assert_eq!(p.tool, Tool::Brush);
     }
 
-    /// RON не проверяет диапазоны, а файл лежит в каталоге данных приложения
-    /// и остаётся редактируемым руками.
+    /// RON does not validate ranges, and the file lives in the application
+    /// data directory and remains hand-editable.
     #[test]
     fn out_of_range_and_nan_values_are_sanitized() {
         let mut store = MemStore::default();
