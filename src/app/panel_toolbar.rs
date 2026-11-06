@@ -282,18 +282,29 @@ impl PixeshApp {
 
             ui.add_space(6.0);
 
-            // zoom text
+            // Keep zoom + brush controls tighter than the tool buttons.
+            // `ui.horizontal` already inserts `item_spacing` after every widget,
+            // so extra `add_space` calls here would double the gaps.
+            ui.spacing_mut().item_spacing.x = 6.0;
+
+            // zoom text: measure the real text width instead of estimating it
+            // with CHAR_W, otherwise the allocated rect is much wider than the
+            // text and leaves a large empty gap before the brush controls.
             let zoom_text = format!("Zoom: {:.2}", self.docs[self.active_tab].zoom);
-            let zoom_w = zoom_text.len() as f32 * CHAR_W * (20.0 / FONT_SZ) + 10.0;
+            let zoom_font = egui::FontId::proportional(20.0);
+            let zoom_w = ui.fonts(|f| {
+                f.layout_no_wrap(zoom_text.clone(), zoom_font.clone(), TEXT)
+                    .size()
+                    .x
+            }) + 2.0;
             let (zoom_rect, _) = ui.allocate_exact_size(Vec2::new(zoom_w, btn_h), Sense::hover());
             ui.painter().text(
                 Pos2::new(zoom_rect.min.x, zoom_rect.center().y),
                 egui::Align2::LEFT_CENTER,
                 &zoom_text,
-                egui::FontId::proportional(20.0),
+                zoom_font,
                 TEXT,
             );
-            ui.add_space(6.0);
 
             // ── brush size + shape (only for Brush/Eraser) ──
             if self.tool == Tool::Brush || self.tool == Tool::Eraser {
@@ -302,7 +313,7 @@ impl PixeshApp {
 
                 ui.add_space(6.0);
                 separator(ui);
-                ui.add_space(10.0);
+                ui.add_space(6.0);
 
                 // Label "Size"
                 ui.label(egui::RichText::new("Size:").size(18.0).color(DIM));
@@ -320,17 +331,13 @@ impl PixeshApp {
                 self.brush = h as f32;
 
                 ui.add_space(6.0);
-                
                 separator(ui);
-                
                 ui.add_space(6.0);
 
                 ui.style_mut().text_styles.insert(
                     egui::TextStyle::Button,
                     egui::FontId::proportional(22.0),
                 );
-
-                ui.add_space(-4.0);
 
                 let round_brush_tex = self.round_brush_tex.get_or_insert_with(|| {
                     load_icon_texture(ui, "round_brush_icon", include_bytes!("../../tex/tools/round_brush.png"))
@@ -339,8 +346,8 @@ impl PixeshApp {
                      self.brush_shape = BrushShape::Round; 
                 }
 
-                ui.add_space(-4.0);
-                
+                ui.add_space(6.0);
+
                 let square_brush_tex = self.square_brush_tex.get_or_insert_with(|| {
                     load_icon_texture(ui, "square_brush_icon", include_bytes!("../../tex/tools/square_brush.png"))
                 });
