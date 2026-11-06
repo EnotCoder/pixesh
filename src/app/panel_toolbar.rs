@@ -63,6 +63,7 @@ impl PixeshApp {
 
             if lresp.clicked() {
                 self.logo_easter_egg = 1.0;
+                self.show_welcome = true;
             }
 
             if self.logo_easter_egg > 0.0 {
