@@ -24,6 +24,7 @@ impl PixeshApp {
             show_right_panel: self.show_right_panel,
             show_status_bar: self.show_status_bar,
             show_timeline: self.show_timeline,
+            show_snow: self.show_snow,
             toolbar_edge: self.toolbar_edge,
             layers_edge: self.layers_edge,
             status_edge: self.status_edge,
@@ -57,6 +58,7 @@ impl PixeshApp {
         self.show_right_panel = prefs.show_right_panel;
         self.show_status_bar = prefs.show_status_bar;
         self.show_timeline = prefs.show_timeline;
+        self.show_snow = prefs.show_snow;
         self.toolbar_edge = config::clamp_edge(prefs.toolbar_edge, Edge::Top);
         self.layers_edge = config::clamp_edge(prefs.layers_edge, Edge::Right);
         self.status_edge = config::clamp_edge(prefs.status_edge, Edge::Bottom);

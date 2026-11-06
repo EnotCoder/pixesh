@@ -3,6 +3,7 @@
 pub(crate) mod config;
 pub(crate) mod document;
 pub(crate) mod effects;
+pub(crate) mod snow;
 pub(crate) mod state;
 pub(crate) mod ui;
 

@@ -45,6 +45,7 @@ pixesh/
 │       ├── mod.rs               — thin facade: module declarations and re-exports
 │       ├── config.rs            — persisted Prefs, validation, eframe storage helpers
 │       ├── effects.rs           — 17 effects ported from Pixelorama
+│       ├── snow.rs              — animated falling-snow overlay for the canvas
 │       ├── document/
 │       │   ├── mod.rs           — Layer, Snapshot, Document, mascot canvas
 │       │   ├── anim.rs          — frames, cels, playback helpers

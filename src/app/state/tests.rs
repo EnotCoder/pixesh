@@ -19,6 +19,7 @@ fn panel_visibility_survives_a_restart() {
     first.show_timeline = false;
     first.show_status_bar = false;
     first.welcome_show_again = false;
+    first.show_snow = true;
 
     let store = store_with(&first);
     let mut second = PixeshApp::new();
@@ -29,6 +30,7 @@ fn panel_visibility_survives_a_restart() {
     assert!(!second.show_status_bar);
     assert!(second.show_right_panel, "не тронутая панель остаётся на месте");
     assert!(!second.welcome_show_again);
+    assert!(second.show_snow, "включённый снег переживает перезапуск");
 }
 
 #[test]
@@ -245,6 +247,7 @@ fn first_run_without_a_file_is_all_defaults() {
     app.load_prefs(None);
     assert!(app.show_top_panel && app.show_right_panel);
     assert!(app.show_status_bar && app.show_timeline);
+    assert!(!app.show_snow);
     assert!(app.welcome_show_again && app.show_welcome);
     assert_eq!(app.tool, Tool::Brush);
     assert_eq!(app.brush, 1.0);

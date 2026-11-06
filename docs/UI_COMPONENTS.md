@@ -337,12 +337,14 @@ Export behaviour:
 - Toggle rows for Toolbar, Layers, Status Bar and Timeline.
 - OK button; `Enter` and `Escape` close it.
 
-### Settings — 300 × 360
+### Settings — 300 × 440
 
 - Title “Settings”.
 - Arrow Speed slider, 1–100, step 5.
 - Zoom Speed slider, 0.005–5.
 - “Show Welcome at startup” checkbox.
+- “Snow” section with a “falling snow” checkbox: animated white pixel-art
+  flakes falling over the canvas.
 - OK button; `Enter` and `Escape` close it.
 
 ### Add Text — 340 × 240

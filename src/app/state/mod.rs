@@ -79,6 +79,8 @@ pub struct PixeshApp {
     pub(crate) show_right_panel: bool,
     pub(crate) show_status_bar: bool,
     pub(crate) show_timeline: bool,
+    /// Falling-snow effect over the canvas.
+    pub(crate) show_snow: bool,
 
     /// Window edge for each draggable panel
     pub(crate) toolbar_edge: Edge,
@@ -132,6 +134,8 @@ pub struct PixeshApp {
     pub(crate) close_handled: bool,
 
     pub(crate) logo_easter_egg: f32,
+
+    pub(crate) snow: crate::app::snow::Snowfall,
 }
 
 impl PixeshApp {
@@ -169,6 +173,7 @@ impl PixeshApp {
             show_right_panel: prefs.show_right_panel,
             show_status_bar: prefs.show_status_bar,
             show_timeline: prefs.show_timeline,
+            show_snow: prefs.show_snow,
             toolbar_edge: prefs.toolbar_edge,
             layers_edge: prefs.layers_edge,
             status_edge: prefs.status_edge,
@@ -202,6 +207,7 @@ impl PixeshApp {
             cursor_px: None,
             close_handled: false,
             logo_easter_egg: 0.0,
+            snow: crate::app::snow::Snowfall::default(),
         }
     }
 }

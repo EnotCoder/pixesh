@@ -39,8 +39,8 @@ binary, and the Windows build links only system DLLs. On Linux you need
   becomes its own tab), multi-document tabs, PNG export with scale, background
   and sprite-sheet options
 - **History** — undo / redo, up to 50 steps
-- **Settings** — arrow-pan speed, zoom speed and whether the welcome window
-  appears at startup
+- **Settings** — arrow-pan speed, zoom speed, falling snow and whether the
+  welcome window appears at startup
 
 ## Controls
 

@@ -329,6 +329,9 @@ impl PixeshApp {
                     }
                 }
 
+                // ── falling snow overlay ──
+                self.snow.paint(ui, area, self.show_snow);
+
                 // ── middle mouse pan ──
                 if resp.dragged_by(egui::PointerButton::Middle) {
                     if let Some(pos) = resp.interact_pointer_pos() {

@@ -28,6 +28,8 @@ pub(crate) struct Prefs {
     pub show_right_panel: bool,
     pub show_status_bar: bool,
     pub show_timeline: bool,
+    /// Falling-snow effect over the canvas.
+    pub show_snow: bool,
     /// Edge assignment for draggable panels.
     pub toolbar_edge: Edge,
     pub layers_edge: Edge,
@@ -51,6 +53,7 @@ impl Default for Prefs {
             show_right_panel: true,
             show_status_bar: true,
             show_timeline: true,
+            show_snow: false,
             toolbar_edge: Edge::Top,
             layers_edge: Edge::Right,
             status_edge: Edge::Bottom,
