@@ -1,137 +1,419 @@
-# Pixesh — архитектура проекта
+# Pixesh — Project Architecture
 
-## Стек
+## Overview
 
-- **Язык:** Rust
-- **GUI:** `eframe`/`egui` (0.31)
-- **Изображения:** `image` crate
-- **Диалоги:** `rfd` (выбор папки для экспорта)
-- **Рендер:** wgpu (через egui)
+Pixesh is a small pixel-art editor with animation, layers and effects. It is
+written in Rust and uses the immediate-mode GUI library `egui` through
+`eframe`. There is no retained widget tree and no separate state-management
+layer: every frame walks the current application state and emits draw commands.
 
-## Структура файлов
+## Stack
+
+| Area | Choice |
+|------|--------|
+| Language | Rust, edition 2024 |
+| GUI | `eframe` / `egui` 0.31 |
+| Renderer | `glow` (OpenGL) through the default `desktop` feature |
+| Images | `image` crate (PNG and common input formats) |
+| Native dialogs | `rfd`, optional (`gtk3` backend), used for opening images and choosing export folders |
+| Preferences | `serde` + RON through `eframe` storage |
+| Fonts and icons | Embedded in the binary with `include_bytes!` |
+
+### Cargo features
+
+| Feature | Enables |
+|---------|---------|
+| `persistence` | `eframe/persistence` — stores preferences, egui memory, panel sizes and window geometry |
+| `rfd` | Native file/folder dialogs |
+| `desktop` | Default feature: `glow`, bundled fonts, accessibility, Wayland/X11, persistence and `rfd` |
+
+A build without the default features still compiles. In that case native file
+dialogs are unavailable and preferences fall back to their defaults.
+
+## Source layout
 
 ```
 pixesh/
 ├── src/
-│   ├── main.rs              — точка входа, настройка шрифта/темы, запуск окна
-│   ├── constants.rs         — цвета PANEL/BG/TEXT/ACCENT/HOVER/BORDER,
-│   │                         размеры FONT_SZ/CHAR_W/ROW_H,
-│   │                         enum Tool, enum ExportBg
-│   ├── color.rs             — hsv_to_rgb() / rgb_to_hsv()
-│   ├── ui.rs                — виджеты btn/icon_btn/checkbox/slider/separator/toggle_btn
+│   ├── main.rs                  — native window options, application entry point
+│   ├── lib.rs                   — run_native_app(), embedded font, global egui style
+│   ├── constants.rs             — theme colours, dimensions, Tool/BrushShape/
+│   │                              ExportBg/Edge/PanelId, NUM_PALETTE, linked_side()
+│   ├── color.rs                 — RGB/HSV conversion and lerp_color()
+│   ├── ui.rs                    — shared widgets and texture loading
 │   └── app/
-│       ├── mod.rs           — Layer, Snapshot, Document, PixeshApp (все поля + new()),
-│       │                     impl eframe::App (update() диспатчит)
-│       ├── config.rs        — загрузка/сохранение настроек (~/.config/pixesh/settings.txt)
-│       ├── canvas.rs        — brush_i, pixels_mut, composite, composite_display,
-│       │                     paint_pixel, paint_line, flood_fill, screen_to_pixel
-│       ├── effects.rs       — 17 эффектов, портированных из Pixelorama
-│       ├── history.rs       — push_undo, undo, redo
-│       ├── io.rs            — add_layer, remove_layer, save_png, load_png,
-│       │                     resize_canvas
-│       ├── input.rs         — handle_input (горячие клавиши, колёсико, стрелки)
-│       ├── panel_toolbar.rs — верхняя панель с инструментами
-│       ├── panel_layers.rs  — правая панель: слои + HSV-пикер
-│       ├── panel_canvas.rs  — центральный холст: отрисовка, рисование
-│       └── panel_dialogs.rs — диалоги Resize и Export PNG
-└── tex/                     — иконки инструментов (PNG)
+│       ├── mod.rs               — Layer, Snapshot, Document, PixeshApp,
+│       │                          update loop, panel order, preferences, multi-document state
+│       ├── anim.rs              — frames, cels, playback helpers
+│       ├── canvas.rs            — compositing, brush painting, flood fill, mirror, texture cache
+│       ├── config.rs            — persisted Prefs, validation, eframe storage helpers
+│       ├── effects.rs           — 17 effects ported from Pixelorama
+│       ├── history.rs           — undo/redo snapshots
+│       ├── input.rs             — keyboard, mouse wheel, arrow pan, temporary eyedropper
+│       ├── io.rs                — layers, PNG export/import, resize, scale, flatten
+│       ├── text.rs              — 5×7 bitmap font for the Text tool
+│       ├── tools.rs             — brush/select/move/fill/clipboard operations
+│       ├── panel_canvas.rs      — central canvas and tool dispatch
+│       ├── panel_drag.rs        — panel docking between window edges
+│       ├── panel_layers.rs      — layers + colour picker panel
+│       ├── panel_status.rs      — status bar
+│       ├── panel_timeline.rs    — animation timeline
+│       ├── panel_toolbar.rs     — toolbar and document tabs
+│       └── panel_dialogs/
+│           ├── mod.rs           — dialog dispatch
+│           ├── effects.rs       — effects panel
+│           ├── export.rs        — PNG export dialog
+│           ├── panels.rs        — panel visibility dialog
+│           ├── resize.rs        — canvas resize dialog
+│           ├── scale.rs         — image scale dialog
+│           ├── settings.rs      — settings dialog
+│           ├── text.rs          — text tool dialog
+│           └── welcome.rs       — welcome/quick-start dialog
+├── img/                         — logo and mascot images
+├── tex/                         — tool icons and the embedded font
+└── docs/                        — architecture and UI reference
 ```
 
-## Эффекты (порт из Pixelorama)
-
-Эффекты взяты из открытого кода
-[Pixelorama](https://github.com/Orama-Interactive/Pixelorama) и переписаны с
-GLSL-шейдеров на обычный CPU-код. Состав и категории повторяют меню `Effects`
-оригинала (`src/UI/TopMenuContainer/TopMenuContainer.gd::_setup_effects_menu`):
-
-| Категория   | Эффекты                                                                 |
-|-------------|-------------------------------------------------------------------------|
-| Transform   | Offset & Scale, Mirror Image, Rotate Image, Flat to Isometric            |
-| Color       | Invert Colors, Desaturation, Adjust Hue/Sat/Value, Brightness/Contrast, Color Curves, Palettize, Posterize, Gradient Map |
-| Procedural  | Outline, Drop Shadow, Gradient                                            |
-| Blur        | Pixelize, Gaussian Blur (4 варианта)                                     |
-
-Устройство модуля `src/app/effects.rs`:
-
-- `Cat` — категория эффекта, `EffectDef` — описание (имя, категория, параметры);
-- `EffectParams` — значения параметров, **хранятся по имени**, а не по индексу,
-  поэтому новый параметр можно добавить в `EFFECTS`, не трогая код логики;
-- `effects::apply(&mut pixels, w, h, &params, selection)` — единственная точка
-  применения; уважает выделение (`selection: Option<(x0,y0,x1,y1)>`);
-- `EFFECTS` — статическая таблица всех 17 эффектов, порядок вариантов
-  `EffectKind` обязан совпадать с ней (проверяется тестом).
-
-Панель: `src/app/panel_dialogs/effects.rs`. Открывается кнопкой-«искоркой» на
-панели инструментов (`Tool::Effects`) или `Ctrl+Shift+E`. Показывает живое
-превью (слой уменьшается до 64 px, эффект считается на уменьшенной копии),
-флажки **All layers** / **All frames** и кнопки Reset / Apply / Close.
-
-Применение — через `PixeshApp::apply_effect_to()`: сначала результат считается
-в стороне, и только если что-то реально изменилось, берётся **один** снимок
-undo и коммитятся пиксели. Поэтому `Ctrl+Z` откатывает эффект целиком.
-
-## Поток выполнения
+## Startup and frame flow
 
 ```
 main()
-  └→ PixeshApp::new()
-       └→ eframe::App::update(ctx, frame)  ← каждый кадр
-            ├→ self.handle_input(ctx)         — горячие клавиши
-            ├→ self.ui_toolbar(ctx)           — TopBottomPanel
-            ├→ self.ui_layers(ctx)            — SidePanel (справа)
-            ├→ self.ui_canvas(ctx)            — CentralPanel
-            └→ self.ui_dialogs(ctx)           — всплывающие окна
+  └─ pixesh::run_native_app()
+       ├─ load embedded font
+       ├─ install the global dark, square-corner egui style
+       ├─ PixeshApp::new()
+       ├─ PixeshApp::load_prefs(storage)
+       └─ eframe::App::update(ctx, frame)  — once per frame
+            ├─ record last_time
+            ├─ handle_input()              — shortcuts, wheel zoom/brush, arrow pan, Alt eyedropper
+            ├─ update_playback()           — advance playing animations
+            ├─ handle_dropped_files()      — open dropped images as new tabs
+            ├─ for panel in draw_order():
+            │    ├─ ui_toolbar()
+            │    ├─ ui_status()
+            │    ├─ ui_timeline()
+            │    └─ ui_layers()
+            ├─ ui_canvas()                 — central area and tool dispatch
+            ├─ ui_dialogs()                — floating dialogs in the foreground
+            ├─ draw_drop_overlay()         — “open image” overlay while dragging files
+            ├─ ui_panel_drag()             — dock-zone highlights while dragging a panel
+            └─ quit confirmation           — only when there are unsaved documents
 ```
 
-## Ключевые структуры
+### Why panel order is computed
+
+egui carves panels out of the remaining window rectangle in the order in which
+they are created. `PixeshApp::draw_order()` therefore returns horizontal strips
+first (top/bottom, grouped by edge) and side panels last (left/right). This
+keeps the toolbar and status bar at full window width and prevents the layers
+panel from overlapping them. Within one edge, `p_order()` defines a stable
+canonical order so panels do not jump around.
+
+## Data model
 
 ### `Layer`
-- `name: String`
-- `pixels: Arc<Vec<Color32>>` — пиксели слоя (RGBA)
-- `visible: bool`
 
-### `Snapshot` (undo/redo)
-- `layers: Vec<Arc<Vec<Color32>>>` — копии Arc (refcount), без клонирования Vec
-- `active: usize`
+```rust
+struct Layer {
+    name: String,
+    cels: Vec<Arc<Vec<Color32>>>, // one pixel buffer per frame
+    visible: bool,
+}
+```
 
-### `PixeshApp` (основные поля)
-- `layers`, `active_layer`, `width`, `height` — холст
-- `color`, `hsv_h/s/v`, `rgb_r/g/b` — текущий цвет (дублирование для HSV UI)
-- `brush`, `tool`, `tool_saved` — кисть и инструмент
-- `last_px_primary/secondary` — трекинг драга (для paint_line)
-- `grid`, `zoom`, `pan` — отображение
-- `tex`, `*_tex`, `sv_tex` — кэш текстур egui
-- `canvas_dirty: bool` — флаг перекомпозита
-- `undo_stack`, `redo_stack` — история
-- `show_resize`, `resize_w/h`, `show_export`, `export_name/path` — диалоги
-- `show_effects`, `effect`, `effect_all_layers/frames`, `effect_prev_*` — панель эффектов
+Each animation frame has its own cel (pixel buffer) per layer. `Arc` allows
+undo snapshots and layer duplication to share buffers until a buffer is
+modified.
 
-## Оптимизации
+### `Document`
 
-- **Arc для пикселей:** `Layer.pixels = Arc<Vec<Color32>>`. push_undo копирует только Arc
-  (инкремент счетчика). `paint_pixel`/`flood_fill` используют `Arc::make_mut()`
-  (copy-on-write — реальное клонирование только если refcount > 1).
-- **canvas_dirty:** текстура холста пересобирается и загружается на GPU только
-  при изменении пикселей. На пустом кадре (панорамирование) — ноль аллокаций.
-- **composite_display:** шахматка впекается прямо в массив пикселей за один проход,
-  без отдельного цикла отрисовки rect_filled.
-- **paint_line:** Брезенхем между предыдущей и текущей позицией курсора,
-  чтобы не было пропусков при быстром движении мыши.
-- **last_px сброс:** при выходе за пределы холста во время драга `last_px` очищается,
-  чтобы не рисовать линию-соединитель при повторном входе.
-- **Превью эффектов:** источник уменьшается nearest-neighbour'ом до 64 px по большей
-  стороне, поэтому пересчёт всегда дёшев. Слой ≤ 64×64 считается каждый кадр,
-  крупный — только при смене параметров и не чаще раза в 0.4 с.
-- **Палитра для Palettize:** строится из самого изображения median cut'ом, а
-  сопоставление пиксель→палитра кэшируется по `HashMap<[u8;4], Color32>` —
-  у пиксель-арта мало уникальных цветов, поэтому поиск ближайшего идёт один раз
-  на цвет, а не на пиксель.
+One `Document` is one tab. It owns everything that belongs to a single image:
 
-## Замечания
+- canvas: `name`, `layers`, `active_layer`, `width`, `height`;
+- animation: `frames`, `active_frame`, `playing`, `fps`, `last_play`;
+- history: `undo_stack`, `redo_stack`;
+- display cache: `canvas_dirty`, `display_cell`, `display_buf`, `tex`;
+- selection and clipboard: `sel`, `sel_start`, `sel_end`, `sel_buffer`,
+  `sel_tex`, `sel_move_*`, `clipboard`, `clip_w`, `clip_h`, `pasting`;
+- whole-layer and selection transforms: `transforming`,
+  `transform_orig_rect`, `transform_corner`;
+- view: `zoom`, `pan`, `grid`, `needs_zoom_fit`;
+- pointer tracking: `last_px_primary`, `last_px_secondary`, `mid_pan_pos`;
+- file state: `unsaved`, `export_path`, `export_name`.
 
-- undo снэпшот сохраняется ТОЛЬКО при начале штриха (`push_undo`), а не на каждый
-  кадр драга. Это экономит память, но при отмене откатывается весь штрих.
-- Размер undo стека ограничен 50 снапшотами.
-- `composite()` (без шахматки) используется только для пипетки и экспорта PNG.
-- Колесо мыши зумит холст только когда ни один диалог не открыт, иначе оно
-  прокручивает внутренний `ScrollArea` панели.
+`Document::new()` starts with a 16×16 blank canvas and one “Background” layer.
+`Document::new_logo()` is the default startup document: a 32×32 canvas filled
+with the pixel-art mascot from `img/pixel_logo.png`. `Document::new_sized()`
+creates a blank document with an explicit size.
+
+### `Snapshot`
+
+An undo entry captures the layers and cels, the active layer/frame, the frame
+count, canvas dimensions, selection/paste state and the clipboard. Layer cels
+are `Arc` clones, so a snapshot is cheap until the live buffer is modified.
+The undo stack is capped at 50 entries.
+
+### `PixeshApp`
+
+Application-wide state lives on `PixeshApp`:
+
+- documents: `docs: Vec<Document>`, `active_tab`;
+- colour: `color`, `hsv_*`, `rgb_*` — all representations are kept in sync;
+- tools: `tool`, `brush`, `brush_shape`, temporary tool slots
+  (`tool_saved`, `tool_saved_shift`);
+- texture caches for icons, the colour picker and the canvas;
+- dialog flags (`show_resize`, `show_export`, `show_settings`, `show_text`,
+  `show_effects`, ...);
+- panel visibility and edge assignment (`show_top_panel`,
+  `toolbar_edge`, ...);
+- panel-drag state (`dragging_panel`, `drop_edge`, `drag_from_edge`);
+- preferences that are not panel geometry (`arrow_speed`, `zoom_speed`,
+  `welcome_show_again`);
+- colour history, layer rename state, text-tool state, status hint and
+  effects-preview cache;
+- miscellaneous UI state (`cursor_px`, `close_handled`, `logo_easter_egg`).
+
+### Multi-document behaviour
+
+Opening a file always adds a new tab and activates it. Closing a tab adjusts
+`active_tab`; closing the last tab replaces it with a fresh mascot document
+instead of leaving the application with no canvas. The toolbar renders one tab
+per document with an unsaved marker (`*`) and a close button.
+
+## Editing pipeline
+
+### Canvas and compositing
+
+- `composite()` flattens visible layers for the active frame. Transparent
+  pixels are skipped; the topmost non-transparent pixel wins.
+- `composite_at(frame)` does the same for an arbitrary frame (used by the
+  timeline and sprite-sheet export).
+- `composite_display()` additionally bakes the checkerboard pattern into the
+  display buffer and blends semi-transparent pixels against it. This buffer is
+  uploaded to an egui texture with `TextureOptions::NEAREST`.
+- The display buffer is rebuilt only when `canvas_dirty` is set, when the
+  checkerboard cell size changes with zoom, or while a selection/canvas move or
+  transform preview is active.
+
+### Painting
+
+- `paint_pixel()` applies a square or round brush mask to the active layer and
+  respects the current selection rectangle.
+- `paint_line()` uses Bresenham between the previous and current pointer
+  positions so fast strokes have no gaps.
+- `flood_fill()` is a stack-based four-neighbour fill, clipped to the selection.
+- `mirror_horizontal()` / `mirror_vertical()` flip the active layer in place.
+- `screen_to_pixel()` converts a screen position into canvas pixel coordinates.
+
+### Undo/redo
+
+`push_undo()` is called at the start of a stroke or destructive command, not on
+every drag frame. Consequently, undo reverts an entire stroke. Redo is cleared
+whenever a new undo entry is pushed. `restore_snapshot()` resets selection and
+texture state so the next frame rebuilds the canvas.
+
+### Selection and clipboard
+
+- Dragging with the Select tool creates a rectangular marquee.
+- Dragging inside an existing selection lifts its pixels into `sel_buffer` and
+  moves them; releasing commits the move.
+- `Ctrl+C` / `Y` copies the selected pixels. `Ctrl+V` / `P` creates a floating
+  paste that is committed on `Enter`, by switching tools, or by starting
+  another operation.
+- `Delete` clears the selection. `Escape` cancels a paste, a transform, a
+  rename or an open dialog before finally deselecting.
+- `Enter` crops the canvas to the selection when nothing is being pasted.
+
+### Move and Transform
+
+- Move drags the selection when the press starts inside it, otherwise it moves
+  the whole active layer.
+- Transform (`X` with a selection) exposes four corner handles. Dragging a
+  corner resizes the selection rectangle; the result is committed when the
+  drag ends. `Escape` cancels the transform and restores the previous tool.
+
+### Text
+
+The Text tool opens a dialog with a bitmap-font preview. `text.rs` contains a
+5×7 ASCII font (characters 32–126); text is rasterised directly into the active
+layer at the clicked canvas position, with an integer scale of 1–8.
+
+## Animation
+
+Each `Layer` stores one cel per frame. Frame operations live in `anim.rs`:
+
+- `add_frame_blank()` inserts a transparent frame after the current one;
+- `duplicate_frame()` copies the current frame;
+- `delete_frame()` removes the current frame (the last frame cannot be deleted);
+- `move_frame()` reorders frames;
+- `set_active_frame()` marks the canvas dirty and drops the texture cache.
+
+Playback is driven by `update_playback()`: while `playing` is true, the active
+frame advances at `fps` (1–60) and a repaint is requested. The timeline panel
+provides Play/Pause, Stop, FPS, frame navigation and add/duplicate/delete/move
+controls.
+
+## Effects
+
+Effects are ported from the open-source
+[Pixelorama](https://github.com/Orama-Interactive/Pixelorama) project. The
+original GLSL shaders are reimplemented as CPU code over `Vec<Color32>`.
+
+| Category | Effects |
+|----------|---------|
+| Transform | Offset & Scale, Mirror Image, Rotate Image, Flat to Isometric |
+| Color | Invert Colors, Desaturation, Adjust Hue/Sat/Value, Adjust Brightness/Contrast, Color Curves, Palettize, Posterize, Gradient Map |
+| Procedural | Outline, Drop Shadow, Gradient |
+| Blur | Pixelize, Gaussian Blur |
+
+### Module structure (`src/app/effects.rs`)
+
+- `Cat` — effect category.
+- `EffectDef` — name, category and parameter definitions.
+- `PT` / `ParamDef` — parameter type (integer slider, float slider, checkbox,
+  colour, segmented choice) and its range.
+- `EffectParams` — current values, stored **by parameter name** rather than by
+  index, so new parameters can be added to `EFFECTS` without touching the
+  application logic.
+- `EFFECTS` — static table of all 17 effects. The order of `EffectKind`
+  variants must match this table (enforced by a test).
+- `apply(&mut pixels, w, h, &params, selection)` — the single entry point for
+  applying an effect. It honours an optional selection rectangle.
+
+### Panel and application semantics
+
+The effects panel is opened by the sparkle button in the toolbar or with
+`Ctrl+Shift+E`. It provides:
+
+- category tabs and an effect list;
+- live parameter controls;
+- a live preview (the source is downscaled to at most 64 px on its longest
+  side, and recalculation is throttled for large images);
+- “All layers” and “All frames” scope checkboxes;
+- Reset / Apply / Close.
+
+`PixeshApp::apply_effect_to()` first computes every result into a temporary
+buffer. If nothing changed, no undo entry is created. Otherwise it calls
+`push_undo()` once and commits all changed cels, so a single `Ctrl+Z` reverts
+the whole effect application.
+
+Two effects intentionally differ from the originals:
+
+- **Palettize** builds its palette from the image itself using median cut
+  instead of a fixed palette.
+- **Color Curves** is a per-channel gamma plus black/white points rather than an
+  interactive curve editor.
+
+## Panel layout and docking
+
+- `PanelId` identifies the four draggable panels: `Toolbar`, `Status`,
+  `Timeline`, `Layers`.
+- `Edge` identifies the window edge: `Top`, `Bottom`, `Left`, `Right`.
+- Horizontal strips (toolbar, status bar, timeline) may move only between top
+  and bottom. The layers panel may move only between left and right.
+- Each panel stores its own edge (`toolbar_edge`, `status_edge`,
+  `timeline_edge`, `layers_edge`). `config::clamp_edge()` repairs forbidden
+  values loaded from disk.
+- Dragging starts from a 22×22 grip at the beginning of each panel. While
+  dragging, the allowed drop zones (140 px from the relevant window edge) are
+  highlighted. Dropping on a different valid edge reassigns the panel.
+- Panels are resizable. egui stores their size in `egui::Memory`, keyed by
+  `PanelId::ui_id(edge)`. Including the edge in the id prevents a width from
+  being reused as a height after moving a panel to another edge.
+
+## Preferences and persistence
+
+Preferences are stored through eframe's storage (RON, `app.ron`). egui itself
+persists window geometry, panel sizes and other memory; Pixesh adds a custom
+`pixesh_prefs` value containing:
+
+```rust
+struct Prefs {
+    show_top_panel: bool,
+    show_right_panel: bool,
+    show_status_bar: bool,
+    show_timeline: bool,
+    toolbar_edge: Edge,
+    layers_edge: Edge,
+    status_edge: Edge,
+    timeline_edge: Edge,
+    welcome_show_again: bool,
+    arrow_speed: f32,
+    zoom_speed: f32,
+    brush: f32,
+    brush_shape: BrushShape,
+    tool: Tool,
+    rgba: [u8; 4],
+    color_history: Vec<[u8; 4]>,
+}
+```
+
+Storage locations:
+
+- Linux: `~/.local/share/pixesh/app.ron`
+- Windows: `%APPDATA%\pixesh\data\app.ron`
+
+`eframe::App::auto_save_interval()` is set to 10 seconds, and eframe also saves
+on exit. On load, `Prefs::sanitize()` clamps speeds and brush size, truncates
+the colour history and repairs illegal panel edges. Missing fields fall back to
+`Default` thanks to `#[serde(default)]`; a corrupt file also yields defaults.
+
+Dialogs and transient tools are deliberately **not** restored: all dialog flags
+start closed, layer renaming is cleared, and `Tool::Effects` falls back to
+Brush. This prevents a dialog or a non-drawing tool from appearing by itself on
+the next launch.
+
+## Rendering and performance notes
+
+- **Copy-on-write pixels.** `Layer.cels` are `Arc<Vec<Color32>>`. Undo, layer
+  duplication and frame duplication clone only the `Arc`. Painting calls
+  `Arc::make_mut()`, which clones the buffer only when it is shared.
+- **Cached canvas texture.** The composited display buffer is rebuilt only when
+  the document is dirty or the checkerboard scale changes.
+- **Checkerboard baked in.** `composite_display()` writes checker and alpha
+  blending directly into the display buffer, avoiding per-cell rectangles at
+  draw time.
+- **Bresenham strokes.** `paint_line()` fills gaps between pointer samples.
+- **Pointer reset.** `last_px_*` is cleared when the pointer leaves the canvas
+  or a dialog opens, preventing spurious connecting lines when it re-enters.
+- **Effect previews.** The preview source is downscaled with nearest-neighbour
+  sampling to 64 px. Small layers are recomputed every frame; large layers only
+  when parameters change and at most every 0.4 seconds.
+- **Palettize cache.** Palette lookup is cached by pixel colour in a
+  `HashMap<[u8; 4], Color32>`, so nearest-palette search runs once per unique
+  colour rather than once per pixel.
+- **Nearest-neighbour textures.** Icons and the canvas use
+  `TextureOptions::NEAREST` to preserve crisp pixel-art edges.
+- **Embedded assets.** Icons, the mascot and the font are compiled into the
+  binary; no asset directory is needed at runtime.
+
+## Tests
+
+Run the test suite with:
+
+```bash
+cargo test
+```
+
+Unit tests cover, among other things:
+
+- aspect-ratio linking (`constants.rs`);
+- preference round-tripping, defaults, sanitising and corrupt files
+  (`config.rs`);
+- effect table ordering, parameter reachability, selection handling and
+  “all effects run” (`effects.rs`);
+- PNG loading, failure handling and export helpers (`io.rs`);
+- document/tab management, panel order, panel edges, preferences and colour
+  synchronisation (`app/mod.rs`);
+- docking edge resolution (`panel_drag.rs`);
+- clipboard, paste, select-all and delete semantics (`tools.rs`).
+
+## Known limitations
+
+- The undo stack is per document and capped at 50 snapshots.
+- Loading an image resets the document to a single animation frame.
+- PNG export is the only image export format.
+- `composite()` (without the checkerboard) is used only for the eyedropper and
+  export; the on-screen canvas always uses the display buffer.
+- The wheel zooms the canvas only while no dialog is open; otherwise it scrolls
+  the dialog's scroll area.

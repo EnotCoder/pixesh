@@ -36,9 +36,11 @@ binary, and the Windows build links only system DLLs. On Linux you need
 - **Rearrangeable layout** — drag panels between window edges, resize them,
   hide them; the arrangement and your settings come back on the next launch
 - **Files** — open with `Ctrl+L` or by dropping files onto the window (each
-  becomes its own tab), multi-document tabs, PNG export with scale and
-  background options
+  becomes its own tab), multi-document tabs, PNG export with scale, background
+  and sprite-sheet options
 - **History** — undo / redo, up to 50 steps
+- **Settings** — arrow-pan speed, zoom speed and whether the welcome window
+  appears at startup
 
 ## Controls
 
@@ -117,5 +119,9 @@ CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=x86_64-w64-mingw32-gcc \
     cargo build --release --target x86_64-pc-windows-gnu
 ```
 
-Architecture and internals are documented in
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+## Documentation
+
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — project structure, data model,
+  editing pipeline, effects, persistence and performance notes
+- [docs/UI_COMPONENTS.md](docs/UI_COMPONENTS.md) — theme, shared widgets,
+  panels, dialogs and keyboard/mouse shortcuts
