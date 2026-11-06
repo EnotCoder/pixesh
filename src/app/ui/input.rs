@@ -2,7 +2,7 @@ use eframe::egui;
 
 use crate::color::*;
 use crate::constants::Tool;
-use super::PixeshApp;
+use crate::app::PixeshApp;
 
 impl PixeshApp {
     pub(crate) fn handle_input(&mut self, ctx: &egui::Context) {

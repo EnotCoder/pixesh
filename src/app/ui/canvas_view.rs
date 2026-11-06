@@ -2,8 +2,8 @@ use std::sync::Arc;
 use eframe::egui::{self, Color32, ColorImage, Pos2, Rect, Sense, Stroke, Vec2};
 
 use crate::constants::*;
-use super::canvas::checker_cell;
-use super::PixeshApp;
+use crate::app::document::canvas::checker_cell;
+use crate::app::PixeshApp;
 
 fn click_pixel(resp: &egui::Response, canvas_rect: &Rect, zoom: f32) -> Option<(i32, i32)> {
     let pos = resp.interact_pointer_pos()?;

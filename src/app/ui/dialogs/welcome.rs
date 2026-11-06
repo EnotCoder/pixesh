@@ -19,7 +19,7 @@ impl PixeshApp {
 
                 // ── logo ──
                 let logo_tex = self.logo_tex.get_or_insert_with(|| {
-                    load_icon_texture(ui, "logo", include_bytes!("../../../img/logo.png"))
+                    load_icon_texture(ui, "logo", include_bytes!("../../../../img/logo.png"))
                 });
                 let logo_sz = Vec2::splat(56.0);
                 let lr = Rect::from_center_size(Pos2::new(rect.center().x, rect.min.y + 54.0), logo_sz);

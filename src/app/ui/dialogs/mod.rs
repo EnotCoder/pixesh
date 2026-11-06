@@ -1,5 +1,5 @@
 use eframe::egui;
-use super::PixeshApp;
+use crate::app::PixeshApp;
 
 mod resize;
 mod effects;

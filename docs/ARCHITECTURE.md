@@ -42,33 +42,44 @@ pixesh/
 │   ├── color.rs                 — RGB/HSV conversion and lerp_color()
 │   ├── ui.rs                    — shared widgets and texture loading
 │   └── app/
-│       ├── mod.rs               — Layer, Snapshot, Document, PixeshApp,
-│       │                          update loop, panel order, preferences, multi-document state
-│       ├── anim.rs              — frames, cels, playback helpers
-│       ├── canvas.rs            — compositing, brush painting, flood fill, mirror, texture cache
+│       ├── mod.rs               — thin facade: module declarations and re-exports
 │       ├── config.rs            — persisted Prefs, validation, eframe storage helpers
 │       ├── effects.rs           — 17 effects ported from Pixelorama
-│       ├── history.rs           — undo/redo snapshots
-│       ├── input.rs             — keyboard, mouse wheel, arrow pan, temporary eyedropper
-│       ├── io.rs                — layers, PNG export/import, resize, scale, flatten
-│       ├── text.rs              — 5×7 bitmap font for the Text tool
-│       ├── tools.rs             — brush/select/move/fill/clipboard operations
-│       ├── panel_canvas.rs      — central canvas and tool dispatch
-│       ├── panel_drag.rs        — panel docking between window edges
-│       ├── panel_layers.rs      — layers + colour picker panel
-│       ├── panel_status.rs      — status bar
-│       ├── panel_timeline.rs    — animation timeline
-│       ├── panel_toolbar.rs     — toolbar and document tabs
-│       └── panel_dialogs/
-│           ├── mod.rs           — dialog dispatch
-│           ├── effects.rs       — effects panel
-│           ├── export.rs        — PNG export dialog
-│           ├── panels.rs        — panel visibility dialog
-│           ├── resize.rs        — canvas resize dialog
-│           ├── scale.rs         — image scale dialog
-│           ├── settings.rs      — settings dialog
-│           ├── text.rs          — text tool dialog
-│           └── welcome.rs       — welcome/quick-start dialog
+│       ├── document/
+│       │   ├── mod.rs           — Layer, Snapshot, Document, mascot canvas
+│       │   ├── anim.rs          — frames, cels, playback helpers
+│       │   ├── canvas.rs        — compositing, brush painting, flood fill, mirror, texture cache
+│       │   ├── history.rs       — undo/redo snapshots
+│       │   ├── io.rs            — layers, PNG export/import, resize, scale, flatten
+│       │   ├── text.rs          — 5×7 bitmap font for the Text tool
+│       │   └── tools.rs         — brush/select/move/fill/clipboard operations
+│       ├── state/
+│       │   ├── mod.rs           — PixeshApp struct and constructor
+│       │   ├── actions.rs       — dialog state, hints, effect application, playback
+│       │   ├── color.rs         — colour synchronisation and history
+│       │   ├── layout.rs        — panel edges, visibility and draw order
+│       │   ├── prefs.rs         — preference load/save
+│       │   ├── tabs.rs          — open/close documents and drag-and-drop
+│       │   └── update.rs        — eframe::App update loop and quit dialog
+│       └── ui/
+│           ├── mod.rs           — UI module declarations
+│           ├── canvas_view.rs   — central canvas and tool dispatch
+│           ├── drag.rs          — panel docking between window edges
+│           ├── input.rs         — keyboard, mouse wheel, arrow pan, temporary eyedropper
+│           ├── layers.rs        — layers + colour picker panel
+│           ├── status.rs        — status bar
+│           ├── timeline.rs      — animation timeline
+│           ├── toolbar.rs       — toolbar and document tabs
+│           └── dialogs/
+│               ├── mod.rs       — dialog dispatch
+│               ├── effects.rs   — effects panel
+│               ├── export.rs    — PNG export dialog
+│               ├── panels.rs    — panel visibility dialog
+│               ├── resize.rs    — canvas resize dialog
+│               ├── scale.rs     — image scale dialog
+│               ├── settings.rs  — settings dialog
+│               ├── text.rs      — text tool dialog
+│               └── welcome.rs   — welcome/quick-start dialog
 ├── img/                         — logo and mascot images
 ├── tex/                         — tool icons and the embedded font
 └── docs/                        — architecture and UI reference
@@ -234,13 +245,13 @@ texture state so the next frame rebuilds the canvas.
 
 ### Text
 
-The Text tool opens a dialog with a bitmap-font preview. `text.rs` contains a
+The Text tool opens a dialog with a bitmap-font preview. `document/text.rs` contains a
 5×7 ASCII font (characters 32–126); text is rasterised directly into the active
 layer at the clicked canvas position, with an integer scale of 1–8.
 
 ## Animation
 
-Each `Layer` stores one cel per frame. Frame operations live in `anim.rs`:
+Each `Layer` stores one cel per frame. Frame operations live in `document/anim.rs`:
 
 - `add_frame_blank()` inserts a transparent frame after the current one;
 - `duplicate_frame()` copies the current frame;
@@ -402,11 +413,11 @@ Unit tests cover, among other things:
   (`config.rs`);
 - effect table ordering, parameter reachability, selection handling and
   “all effects run” (`effects.rs`);
-- PNG loading, failure handling and export helpers (`io.rs`);
+- PNG loading, failure handling and export helpers (`document/io.rs`);
 - document/tab management, panel order, panel edges, preferences and colour
-  synchronisation (`app/mod.rs`);
-- docking edge resolution (`panel_drag.rs`);
-- clipboard, paste, select-all and delete semantics (`tools.rs`).
+  synchronisation (`state/color.rs`);
+- docking edge resolution (`ui/drag.rs`);
+- clipboard, paste, select-all and delete semantics (`document/tools.rs`).
 
 ## Known limitations
 

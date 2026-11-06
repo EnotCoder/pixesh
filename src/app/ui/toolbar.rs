@@ -6,7 +6,7 @@ use eframe::egui::epaint::Vertex;
 use crate::constants::*;
 use crate::color::lerp_color;
 use crate::ui::*;
-use super::PixeshApp;
+use crate::app::PixeshApp;
 
 impl PixeshApp {
     pub(crate) fn ui_toolbar(&mut self, ctx: &egui::Context) {
@@ -54,7 +54,7 @@ impl PixeshApp {
 
             // logo
             let logo_tex = self.logo_tex.get_or_insert_with(|| {
-                load_icon_texture(ui, "logo", include_bytes!("../../img/logo.png"))
+                load_icon_texture(ui, "logo", include_bytes!("../../../img/logo.png"))
             });
             let logo_sz = Vec2::splat((ROW_H + 6.0) * 1.5);
             let (lr, lresp) = ui.allocate_exact_size(logo_sz, Sense::click());
@@ -106,32 +106,32 @@ impl PixeshApp {
 
             // tool icons
             let brush_tex = self.brush_tex.get_or_insert_with(|| {
-                load_icon_texture(ui, "brush_icon", include_bytes!("../../tex/tools/brush.png"))
+                load_icon_texture(ui, "brush_icon", include_bytes!("../../../tex/tools/brush.png"))
             });
             if icon_btn_tip(ui, brush_tex.id(), self.tool == Tool::Brush, "Brush (B)") { self.tool = Tool::Brush; }
 
             let eraser_tex = self.eraser_tex.get_or_insert_with(|| {
-                load_icon_texture(ui, "eraser_icon", include_bytes!("../../tex/tools/eraser.png"))
+                load_icon_texture(ui, "eraser_icon", include_bytes!("../../../tex/tools/eraser.png"))
             });
             if icon_btn_tip(ui, eraser_tex.id(), self.tool == Tool::Eraser, "Eraser (E)") { self.tool = Tool::Eraser; }
 
             let fill_tex = self.fill_tex.get_or_insert_with(|| {
-                load_icon_texture(ui, "fill_icon", include_bytes!("../../tex/tools/fill.png"))
+                load_icon_texture(ui, "fill_icon", include_bytes!("../../../tex/tools/fill.png"))
             });
             if icon_btn_tip(ui, fill_tex.id(), self.tool == Tool::Fill, "Fill (F)") { self.tool = Tool::Fill; }
 
             let drop_tex = self.drop_tex.get_or_insert_with(|| {
-                load_icon_texture(ui, "drop_icon", include_bytes!("../../tex/tools/drop.png"))
+                load_icon_texture(ui, "drop_icon", include_bytes!("../../../tex/tools/drop.png"))
             });
             if icon_btn_tip(ui, drop_tex.id(), self.tool == Tool::Eyedropper, "Eyedropper (A)") { self.tool = Tool::Eyedropper; }
 
             let select_tex = self.select_tex.get_or_insert_with(|| {
-                load_icon_texture(ui, "select_icon", include_bytes!("../../tex/tools/select.png"))
+                load_icon_texture(ui, "select_icon", include_bytes!("../../../tex/tools/select.png"))
             });
             if icon_btn_tip(ui, select_tex.id(), self.tool == Tool::Select, "Select (R)") { self.tool = Tool::Select; }
 
             let move_tex = self.move_tex.get_or_insert_with(|| {
-                load_icon_texture(ui, "move_icon", include_bytes!("../../tex/tools/move.png"))
+                load_icon_texture(ui, "move_icon", include_bytes!("../../../tex/tools/move.png"))
             });
             if icon_btn_tip(ui, move_tex.id(), self.tool == Tool::Move, "Move (M)") { self.tool = Tool::Move; }
 
@@ -213,7 +213,7 @@ impl PixeshApp {
             separator(ui);
 
             let clear_tex = self.clear_tex.get_or_insert_with(|| {
-                load_icon_texture(ui, "clear_icon", include_bytes!("../../tex/tools/clear.png"))
+                load_icon_texture(ui, "clear_icon", include_bytes!("../../../tex/tools/clear.png"))
             });
             if icon_btn_tip(ui, clear_tex.id(), false, "Clear All Layers") {
                 let doc = &mut self.docs[self.active_tab];
@@ -264,7 +264,7 @@ impl PixeshApp {
             ui.add_space(6.0);
 
             let mh_tex = self.mirror_h_tex.get_or_insert_with(|| {
-                load_icon_texture(ui, "mirror_h", include_bytes!("../../tex/transform/mirror_h.png"))
+                load_icon_texture(ui, "mirror_h", include_bytes!("../../../tex/transform/mirror_h.png"))
             });
             if icon_btn_tip(ui, mh_tex.id(), false, "Mirror Horizontal") {
                 let doc = &mut self.docs[self.active_tab];
@@ -273,7 +273,7 @@ impl PixeshApp {
             }
 
             let mv_tex = self.mirror_v_tex.get_or_insert_with(|| {
-                load_icon_texture(ui, "mirror_v", include_bytes!("../../tex/transform/mirror_v.png"))
+                load_icon_texture(ui, "mirror_v", include_bytes!("../../../tex/transform/mirror_v.png"))
             });
             if icon_btn_tip(ui, mv_tex.id(), false, "Mirror Vertical") {
                 let doc = &mut self.docs[self.active_tab];
@@ -341,7 +341,7 @@ impl PixeshApp {
                 );
 
                 let round_brush_tex = self.round_brush_tex.get_or_insert_with(|| {
-                    load_icon_texture(ui, "round_brush_icon", include_bytes!("../../tex/tools/round_brush.png"))
+                    load_icon_texture(ui, "round_brush_icon", include_bytes!("../../../tex/tools/round_brush.png"))
                 });
                 if icon_btn_tip(ui, round_brush_tex.id(), self.brush_shape == BrushShape::Round, "Round brush") {
                      self.brush_shape = BrushShape::Round; 
@@ -350,7 +350,7 @@ impl PixeshApp {
                 ui.add_space(6.0);
 
                 let square_brush_tex = self.square_brush_tex.get_or_insert_with(|| {
-                    load_icon_texture(ui, "square_brush_icon", include_bytes!("../../tex/tools/square_brush.png"))
+                    load_icon_texture(ui, "square_brush_icon", include_bytes!("../../../tex/tools/square_brush.png"))
                 });
                 if icon_btn_tip(ui, square_brush_tex.id(), self.brush_shape == BrushShape::Square, "Square brush") {
                      self.brush_shape = BrushShape::Square; 
@@ -403,7 +403,7 @@ impl PixeshApp {
                 
                 p.rect_filled(close_rect, 0.0, close_bg);
                 let tab_close_tex = self.tab_close_tex.get_or_insert_with(|| {
-                    load_icon_texture(ui, "tab_close", include_bytes!("../../tex/tools/clear.png"))
+                    load_icon_texture(ui, "tab_close", include_bytes!("../../../tex/tools/clear.png"))
                 });
                 p.image(
                     tab_close_tex.id(),
@@ -430,7 +430,7 @@ impl PixeshApp {
             ui.painter().rect_filled(plus_rect, 0.0, bg);
             ui.painter().rect_stroke(plus_rect, 0.0, Stroke::new(2.0_f32, BORDER), egui::StrokeKind::Inside);
             let tab_plus_tex = self.tab_plus_tex.get_or_insert_with(|| {
-                load_icon_texture(ui, "tab_plus", include_bytes!("../../tex/layers/plus_layer.png"))
+                load_icon_texture(ui, "tab_plus", include_bytes!("../../../tex/layers/plus_layer.png"))
             });
             ui.painter().image(
                 tab_plus_tex.id(),
@@ -440,7 +440,7 @@ impl PixeshApp {
             );
             if plus_resp.clicked() {
                 let n = self.docs.len();
-                self.docs.push(super::Document::new(&format!("Untitled {}", n)));
+                self.docs.push(crate::app::Document::new(&format!("Untitled {}", n)));
                 self.active_tab = self.docs.len() - 1;
             }
 

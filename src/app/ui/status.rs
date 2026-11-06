@@ -2,7 +2,7 @@ use eframe::egui::{self, Stroke};
 
 use crate::constants::*;
 use crate::ui::separator;
-use super::PixeshApp;
+use crate::app::PixeshApp;
 
 impl PixeshApp {
     pub(crate) fn ui_status(&mut self, ctx: &egui::Context) {

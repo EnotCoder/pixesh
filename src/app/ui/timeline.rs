@@ -2,9 +2,9 @@ use eframe::egui::{self, Color32, ColorImage, Pos2, Rect, Sense, Stroke, Vec2};
 
 use crate::constants::*;
 use crate::ui::*;
-use super::PixeshApp;
+use crate::app::PixeshApp;
 
-fn thumb_color(doc: &super::Document, f: usize) -> ColorImage {
+fn thumb_color(doc: &crate::app::Document, f: usize) -> ColorImage {
     let w = doc.width;
     let h = doc.height;
     let flat = doc.composite_at(f);

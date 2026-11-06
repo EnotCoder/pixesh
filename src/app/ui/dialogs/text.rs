@@ -2,7 +2,7 @@ use eframe::egui::{self, Vec2};
 use crate::app::PixeshApp;
 use crate::constants::*;
 use crate::ui::*;
-use crate::app::text::draw_text;
+use crate::app::document::text::draw_text;
 
 impl PixeshApp {
     pub(crate) fn ui_text_dialog(&mut self, ctx: &egui::Context) {

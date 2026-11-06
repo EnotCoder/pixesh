@@ -114,7 +114,7 @@ Panels are resizable by dragging their outer edge. egui persists their sizes;
 the edge is part of the panel id so a former width cannot be reused as a height
 after docking.
 
-## Toolbar (`src/app/panel_toolbar.rs`)
+## Toolbar (`src/app/ui/toolbar.rs`)
 
 The toolbar is a `TopBottomPanel` on its stored edge, filled with `PANEL` and
 without egui's separator line. Its body contains a grab handle, the main tool
@@ -158,7 +158,7 @@ text width is measured from the actual galley rather than estimated with
 - The trailing 28 × 28 “+” button creates `Untitled N` and activates the new tab.
 - Closing the final tab replaces it with a fresh 32 × 32 mascot document.
 
-## Layers panel (`src/app/panel_layers.rs`)
+## Layers panel (`src/app/ui/layers.rs`)
 
 A resizable side panel, default width 280 px (min 120, max 500), filled with
 `PANEL`, with a grab handle.
@@ -198,7 +198,7 @@ Four 38 × 38 icon buttons with tooltips:
 All colour controls write back to `color`, `rgb_*` and `hsv_*` together, so the
 picker and the numeric readout never disagree.
 
-## Timeline (`src/app/panel_timeline.rs`)
+## Timeline (`src/app/ui/timeline.rs`)
 
 The timeline can live on the top/bottom or left/right edge. On a horizontal
 edge it is a resizable bottom/top panel, default height 150 px (min 120, max
@@ -224,7 +224,7 @@ edge it is a resizable bottom/top panel, default height 150 px (min 120, max
 - Active border: 4 px `ACCENT`; inactive border: 2 px `BORDER`.
 - Clicking a thumbnail activates that frame.
 
-## Status bar (`src/app/panel_status.rs`)
+## Status bar (`src/app/ui/status.rs`)
 
 A horizontal `TopBottomPanel` on its stored edge with an 8 px top border.
 
@@ -245,7 +245,7 @@ Pushed to the right edge:
 - A transient status hint (for example “nothing selected” or “clipboard is
   empty”), shown for about 2.5 seconds.
 
-## Canvas (`src/app/panel_canvas.rs`)
+## Canvas (`src/app/ui/canvas_view.rs`)
 
 A `CentralPanel` filled with `BG`.
 
@@ -368,11 +368,11 @@ Export behaviour:
 
 ### Quit confirmation — 260 × 260
 
-Defined inline in `src/app/mod.rs`. Appears when the window is closed while at
+Defined inline in `src/app/state/update.rs`. Appears when the window is closed while at
 least one document is unsaved: “Unsaved changes!” / “Quit anyway?” with
 Quit and Cancel buttons.
 
-## Keyboard and mouse shortcuts (`src/app/input.rs`)
+## Keyboard and mouse shortcuts (`src/app/ui/input.rs`)
 
 | Input | Action |
 |-------|--------|
