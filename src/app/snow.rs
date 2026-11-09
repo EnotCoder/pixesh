@@ -9,6 +9,11 @@ use eframe::egui::{self, Color32, Pos2, Rect, TextureHandle, Vec2};
 use crate::ui::load_icon_texture;
 
 const FLAKE_TEXTURE: &[u8] = include_bytes!("../../tex/snow/snowflake.png");
+const TREE_TEXTURE: &[u8] = include_bytes!("../../tex/snow/new_year_tree.png");
+/// Size of the festive tree in the lower-left corner, in screen pixels.
+const TREE_SIZE: f32 = 64.0;
+/// Gap between the tree and the canvas-area edges.
+const TREE_PAD: f32 = 12.0;
 
 /// One particle. `x` and `y` are fractions of the canvas area: `y < 0` means
 /// the flake is still above the top edge.
@@ -29,6 +34,7 @@ struct Flake {
 pub(crate) struct Snowfall {
     flakes: Vec<Flake>,
     tex: Option<TextureHandle>,
+    tree_tex: Option<TextureHandle>,
     rng: u32,
 }
 
@@ -41,6 +47,7 @@ impl Default for Snowfall {
         Self {
             flakes: Vec::new(),
             tex: None,
+            tree_tex: None,
             rng: seed.max(1),
         }
     }
@@ -84,6 +91,10 @@ impl Snowfall {
             .tex
             .get_or_insert_with(|| load_icon_texture(ui, "snowflake", FLAKE_TEXTURE))
             .id();
+        let tree_tex_id = self
+            .tree_tex
+            .get_or_insert_with(|| load_icon_texture(ui, "new_year_tree", TREE_TEXTURE))
+            .id();
         let painter = ui.painter();
         let uv = Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0));
 
@@ -101,6 +112,13 @@ impl Snowfall {
                 );
             }
         }
+
+        // Festive tree in the lower-left corner while the snowfall is on.
+        let tree_rect = Rect::from_min_size(
+            Pos2::new(area.left() + TREE_PAD, area.bottom() - TREE_SIZE - TREE_PAD),
+            Vec2::splat(TREE_SIZE),
+        );
+        painter.image(tree_tex_id, tree_rect, uv, Color32::WHITE);
     }
 
     fn new_flake(&mut self, anywhere: bool) -> Flake {
