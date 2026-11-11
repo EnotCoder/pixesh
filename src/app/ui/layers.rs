@@ -10,7 +10,18 @@ impl PixeshApp {
         let edge = self.layers_edge;
         let id = PanelId::Layers.ui_id(edge);
         let def_w = 280.0;
-        let mut body = |ui: &mut egui::Ui| self.layers_body(ctx, ui);
+        let mut body = |ui: &mut egui::Ui| {
+            // Keep the drag grip fixed, but scroll everything else below it:
+            // on a short window the layers list, buttons and colour picker
+            // would otherwise be clipped with no way to reach them.
+            self.grab_handle(ui, PanelId::Layers);
+            // Both axes: short windows scroll vertically, very narrow ones
+            // horizontally as well.
+            egui::ScrollArea::both()
+                .id_salt("layers_scroll")
+                .auto_shrink([false, false])
+                .show(ui, |ui| self.layers_body(ctx, ui));
+        };
         // Layers panel is a vertical list, restricted to Left or Right edges
         let panel = if edge == Edge::Left {
             egui::SidePanel::left(id)
@@ -28,7 +39,6 @@ impl PixeshApp {
     }
 
     fn layers_body(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
-                self.grab_handle(ui, PanelId::Layers);
                 ui.add_space(8.0);
 
                 let header = "Layers";
@@ -279,9 +289,11 @@ impl PixeshApp {
                     });
                 }
 
-                // SV field + H strip
+                // SV field + H strip. Size it from the panel width only: inside
+                // the scroll area the remaining height shrinks with the content,
+                // and the picker would collapse instead of scrolling into view.
                 let avail = ui.available_size();
-                let fsize = (avail.x - 24.0).min(avail.y).min(180.0).max(40.0);
+                let fsize = (avail.x - 24.0).min(180.0).max(40.0);
                 let strip_w = 14.0;
                 ui.horizontal(|ui| {
 

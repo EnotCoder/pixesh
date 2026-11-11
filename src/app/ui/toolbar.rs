@@ -31,7 +31,19 @@ impl PixeshApp {
     fn toolbar_body(&mut self, ui: &mut egui::Ui) {
                 self.grab_handle(ui, PanelId::Toolbar);
                 ui.add_space(4.0);
-                self.toolbar_row(ui);
+                // Tool row scrolls horizontally on a narrow window instead of
+                // being clipped (the wheel also works: one enabled axis folds
+                // the vertical wheel into it).
+                {
+                    let prev_scroll = ui.style().always_scroll_the_only_direction;
+                    ui.style_mut().always_scroll_the_only_direction = true;
+                    egui::ScrollArea::horizontal()
+                        .id_salt("toolbar_row_scroll")
+                        .max_width(ui.clip_rect().width())
+                        .auto_shrink([false, true])
+                        .show(ui, |ui| self.toolbar_row(ui));
+                    ui.style_mut().always_scroll_the_only_direction = prev_scroll;
+                }
                 ui.add_space(4.0);
 
                 // ── tab bar row ──
@@ -369,8 +381,11 @@ impl PixeshApp {
             let spacing = ui.spacing().item_spacing.x;
 
             // Tabs live in a horizontal scroll area so they never run off the
-            // window; the "+" button stays pinned to the right of it.
-            let tabs_w = (ui.available_width() - plus_w - spacing).max(40.0);
+            // window; the "+" button stays pinned to the right of it. Measure
+            // against the visible panel: a narrow window makes the tool row
+            // expand the ui, which would push the pinned "+" off screen.
+            let clip = ui.clip_rect();
+            let tabs_w = (clip.right() - ui.cursor().min.x - plus_w - spacing).max(40.0);
             let active = self.active_tab;
             let active_changed = self.tab_bar_last_active != Some(active);
             self.tab_bar_last_active = Some(active);

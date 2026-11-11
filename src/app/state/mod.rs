@@ -23,6 +23,9 @@ pub struct PixeshApp {
     /// Last tab scrolled into view, so the tab bar only auto-scrolls when the
     /// active tab actually changes instead of fighting manual scrolling.
     pub(crate) tab_bar_last_active: Option<usize>,
+    /// Visible canvas area from the previous frame. Wheel zoom only applies
+    /// here, so scrolling a panel does not also zoom the canvas.
+    pub(crate) canvas_rect: egui::Rect,
 
     pub(crate) color: Color32,
     pub(crate) hsv_h: f32,
@@ -150,6 +153,7 @@ impl PixeshApp {
             docs: vec![Document::new_logo("Untitled")],
             active_tab: 0,
             tab_bar_last_active: None,
+            canvas_rect: egui::Rect::NOTHING,
             color: Color32::BLACK,
             hsv_h: 0.0, hsv_s: 0.0, hsv_v: 0.0,
             rgb_r: 0.0, rgb_g: 0.0, rgb_b: 0.0, rgb_a: 255.0,

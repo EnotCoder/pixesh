@@ -293,8 +293,13 @@ impl PixeshApp {
 
         // scroll zoom / brush size.
         // While a dialog is open, the wheel should scroll the panel inside it
-        // rather than zoom the canvas underneath.
-        if !self.dialog_open() {
+        // rather than zoom the canvas underneath. The same applies to scrollable
+        // panels (layers, timeline, ...): only zoom when the cursor is actually
+        // over the canvas.
+        let over_canvas = ctx
+            .pointer_hover_pos()
+            .is_some_and(|p| self.canvas_rect.contains(p));
+        if !self.dialog_open() && over_canvas {
             let scroll = ctx.input(|i| i.raw_scroll_delta.y);
             if scroll != 0.0 {
                 let scroll_norm = scroll.signum();

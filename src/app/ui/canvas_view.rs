@@ -62,6 +62,7 @@ impl PixeshApp {
                 let canvas_size = Vec2::new(width as f32 * zoom, height as f32 * zoom);
                 let avail = ui.available_size();
                 let (area, resp) = ui.allocate_exact_size(avail, Sense::click_and_drag());
+                self.canvas_rect = area;
 
                 let max_px = (canvas_size.x + area.width()) * 0.5;
                 let max_py = (canvas_size.y + area.height()) * 0.5;

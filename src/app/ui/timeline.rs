@@ -55,95 +55,112 @@ impl PixeshApp {
 
     fn timeline_body(&mut self, ui: &mut egui::Ui) {
             self.grab_handle(ui, PanelId::Timeline);
+            // Both strips below scroll horizontally; let the (usually vertical)
+            // wheel scroll them left/right, same as the tool and tab bars.
+            let prev_scroll = ui.style().always_scroll_the_only_direction;
+            ui.style_mut().always_scroll_the_only_direction = true;
             let i = self.active_tab;
             let doc = &mut self.docs[i];
 
-                ui.horizontal(|ui| {
-                    ui.add_space(8.0);
+                // The control strip scrolls horizontally on a narrow window.
+                // Buttons are pushed to the right while there is room; once the
+                // row overflows they simply continue it and stay reachable by
+                // scrolling instead of overlapping the left-hand controls.
+                egui::ScrollArea::horizontal()
+                    .id_salt("timeline_controls_scroll")
+                    .max_width(ui.clip_rect().width())
+                    .auto_shrink([false, true])
+                    .show(ui, |ui| {
+                        ui.horizontal(|ui| {
+                            ui.add_space(8.0);
 
-                    // header
-                    ui.painter().text(
-                        Pos2::new(ui.cursor().min.x + 10.0, ui.cursor().min.y + 10.0),
-                        egui::Align2::LEFT_TOP,
-                        "Frames",
-                        egui::FontId::proportional(FONT_SZ * 1.3),
-                        TEXT,
-                    );
-                    ui.add_space("Frames".len() as f32 * CHAR_W * 1.3 + 8.0);
+                            // header
+                            ui.painter().text(
+                                Pos2::new(ui.cursor().min.x + 10.0, ui.cursor().min.y + 10.0),
+                                egui::Align2::LEFT_TOP,
+                                "Frames",
+                                egui::FontId::proportional(FONT_SZ * 1.3),
+                                TEXT,
+                            );
+                            ui.add_space("Frames".len() as f32 * CHAR_W * 1.3 + 8.0);
 
-                    separator(ui);
-                    ui.add_space(8.0);
+                            separator(ui);
+                            ui.add_space(8.0);
 
-                    // play / pause
-                    ui.style_mut().text_styles.insert(
-                        egui::TextStyle::Button,
-                        egui::FontId::proportional(FONT_SZ * 1.3),
-                    );
-                    let play_label = if doc.playing { "Pause" } else { "Play" };
-                    if toggle_btn(ui, play_label, doc.playing) {
-                        doc.playing = !doc.playing;
-                        doc.canvas_dirty = true;
-                    }
-
-                    if toggle_btn(ui, "Stop", false) {
-                        doc.playing = false;
-                        doc.set_active_frame(0);
-                    }
-
-                    ui.add_space(10.0);
-
-                    // fps
-                    ui.style_mut().text_styles.insert(
-                        egui::TextStyle::Button,
-                        egui::FontId::proportional(FONT_SZ * 1.3),
-                    );
-                    ui.label(egui::RichText::new("FPS").size(FONT_SZ).color(TEXT));
-                    ui.add_sized(
-                        Vec2::new(56.0, 30.0),
-                        egui::DragValue::new(&mut doc.fps)
-                            .range(1.0..=60.0)
-                            .speed(1.0)
-                            .suffix(""),
-                    );
-
-                    ui.add_space(10.0);
-                    separator(ui);
-                    ui.add_space(8.0);
-
-                    // frame counter
-                    ui.label(
-                        egui::RichText::new(format!("{}/{}", doc.active_frame + 1, doc.frames))
-                            .size(FONT_SZ)
-                            .color(DIM),
-                    );
-
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        ui.add_space(8.0);
-                        if btn_min_w(ui, "Del", 48.0) {
-                            doc.delete_frame();
-                        }
-                        ui.add_space(4.0);
-                        if btn_min_w(ui, "Dup", 48.0) {
-                            doc.duplicate_frame();
-                        }
-                        ui.add_space(4.0);
-                        if btn_min_w(ui, "Add", 48.0) {
-                            doc.add_frame_blank();
-                        }
-                        ui.add_space(4.0);
-                        if btn_min_w(ui, ">", 32.0) {
-                            if doc.active_frame + 1 < doc.frames {
-                                doc.move_frame(doc.active_frame, doc.active_frame + 1);
+                            // play / pause
+                            ui.style_mut().text_styles.insert(
+                                egui::TextStyle::Button,
+                                egui::FontId::proportional(FONT_SZ * 1.3),
+                            );
+                            let play_label = if doc.playing { "Pause" } else { "Play" };
+                            if toggle_btn(ui, play_label, doc.playing) {
+                                doc.playing = !doc.playing;
+                                doc.canvas_dirty = true;
                             }
-                        }
-                        ui.add_space(4.0);
-                        if btn_min_w(ui, "<", 32.0) {
-                            if doc.active_frame > 0 {
-                                doc.move_frame(doc.active_frame, doc.active_frame - 1);
+
+                            if toggle_btn(ui, "Stop", false) {
+                                doc.playing = false;
+                                doc.set_active_frame(0);
                             }
-                        }
+
+                            ui.add_space(10.0);
+
+                            // fps
+                            ui.style_mut().text_styles.insert(
+                                egui::TextStyle::Button,
+                                egui::FontId::proportional(FONT_SZ * 1.3),
+                            );
+                            ui.label(egui::RichText::new("FPS").size(FONT_SZ).color(TEXT));
+                            ui.add_sized(
+                                Vec2::new(56.0, 30.0),
+                                egui::DragValue::new(&mut doc.fps)
+                                    .range(1.0..=60.0)
+                                    .speed(1.0)
+                                    .suffix(""),
+                            );
+
+                            ui.add_space(10.0);
+                            separator(ui);
+                            ui.add_space(8.0);
+
+                            // frame counter
+                            ui.label(
+                                egui::RichText::new(format!("{}/{}", doc.active_frame + 1, doc.frames))
+                                    .size(FONT_SZ)
+                                    .color(DIM),
+                            );
+
+                            // gap that right-aligns the buttons when the row
+                            // fits; when it doesn't, it collapses and the row
+                            // becomes scrollable.
+                            let buttons_w = 240.0;
+                            ui.add_space((ui.available_width() - buttons_w).max(12.0));
+
+                            if btn_min_w(ui, "<", 32.0) {
+                                if doc.active_frame > 0 {
+                                    doc.move_frame(doc.active_frame, doc.active_frame - 1);
+                                }
+                            }
+                            ui.add_space(4.0);
+                            if btn_min_w(ui, ">", 32.0) {
+                                if doc.active_frame + 1 < doc.frames {
+                                    doc.move_frame(doc.active_frame, doc.active_frame + 1);
+                                }
+                            }
+                            ui.add_space(4.0);
+                            if btn_min_w(ui, "Add", 48.0) {
+                                doc.add_frame_blank();
+                            }
+                            ui.add_space(4.0);
+                            if btn_min_w(ui, "Dup", 48.0) {
+                                doc.duplicate_frame();
+                            }
+                            ui.add_space(4.0);
+                            if btn_min_w(ui, "Del", 48.0) {
+                                doc.delete_frame();
+                            }
+                        });
                     });
-                });
 
                 ui.add_space(6.0);
 
@@ -201,5 +218,6 @@ impl PixeshApp {
                 let panel_right = ui.max_rect().right();
                 let panel_top = ui.max_rect().top();
                 ui.painter().hline(panel_left..=panel_right, panel_top, Stroke::new(8.0_f32, BORDER));
+                ui.style_mut().always_scroll_the_only_direction = prev_scroll;
     }
 }
