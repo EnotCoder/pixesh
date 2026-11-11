@@ -365,64 +365,86 @@ impl PixeshApp {
         ui.horizontal(|ui| {
             ui.add_space(6.0);
             let tab_h = 28.0;
+            let plus_w = 28.0;
+            let spacing = ui.spacing().item_spacing.x;
 
-            for ti in 0..self.docs.len() {
-                let is_active = ti == self.active_tab;
-                let unsaved = self.docs[ti].unsaved;
-                let name = &self.docs[ti].name;
-                let label = if unsaved { format!("*{}", name) } else { name.clone() };
-                let label_w = label.len() as f32 * CHAR_W * (18.0 / FONT_SZ) + 24.0;
-                let close_w = tab_h;
-                let tab_w = label_w + close_w;
+            // Tabs live in a horizontal scroll area so they never run off the
+            // window; the "+" button stays pinned to the right of it.
+            let tabs_w = (ui.available_width() - plus_w - spacing).max(40.0);
+            let active = self.active_tab;
+            let active_changed = self.tab_bar_last_active != Some(active);
+            self.tab_bar_last_active = Some(active);
 
-                let (tab_rect, tab_resp) = ui.allocate_exact_size(Vec2::new(tab_w, tab_h), Sense::click());
-                let t_active = ui.ctx().animate_bool(tab_resp.id.with("tab_anim"), is_active);
+            egui::ScrollArea::horizontal()
+                .id_salt("tab_bar_scroll")
+                .max_width(tabs_w)
+                .auto_shrink([false, true])
+                .show(ui, |ui| {
+                    ui.horizontal(|ui| {
+                        for ti in 0..self.docs.len() {
+                            let is_active = ti == self.active_tab;
+                            let unsaved = self.docs[ti].unsaved;
+                            let name = &self.docs[ti].name;
+                            let label = if unsaved { format!("*{}", name) } else { name.clone() };
+                            let label_w = label.len() as f32 * CHAR_W * (18.0 / FONT_SZ) + 24.0;
+                            let close_w = tab_h;
+                            let tab_w = label_w + close_w;
 
-                let bg = lerp_color(PANEL, HOVER, t_active);
-                let p = ui.painter();
-                p.rect_filled(tab_rect, 0.0, bg);
-                p.rect_stroke(tab_rect, 0.0, Stroke::new(2.0_f32, BORDER), egui::StrokeKind::Inside);
+                            let (tab_rect, tab_resp) = ui.allocate_exact_size(Vec2::new(tab_w, tab_h), Sense::click());
+                            let t_active = ui.ctx().animate_bool(tab_resp.id.with("tab_anim"), is_active);
 
-                // tab label
-                p.text(
-                    Pos2::new(tab_rect.min.x + 8.0, tab_rect.center().y),
-                    egui::Align2::LEFT_CENTER,
-                    &label,
-                    egui::FontId::proportional(18.0),
-                    TEXT,
-                );
+                            let bg = lerp_color(PANEL, HOVER, t_active);
+                            let p = ui.painter();
+                            p.rect_filled(tab_rect, 0.0, bg);
+                            p.rect_stroke(tab_rect, 0.0, Stroke::new(2.0_f32, BORDER), egui::StrokeKind::Inside);
 
-                // close button
-                let close_rect = Rect::from_min_size(
-                    Pos2::new(tab_rect.max.x - close_w, tab_rect.min.y),
-                    Vec2::new(close_w, tab_h),
-                );
-                let close_resp = ui.interact(close_rect, egui::Id::new(("tab_close", ti)), Sense::click());
-                let t_close = ui.ctx().animate_bool(close_resp.id.with("close_anim"), close_resp.hovered());
-                let close_bg = lerp_color(PANEL, ACCENT, t_close);
-                
-                p.rect_filled(close_rect, 0.0, close_bg);
-                let tab_close_tex = self.tab_close_tex.get_or_insert_with(|| {
-                    load_icon_texture(ui, "tab_close", include_bytes!("../../../tex/tools/clear.png"))
+                            // tab label
+                            p.text(
+                                Pos2::new(tab_rect.min.x + 8.0, tab_rect.center().y),
+                                egui::Align2::LEFT_CENTER,
+                                &label,
+                                egui::FontId::proportional(18.0),
+                                TEXT,
+                            );
+
+                            // close button
+                            let close_rect = Rect::from_min_size(
+                                Pos2::new(tab_rect.max.x - close_w, tab_rect.min.y),
+                                Vec2::new(close_w, tab_h),
+                            );
+                            let close_resp = ui.interact(close_rect, egui::Id::new(("tab_close", ti)), Sense::click());
+                            let t_close = ui.ctx().animate_bool(close_resp.id.with("close_anim"), close_resp.hovered());
+                            let close_bg = lerp_color(PANEL, ACCENT, t_close);
+
+                            p.rect_filled(close_rect, 0.0, close_bg);
+                            let tab_close_tex = self.tab_close_tex.get_or_insert_with(|| {
+                                load_icon_texture(ui, "tab_close", include_bytes!("../../../tex/tools/clear.png"))
+                            });
+                            p.image(
+                                tab_close_tex.id(),
+                                close_rect,
+                                Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)),
+                                Color32::WHITE,
+                            );
+
+                            // Keep the newly selected tab visible when it changes,
+                            // but leave the scroll position alone if it already is.
+                            if is_active && active_changed && !ui.clip_rect().contains_rect(tab_rect) {
+                                tab_resp.scroll_to_me(Some(egui::Align::Center));
+                            }
+
+                            if close_resp.clicked() {
+                                self.close_tab(ti);
+                                break;
+                            }
+                            if tab_resp.clicked() && !close_resp.clicked() {
+                                self.active_tab = ti;
+                            }
+                        }
+                    });
                 });
-                p.image(
-                    tab_close_tex.id(),
-                    close_rect,
-                    Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)),
-                    Color32::WHITE,
-                );
-
-                if close_resp.clicked() {
-                    self.close_tab(ti);
-                    break;
-                }
-                if tab_resp.clicked() && !close_resp.clicked() {
-                    self.active_tab = ti;
-                }
-            }
 
             // "+" button to create new tab
-            let plus_w = 28.0;
             let (plus_rect, plus_resp) = ui.allocate_exact_size(Vec2::new(plus_w, tab_h), Sense::click());
             let t_plus = ui.ctx().animate_bool(plus_resp.id.with("plus_anim"), plus_resp.hovered());
             let bg = lerp_color(PANEL, HOVER, t_plus);
