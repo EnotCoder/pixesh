@@ -2,6 +2,8 @@ use eframe::egui::{self, Pos2, Rect, Stroke, Vec2};
 use crate::app::PixeshApp;
 use crate::constants::*;
 
+use super::fit::fitted_dialog;
+
 /// One settings row: label on the left, square checkbox on the right.
 /// Returns true when the row was clicked.
 fn toggle_row(ui: &mut egui::Ui, id: &str, label: &str, value: bool) -> bool {
@@ -39,10 +41,7 @@ impl PixeshApp {
             .order(egui::Order::Foreground)
             .show(ctx, |ui| {
                 let size = Vec2::new(300.0, 440.0);
-                let (rect, _) = ui.allocate_exact_size(size, egui::Sense::hover());
-                let p = ui.painter();
-                p.rect_filled(rect, 0.0, PANEL);
-                p.rect_stroke(rect, 0.0, Stroke::new(4.0_f32, BORDER), egui::StrokeKind::Outside);
+                fitted_dialog(ui, "settings_scroll", size, |ui, rect| {
                 let inner = rect.shrink2(Vec2::splat(6.0));
                 let mut child_ui = ui.new_child(
                     egui::UiBuilder::new()
@@ -137,6 +136,7 @@ impl PixeshApp {
                 if btn_resp.clicked() {
                     self.show_settings = false;
                 }
+                });
             });
     }
 }

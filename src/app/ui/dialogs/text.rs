@@ -4,6 +4,8 @@ use crate::constants::*;
 use crate::ui::*;
 use crate::app::document::text::draw_text;
 
+use super::fit::fitted_dialog;
+
 impl PixeshApp {
     pub(crate) fn ui_text_dialog(&mut self, ctx: &egui::Context) {
         if !self.show_text { return; }
@@ -14,12 +16,7 @@ impl PixeshApp {
             .order(egui::Order::Foreground)
             .show(ctx, |ui| {
                 let size = Vec2::new(340.0, 240.0);
-                let (rect, _) = ui.allocate_exact_size(size, egui::Sense::hover());
-
-                let p = ui.painter();
-                p.rect_filled(rect, 0.0, PANEL);
-                p.rect_stroke(rect, 0.0, egui::Stroke::new(4.0_f32, BORDER), egui::StrokeKind::Outside);
-
+                fitted_dialog(ui, "text_scroll", size, |ui, rect| {
                 let mut child_ui = ui.new_child(
                     egui::UiBuilder::new()
                         .layout(egui::Layout::top_down(egui::Align::Center))
@@ -99,6 +96,7 @@ impl PixeshApp {
                         self.text_buffer.clear();
                         self.text_cursor = None;
                     }
+                });
                 });
             });
     }

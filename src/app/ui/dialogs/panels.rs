@@ -2,6 +2,8 @@ use eframe::egui::{self, Pos2, Rect, Stroke, Vec2};
 use crate::app::PixeshApp;
 use crate::constants::*;
 
+use super::fit::fitted_dialog;
+
 impl PixeshApp {
     pub(crate) fn ui_panels_dialog(&mut self, ctx: &egui::Context) {
         if !self.show_panels { return; }
@@ -10,10 +12,7 @@ impl PixeshApp {
             .order(egui::Order::Foreground)
             .show(ctx, |ui| {
                 let size = Vec2::new(250.0, 320.0);
-                let (rect, _) = ui.allocate_exact_size(size, egui::Sense::hover());
-                let p = ui.painter();
-                p.rect_filled(rect, 0.0, PANEL);
-                p.rect_stroke(rect, 0.0, Stroke::new(4.0_f32, BORDER), egui::StrokeKind::Outside);
+                fitted_dialog(ui, "panels_scroll", size, |ui, rect| {
                 let inner = rect.shrink2(Vec2::splat(6.0));
                 let mut child_ui = ui.new_child(
                     egui::UiBuilder::new()
@@ -168,6 +167,7 @@ impl PixeshApp {
                 if btn_resp.clicked() {
                     self.show_panels = false;
                 }
+                });
             });
     }
 }

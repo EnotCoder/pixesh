@@ -8,6 +8,8 @@ use crate::color::lerp_color;
 use crate::constants::*;
 use crate::ui::check_row;
 
+use super::fit::fitted_dialog;
+
 /// Maximum preview image dimension in canvas pixels.
 const PREVIEW_MAX: usize = 64;
 
@@ -31,11 +33,7 @@ impl PixeshApp {
             .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
             .order(egui::Order::Foreground)
             .show(ctx, |ui| {
-                let (rect, _) = ui.allocate_exact_size(size, Sense::hover());
-                let p = ui.painter();
-                p.rect_filled(rect, 0.0, PANEL);
-                p.rect_stroke(rect, 0.0, Stroke::new(4.0_f32, BORDER), egui::StrokeKind::Outside);
-
+                fitted_dialog(ui, "effects_scroll", size, |ui, rect| {
                 let pad = 10.0;
                 let body = rect.shrink2(Vec2::splat(pad));
                 let mut ui2 = ui.new_child(
@@ -216,6 +214,7 @@ impl PixeshApp {
                         self.show_effects = false;
                         self.tool = Tool::Brush;
                     }
+                });
                 });
             });
 

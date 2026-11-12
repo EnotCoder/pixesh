@@ -3,6 +3,8 @@ use crate::app::PixeshApp;
 use crate::constants::*;
 use crate::ui::*;
 
+use super::fit::fitted_dialog;
+
 impl PixeshApp {
     pub(crate) fn ui_export_dialog(&mut self, ctx: &egui::Context) {
         if !self.show_export { return; }
@@ -12,7 +14,7 @@ impl PixeshApp {
             .order(egui::Order::Foreground)
             .show(ctx, |ui| {
                 let size = Vec2::new(380.0, 484.0);
-                let (rect, _) = ui.allocate_exact_size(size, egui::Sense::hover());
+                fitted_dialog(ui, "export_scroll", size, |ui, rect| {
                 let pad = 10.0;
                 let btn_h = 44.0;
 
@@ -39,8 +41,6 @@ impl PixeshApp {
 
                 {
                     let p = ui.painter();
-                    p.rect_filled(rect, 0.0, PANEL);
-                    p.rect_stroke(rect, 0.0, Stroke::new(4.0_f32, BORDER), egui::StrokeKind::Outside);
 
                     let title = "Export PNG";
                     let title_galley = ui.fonts(|f| f.layout_no_wrap(title.into(), title_font.clone(), TEXT));
@@ -282,6 +282,7 @@ impl PixeshApp {
                     self.docs[i].unsaved = false;
                     self.show_export = false;
                 }
+                });
             });
     }
 }

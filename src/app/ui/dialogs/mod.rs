@@ -1,6 +1,7 @@
 use eframe::egui;
 use crate::app::PixeshApp;
 
+mod fit;
 mod resize;
 mod effects;
 mod export;

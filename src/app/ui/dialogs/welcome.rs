@@ -4,6 +4,8 @@ use crate::app::{Document, PixeshApp};
 use crate::constants::*;
 use crate::ui::load_icon_texture;
 
+use super::fit::fitted_dialog;
+
 impl PixeshApp {
     pub(crate) fn ui_welcome_dialog(&mut self, ctx: &egui::Context) {
         if !self.show_welcome { return; }
@@ -12,10 +14,8 @@ impl PixeshApp {
             .order(egui::Order::Foreground)
             .show(ctx, |ui| {
                 let size = Vec2::new(400.0, 380.0);
-                let (rect, _) = ui.allocate_exact_size(size, egui::Sense::hover());
+                fitted_dialog(ui, "welcome_scroll", size, |ui, rect| {
                 let p = ui.painter();
-                p.rect_filled(rect, 0.0, PANEL);
-                p.rect_stroke(rect, 0.0, Stroke::new(4.0_f32, BORDER), egui::StrokeKind::Outside);
 
                 // ── logo ──
                 let logo_tex = self.logo_tex.get_or_insert_with(|| {
@@ -149,6 +149,7 @@ impl PixeshApp {
                     }
                     self.show_welcome = false;
                 }
+                });
             });
     }
 

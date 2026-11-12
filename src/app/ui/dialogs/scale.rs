@@ -1,7 +1,9 @@
-use eframe::egui::{self, Stroke, Vec2};
+use eframe::egui::{self, Vec2};
 use crate::app::PixeshApp;
 use crate::constants::*;
 use crate::ui::*;
+
+use super::fit::fitted_dialog;
 
 impl PixeshApp {
     pub(crate) fn ui_scale_dialog(&mut self, ctx: &egui::Context) {
@@ -13,12 +15,7 @@ impl PixeshApp {
             .order(egui::Order::Foreground)
             .show(ctx, |ui| {
                 let size = Vec2::splat(250.0);
-                let (rect, _) = ui.allocate_exact_size(size, egui::Sense::hover());
-
-                let p = ui.painter();
-                p.rect_filled(rect, 0.0, PANEL);
-                p.rect_stroke(rect, 0.0, Stroke::new(4.0_f32, BORDER), egui::StrokeKind::Outside);
-
+                fitted_dialog(ui, "scale_scroll", size, |ui, rect| {
                 let mut child_ui = ui.new_child(
                     egui::UiBuilder::new()
                         .layout(egui::Layout::top_down(egui::Align::Center))
@@ -121,6 +118,7 @@ impl PixeshApp {
                     if btn_min_w(ui, "Cancel", half_w) {
                         self.show_scale = false;
                     }
+                });
                 });
             });
     }
