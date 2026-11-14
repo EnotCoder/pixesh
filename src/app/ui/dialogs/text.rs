@@ -59,44 +59,60 @@ impl PixeshApp {
                     self.text_scale = scale_val.max(1).min(8);
                 });
 
-                child_ui.add_space(child_ui.available_height() - 44.0);
+                // Footer is anchored to the bottom of the dialog. The preview sits
+                // just above it, so typing text cannot shift the buttons down.
+                let footer_h = 44.0;
+                let footer = egui::Rect::from_min_size(
+                    egui::pos2(rect.min.x, rect.max.y - footer_h),
+                    Vec2::new(rect.width(), footer_h),
+                );
 
                 // preview
                 if !self.text_buffer.is_empty() {
                     if let Some((cx, cy)) = self.text_cursor {
                         let preview = format!("@({},{})", cx, cy);
-                        child_ui.horizontal(|ui| {
-                            ui.add_space(12.0);
-                            ui.label(egui::RichText::new(preview).color(egui::Color32::GRAY));
-                        });
+                        let row_h = child_ui.text_style_height(&egui::TextStyle::Body);
+                        let preview_rect = egui::Rect::from_min_size(
+                            egui::pos2(rect.min.x + 12.0, footer.min.y - row_h),
+                            Vec2::new(rect.width() - 24.0, row_h),
+                        );
+                        let mut preview_ui = child_ui.new_child(
+                            egui::UiBuilder::new()
+                                .layout(egui::Layout::left_to_right(egui::Align::Center))
+                                .max_rect(preview_rect),
+                        );
+                        preview_ui.label(egui::RichText::new(preview).color(egui::Color32::GRAY));
                     }
                 }
 
                 let spacing = child_ui.style().spacing.item_spacing.x;
-                let half_w = (child_ui.available_width() - spacing) / 2.0;
-                child_ui.horizontal(|ui| {
-                    if btn_min_w(ui, "Draw", half_w) {
-                        if !self.text_buffer.is_empty() {
-                            if let Some((cx, cy)) = self.text_cursor {
-                                draw_text(
-                                    &mut self.docs[i],
-                                    cx, cy,
-                                    &self.text_buffer,
-                                    self.color,
-                                    self.text_scale,
-                                );
-                            }
+                let half_w = (footer.width() - spacing) / 2.0;
+                let mut footer_ui = child_ui.new_child(
+                    egui::UiBuilder::new()
+                        .layout(egui::Layout::left_to_right(egui::Align::Center))
+                        .max_rect(footer),
+                );
+                if btn_min_w(&mut footer_ui, "Draw", half_w) {
+                    if !self.text_buffer.is_empty() {
+                        if let Some((cx, cy)) = self.text_cursor {
+                            draw_text(
+                                &mut self.docs[i],
+                                cx, cy,
+                                &self.text_buffer,
+                                self.color,
+                                self.text_scale,
+                            );
                         }
-                        self.show_text = false;
-                        self.text_buffer.clear();
-                        self.text_cursor = None;
                     }
-                    if btn_min_w(ui, "Cancel", half_w) {
-                        self.show_text = false;
-                        self.text_buffer.clear();
-                        self.text_cursor = None;
-                    }
-                });
+                    self.show_text = false;
+                    self.text_buffer.clear();
+                    self.text_cursor = None;
+                }
+                if btn_min_w(&mut footer_ui, "Cancel", half_w) {
+                    self.show_text = false;
+                    self.text_buffer.clear();
+                    self.text_cursor = None;
+                }
                 });
             });
     }
