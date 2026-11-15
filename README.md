@@ -4,6 +4,11 @@
 
 A minimal pixel art editor built with Rust and egui.
 
+<p align="center">
+  <img src="img/1.png" alt="Gameplay" width="49%">
+  <img src="img/2.png" alt="Gameplay" width="49%">
+</p>
+
 ## Install
 
 Version 0.1.0 — grab an archive from the
