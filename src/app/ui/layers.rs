@@ -60,19 +60,30 @@ impl PixeshApp {
                 let i = self.active_tab;
                 let n = self.docs[i].layers.len();
                 let active_layer = self.docs[i].active_layer;
+                let mut visual_rows: Vec<(usize, Rect)> = Vec::with_capacity(n);
+                let mut dropped_from: Option<usize> = None;
                 for li in (0..n).rev() {
                     let is_active = active_layer == li;
                     let cb = self.docs[i].layers[li].visible;
                     let renaming = self.renaming_layer == Some(li);
+                    let dragging_this = self.dragging_layer == Some(li);
 
                     let row_h = ROW_H * 1.5 + 16.0;
-                    let (rect, resp) =
-                        ui.allocate_exact_size(Vec2::new(ui.available_size().x, row_h), Sense::click());
+                    let (rect, resp) = ui.allocate_exact_size(
+                        Vec2::new(ui.available_size().x, row_h),
+                        Sense::click_and_drag(),
+                    );
+                    visual_rows.push((li, rect));
 
                     let t_active = ui.ctx().animate_bool(resp.id.with("lay_act"), is_active);
                     let t_hover = ui.ctx().animate_bool(resp.id.with("lay_hov"), resp.hovered());
                     let bg = lerp_color(PANEL, HOVER, t_hover.max(t_active));
-                    
+                    let bg = if dragging_this {
+                        lerp_color(bg, ACCENT, 0.25)
+                    } else {
+                        bg
+                    };
+
                     ui.painter().rect_filled(rect, 0.0, bg);
 
                     let cbs = 14.0;
@@ -80,13 +91,18 @@ impl PixeshApp {
                         Pos2::new(rect.min.x + PANEL_PAD, rect.center().y - cbs * 0.5),
                         Vec2::splat(cbs),
                     );
-                    
+
                     let t_visible = ui.ctx().animate_bool(egui::Id::new(("vis_anim", li)), cb);
-                    
+
                     let p = ui.painter();
                     p.rect_filled(cb_rect, 0.0, PANEL_LIGHT);
-                    p.rect_stroke(cb_rect, 0.0, Stroke::new(4.0_f32, BORDER), egui::StrokeKind::Outside);
-                    
+                    p.rect_stroke(
+                        cb_rect,
+                        0.0,
+                        Stroke::new(4.0_f32, BORDER),
+                        egui::StrokeKind::Outside,
+                    );
+
                     if t_visible > 0.0 {
                         let inner = cb_rect.shrink(3.0 * (1.0 - t_visible));
                         p.rect_filled(inner, 0.0, lerp_color(PANEL_LIGHT, ACCENT, t_visible));
@@ -106,24 +122,33 @@ impl PixeshApp {
                             Pos2::new(text_x, rect.min.y + 4.0),
                             Vec2::new(text_w, row_h - 8.0),
                         );
-                        let te_resp = ui.put(te_rect, egui::TextEdit::singleline(&mut self.rename_buf)
-                            .return_key(None)
-                            .desired_width(text_w)
-                            .font(egui::TextStyle::Body));
+                        let te_resp = ui.put(
+                            te_rect,
+                            egui::TextEdit::singleline(&mut self.rename_buf)
+                                .return_key(None)
+                                .desired_width(text_w)
+                                .font(egui::TextStyle::Body),
+                        );
 
-                        let enter = ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Enter));
-                        let escape = ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Escape));
+                        let enter = ctx.input_mut(|i| {
+                            i.consume_key(egui::Modifiers::NONE, egui::Key::Enter)
+                        });
+                        let escape = ctx.input_mut(|i| {
+                            i.consume_key(egui::Modifiers::NONE, egui::Key::Escape)
+                        });
 
                         if escape {
                             self.renaming_layer = None;
                         } else if enter {
                             if !self.rename_buf.is_empty() {
-                                self.docs[i].layers[li].name = std::mem::take(&mut self.rename_buf);
+                                self.docs[i].layers[li].name =
+                                    std::mem::take(&mut self.rename_buf);
                             }
                             self.renaming_layer = None;
                         } else if te_resp.lost_focus() {
                             if !self.rename_buf.is_empty() {
-                                self.docs[i].layers[li].name = std::mem::take(&mut self.rename_buf);
+                                self.docs[i].layers[li].name =
+                                    std::mem::take(&mut self.rename_buf);
                             }
                             self.renaming_layer = None;
                         }
@@ -145,6 +170,63 @@ impl PixeshApp {
                     if resp.clicked() && !cb_resp.clicked() {
                         self.docs[i].active_layer = li;
                     }
+
+                    if (resp.drag_started() || resp.dragged())
+                        && !cb_resp.hovered()
+                        && self.renaming_layer != Some(li)
+                    {
+                        self.dragging_layer = Some(li);
+                    }
+                    if resp.drag_stopped() {
+                        if let Some(from) = self.dragging_layer {
+                            dropped_from = Some(from);
+                        }
+                    }
+                }
+
+                if self.dragging_layer.is_some() {
+                    if let Some(pos) = ui.ctx().pointer_interact_pos() {
+                        let mut slot = visual_rows.len();
+                        for (vi, &(_, r)) in visual_rows.iter().enumerate() {
+                            if pos.y < r.center().y {
+                                slot = vi;
+                                break;
+                            }
+                        }
+                        self.layer_drop_slot = Some(slot);
+                        let y = if slot < visual_rows.len() {
+                            visual_rows[slot].1.min.y
+                        } else if let Some((_, r)) = visual_rows.last() {
+                            r.max.y
+                        } else {
+                            0.0
+                        };
+                        if !visual_rows.is_empty() {
+                            let x0 = visual_rows[0].1.min.x + PANEL_PAD;
+                            let x1 = visual_rows[0].1.max.x - PANEL_PAD;
+                            ui.painter().hline(x0..=x1, y, Stroke::new(3.0, ACCENT));
+                        }
+                    }
+                    if dropped_from.is_none() && !ui.ctx().input(|inp| inp.pointer.any_down()) {
+                        // Safety: clear drag if pointer was released outside.
+                        self.dragging_layer = None;
+                        self.layer_drop_slot = None;
+                    }
+                } else {
+                    self.layer_drop_slot = None;
+                }
+
+                if let Some(from) = dropped_from {
+                    if let Some(slot) = self.layer_drop_slot.take() {
+                        let map = self.docs[i].reorder_layer(from, slot);
+                        if let Some(ren) = self.renaming_layer {
+                            if ren < map.len() {
+                                self.renaming_layer = Some(map[ren]);
+                            }
+                        }
+                    }
+                    self.dragging_layer = None;
+                    self.layer_drop_slot = None;
                 }
 
                 // layer action buttons

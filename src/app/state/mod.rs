@@ -111,6 +111,8 @@ pub struct PixeshApp {
     pub(crate) color_history: Vec<Color32>,
     pub(crate) renaming_layer: Option<usize>,
     pub(crate) rename_buf: String,
+    pub(crate) dragging_layer: Option<usize>,
+    pub(crate) layer_drop_slot: Option<usize>,
 
     pub(crate) show_text: bool,
     pub(crate) text_cursor: Option<(i32, i32)>,
@@ -196,6 +198,7 @@ impl PixeshApp {
             zoom_speed: prefs.zoom_speed,
             color_history: Vec::new(),
             renaming_layer: None, rename_buf: String::new(),
+            dragging_layer: None, layer_drop_slot: None,
             status_hint: String::new(),
             status_hint_until: 0.0,
             last_time: 0.0,

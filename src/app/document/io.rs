@@ -227,6 +227,43 @@ impl Document {
         self.canvas_dirty = true;
     }
 
+    pub(crate) fn reorder_layer(&mut self, from: usize, to_visual_slot: usize) -> Vec<usize> {
+        let n = self.layers.len();
+        if from >= n || n <= 1 {
+            return (0..n).collect();
+        }
+
+        let mut visual: Vec<usize> = (0..n).rev().collect();
+        let from_pos = visual.iter().position(|&x| x == from).unwrap();
+        let mut slot = to_visual_slot.min(n);
+        if slot > from_pos {
+            slot -= 1;
+        }
+        if slot == from_pos {
+            return (0..n).collect();
+        }
+
+        self.push_undo();
+        visual.remove(from_pos);
+        visual.insert(slot, from);
+
+        let new_stack: Vec<usize> = visual.iter().copied().rev().collect();
+        let mut slots: Vec<Option<Layer>> =
+            std::mem::take(&mut self.layers).into_iter().map(Some).collect();
+        self.layers = new_stack
+            .iter()
+            .map(|&old| slots[old].take().unwrap())
+            .collect();
+
+        let mut map = vec![0usize; n];
+        for (new_i, &old_i) in new_stack.iter().enumerate() {
+            map[old_i] = new_i;
+        }
+        self.active_layer = map[self.active_layer];
+        self.canvas_dirty = true;
+        map
+    }
+
     pub(crate) fn scale_image(&mut self, new_w: usize, new_h: usize) {
         if new_w == 0 || new_h == 0 { return; }
         self.push_undo();
