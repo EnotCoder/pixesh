@@ -11,18 +11,27 @@ A minimal pixel art editor built with Rust and egui.
 
 ## Install
 
-Version 0.1.0 — grab an archive from the
+Version 0.1.0 — grab an installer from the
 [releases page](https://github.com/EnotCoder/pixesh/releases/latest):
 
-| Platform | File |
-|----------|------|
-| Linux x86-64 | `pixesh-0.1.0-linux-x86_64.zip` |
-| Windows x86-64 | `pixesh-0.1.0-windows-x86_64.zip` |
+| Platform | File | What it does |
+|----------|------|--------------|
+| Debian / Ubuntu x86-64 | `pixesh_0.1.0_amd64.deb` | `sudo apt install ./pixesh_0.1.0_amd64.deb`, installs `/usr/bin/pixesh`, a desktop entry and the icon |
+| Other Linux x86-64 | `pixesh-0.1.0-linux-x86_64.tar.gz` | Unpack and run `./install.sh` (installs into `~/.local`, no root needed) |
+| Windows x86-64 | `pixesh-0.1.0-setup.exe` | Regular installer: Start Menu shortcut, PNG association, optional PATH entry and uninstaller |
 
-Unpack and run `pixesh` / `pixesh.exe`. Icons and the font are embedded in the
-binary, and the Windows build links only system DLLs. On Linux you need
-**GTK 3** at runtime, and only for the file dialogs:
-`sudo apt install libgtk-3-0`.
+Icons and the font are embedded in the binary. On Linux you need **GTK 3** at
+runtime, and only for the file dialogs: `sudo apt install libgtk-3-0` (the `.deb`
+declares this dependency itself). The `.deb` is built on Ubuntu 22.04, so it
+works with glibc 2.35 and newer.
+
+Once installed, Pixesh is a normal command:
+
+```bash
+pixesh              # empty canvas
+pixesh drawing.png  # open one or more images in tabs
+pixesh --version
+```
 
 ## Features
 
@@ -122,6 +131,19 @@ Windows can be cross-compiled from Linux:
 rustup target add x86_64-pc-windows-gnu
 CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=x86_64-w64-mingw32-gcc \
     cargo build --release --target x86_64-pc-windows-gnu
+```
+
+Packaging (the release workflow in `.github/workflows/release.yml` does exactly
+this on a `v*` tag):
+
+```bash
+# Linux: .deb + tar.gz in dist/
+cargo build --release
+bash scripts/package-linux.sh
+
+# Windows: needs Inno Setup (iscc, or wine + WINE_ISCC=...)
+cargo build --release --target x86_64-pc-windows-gnu
+bash scripts/package-windows.sh dist target/x86_64-pc-windows-gnu/release/pixesh.exe
 ```
 
 ## Documentation
