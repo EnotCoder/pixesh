@@ -33,6 +33,17 @@ impl PixeshApp {
         }
     }
 
+    /// Flip a panel's visibility. Shared by the dialog's mouse rows and its
+    /// arrow/Enter keyboard navigation so both take exactly the same path.
+    pub(crate) fn toggle_panel(&mut self, p: PanelId) {
+        match p {
+            PanelId::Toolbar => self.show_top_panel = !self.show_top_panel,
+            PanelId::Layers => self.show_right_panel = !self.show_right_panel,
+            PanelId::Status => self.show_status_bar = !self.show_status_bar,
+            PanelId::Timeline => self.show_timeline = !self.show_timeline,
+        }
+    }
+
     /// Panel draw order: grouped by edge, and within an edge by canonical
     /// order. Only visible panels are returned.
     ///

@@ -80,6 +80,8 @@ pub struct PixeshApp {
     pub(crate) export_layers: bool,
     pub(crate) export_sheet: bool,
     pub(crate) show_panels: bool,
+    /// Row currently selected in the panels dialog (keyboard navigation).
+    pub(crate) panels_dialog_sel: usize,
     pub(crate) show_settings: bool,
     pub(crate) show_top_panel: bool,
     pub(crate) show_right_panel: bool,
@@ -178,7 +180,7 @@ impl PixeshApp {
             scale_lock_ratio: false, resize_lock_ratio: false,
             show_export: false, export_scale: 1, export_bg: ExportBg::Transparent,
             export_layers: false, export_sheet: false,
-            show_panels: false, show_settings: false,
+            show_panels: false, panels_dialog_sel: 0, show_settings: false,
             show_top_panel: prefs.show_top_panel,
             show_right_panel: prefs.show_right_panel,
             show_status_bar: prefs.show_status_bar,

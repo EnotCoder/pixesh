@@ -6,7 +6,7 @@ use crate::constants::*;
 use super::PixeshApp;
 
 impl PixeshApp {
-    /// Opens an image in a NEW tab. The shared entry point for Ctrl+L and for
+    /// Opens an image in a NEW tab. The shared entry point for Ctrl+O and for
     /// dropping a file onto the window, so loading does not depend on rfd.
     /// Returns the file name if it was opened successfully.
     pub(crate) fn open_path(&mut self, path: &std::path::Path) -> Option<String> {

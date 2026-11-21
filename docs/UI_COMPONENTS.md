@@ -381,10 +381,11 @@ Quit and Cancel buttons.
 | `Ctrl+Z` | Undo |
 | `Ctrl+Shift+Z` | Redo |
 | `Ctrl+S` | Open the export dialog |
-| `Ctrl+L` | Open an image in a new tab |
+| `Ctrl+O` | Open an image in a new tab |
 | `Ctrl+R` | Resize canvas |
 | `Ctrl+I` | Scale canvas |
-| `Ctrl+W` | Panels dialog |
+| `Ctrl+L` / `Ctrl+Shift+L` | Add / remove the active layer immediately (does not commit a floating paste or transform) |
+| `Ctrl+W` | Panels dialog: arrows select a panel row, `Enter` toggles it, `Esc` closes |
 | `Ctrl+H` | Settings dialog |
 | `Ctrl+Shift+E` | Toggle the effects panel |
 | `Ctrl+Shift+F` | Flatten layers |
@@ -406,7 +407,8 @@ Quit and Cancel buttons.
 | `Space` | Play / pause animation |
 | `Scroll` | Zoom the canvas (no dialog open) |
 | `Shift+Scroll` | Change brush size |
-| Arrow keys | Pan the canvas; `Shift` makes it 4× faster |
+| `Ctrl++` / `Ctrl+-` | Change brush size by 1 |
+| Arrow keys | Pan the canvas; `Shift` makes it 4× faster (inside the panels dialog they select a panel instead) |
 | `Middle drag` | Pan the canvas |
 | `Alt` (hold) | Temporarily switch to the eyedropper |
 | `Right click` / `Right drag` | Erase |

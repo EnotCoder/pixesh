@@ -49,7 +49,7 @@ pixesh --version
   text tool, mirror, grid overlay, HSV picker, zoom and pan, zoom-to-fit
 - **Rearrangeable layout** — drag panels between window edges, resize them,
   hide them; the arrangement and your settings come back on the next launch
-- **Files** — open with `Ctrl+L` or by dropping files onto the window (each
+- **Files** — open with `Ctrl+O` or by dropping files onto the window (each
   becomes its own tab), multi-document tabs, PNG export with scale, background
   and sprite-sheet options
 - **History** — undo / redo, up to 50 steps
@@ -75,11 +75,13 @@ pixesh --version
 | `Delete` / `Escape` | Delete selection / cancel paste, deselect, close dialogs |
 | `[` `]` `Space` | Previous / next frame, play-pause |
 | `Scroll` / `Shift+Scroll` | Zoom / brush size |
+| `Ctrl++` / `Ctrl+-` | Increase / decrease brush size by 1 |
 | `Arrows`, `Shift+Arrows` | Pan canvas (`Shift` = 4x speed) |
 | `Middle mouse drag` | Pan canvas |
-| `Ctrl+S` / `Ctrl+L` | Export PNG / open image in a new tab |
+| `Ctrl+S` / `Ctrl+O` | Export PNG / open image in a new tab |
 | `Ctrl+R` / `Ctrl+I` | Resize / scale canvas |
-| `Ctrl+W` | Panels dialog — show, hide and arrange panels |
+| `Ctrl+L` / `Ctrl+Shift+L` | Add / remove layer immediately (no paste or transform commit) |
+| `Ctrl+W` | Panels dialog — show, hide and arrange panels; `↑`/`↓` select, `Enter` toggle, `Esc` close |
 | `Ctrl+Shift+E` | Effects panel |
 | `Ctrl+Shift+F` | Flatten layers |
 | `Ctrl+H` / `Ctrl+D` | Settings / deselect |

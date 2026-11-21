@@ -13,6 +13,8 @@ impl PixeshApp {
             self.status_hint.clear();
         }
         ctx.input_mut(|i| {
+            // Shared guard for shortcuts that must not steal text input.
+            let clip_ok = !self.dialog_open() && self.renaming_layer.is_none();
             // Ctrl+Z = undo
             if i.consume_key(egui::Modifiers::CTRL, egui::Key::Z) {
                 self.docs[self.active_tab].undo();
@@ -20,6 +22,39 @@ impl PixeshApp {
             // Ctrl+Shift+Z = redo
             if i.consume_key(egui::Modifiers::CTRL | egui::Modifiers::SHIFT, egui::Key::Z) {
                 self.docs[self.active_tab].redo();
+            }
+            // Ctrl++ / Ctrl+- = brush size. "+" is Shift+= on most layouts,
+            // so Equals is accepted too (modifier matching ignores Shift).
+            if clip_ok {
+                let tab = self.active_tab;
+                let max = self.docs[tab].width.max(self.docs[tab].height) as f32;
+                if i.consume_key(egui::Modifiers::CTRL, egui::Key::Plus)
+                    || i.consume_key(egui::Modifiers::CTRL, egui::Key::Equals)
+                {
+                    self.brush = (self.brush + 1.0).clamp(1.0, max);
+                }
+                if i.consume_key(egui::Modifiers::CTRL, egui::Key::Minus) {
+                    self.brush = (self.brush - 1.0).clamp(1.0, max);
+                }
+            }
+            // Ctrl+Shift+L = remove the active layer. Checked before Ctrl+L:
+            // consume_key ignores extra Shift when matching, so the generic
+            // shortcut would otherwise fire on Ctrl+Shift+L as well.
+            // Both layer shortcuts act directly on the document — they never
+            // commit a floating paste or a transform in progress.
+            if clip_ok && i.consume_key(egui::Modifiers::CTRL | egui::Modifiers::SHIFT, egui::Key::L) {
+                let tab = self.active_tab;
+                if self.docs[tab].layers.len() > 1 {
+                    let al = self.docs[tab].active_layer;
+                    self.docs[tab].remove_layer(al);
+                } else {
+                    self.hint("cannot remove the last layer");
+                }
+            }
+            // Ctrl+L = add a new layer above the active one
+            if clip_ok && i.consume_key(egui::Modifiers::CTRL, egui::Key::L) {
+                let tab = self.active_tab;
+                self.docs[tab].add_layer();
             }
             // Ctrl+S = export dialog
             if i.consume_key(egui::Modifiers::CTRL, egui::Key::S) {
@@ -71,8 +106,8 @@ impl PixeshApp {
                     self.show_effects = true;
                 }
             }
-            // Ctrl+L = load image (new tab)
-            if i.consume_key(egui::Modifiers::CTRL, egui::Key::L) {
+            // Ctrl+O = load image (new tab)
+            if i.consume_key(egui::Modifiers::CTRL, egui::Key::O) {
                 #[cfg(feature = "rfd")]
                 {
                     let home = crate::app::config::default_dir();
@@ -210,10 +245,6 @@ impl PixeshApp {
                     self.docs[self.active_tab].deselect();
                 }
             }
-            // Do not take over Ctrl shortcuts while a dialog is open or a layer
-            // name is being edited: there Ctrl+C/Ctrl+V/Ctrl+A belong to the
-            // text field.
-            let clip_ok = !self.dialog_open() && self.renaming_layer.is_none();
             // Ctrl+D = deselect
             if i.consume_key(egui::Modifiers::CTRL, egui::Key::D) {
                 self.docs[self.active_tab].deselect();
@@ -370,5 +401,85 @@ impl PixeshApp {
         if c != egui::Color32::TRANSPARENT {
             self.push_history(c);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use eframe::egui::{Event, Key, Modifiers, RawInput};
+
+    /// Feed one key press through a real egui Context, then run the app's
+    /// input handler the same way `update()` does.
+    fn press(app: &mut PixeshApp, key: Key, modifiers: Modifiers) {
+        let ctx = egui::Context::default();
+        let _ = ctx.run(RawInput::default(), |_| {});
+        let _ = ctx.run(
+            RawInput {
+                events: vec![Event::Key {
+                    key,
+                    physical_key: None,
+                    pressed: true,
+                    repeat: false,
+                    modifiers,
+                }],
+                ..Default::default()
+            },
+            |_| {},
+        );
+        app.handle_input(&ctx);
+    }
+
+    #[test]
+    fn ctrl_plus_and_minus_change_brush_size() {
+        let mut app = PixeshApp::new();
+        app.show_welcome = false; // first-run dialog would block shortcuts
+        app.brush = 5.0;
+        press(&mut app, Key::Plus, Modifiers::CTRL);
+        assert_eq!(app.brush, 6.0);
+        press(&mut app, Key::Equals, Modifiers::CTRL);
+        assert_eq!(app.brush, 7.0);
+        press(&mut app, Key::Minus, Modifiers::CTRL);
+        assert_eq!(app.brush, 6.0);
+    }
+
+    #[test]
+    fn ctrl_shift_l_removes_a_layer_and_ctrl_l_adds_one() {
+        let mut app = PixeshApp::new();
+        app.show_welcome = false;
+        let n = app.docs[0].layers.len();
+        app.docs[0].add_layer();
+
+        // consume_key ignores the extra Shift, so the more specific
+        // shortcut must win when both bindings match.
+        press(&mut app, Key::L, Modifiers::CTRL | Modifiers::SHIFT);
+        assert_eq!(app.docs[0].layers.len(), n, "Ctrl+Shift+L удалил слой");
+        press(&mut app, Key::L, Modifiers::CTRL);
+        assert_eq!(app.docs[0].layers.len(), n + 1, "Ctrl+L добавил слой");
+    }
+
+    #[test]
+    fn layer_shortcuts_do_not_commit_a_pending_paste() {
+        let mut app = PixeshApp::new();
+        app.show_welcome = false;
+        let doc = &mut app.docs[0];
+        doc.sel = Some((0, 0, 0, 0));
+        doc.sel_buffer = Some(vec![eframe::egui::Color32::RED]);
+        doc.sel_buf_w = 1;
+        doc.pasting = true;
+
+        press(&mut app, Key::L, Modifiers::CTRL);
+        assert!(app.docs[0].pasting, "Ctrl+L не должен коммитить вставку");
+        press(&mut app, Key::L, Modifiers::CTRL | Modifiers::SHIFT);
+        assert!(app.docs[0].pasting, "Ctrl+Shift+L не должен коммитить вставку");
+    }
+
+    #[test]
+    fn brush_size_is_clamped_to_the_canvas_side() {
+        let mut app = PixeshApp::new();
+        app.show_welcome = false;
+        app.brush = 1.0;
+        press(&mut app, Key::Minus, Modifiers::CTRL);
+        assert_eq!(app.brush, 1.0);
     }
 }
