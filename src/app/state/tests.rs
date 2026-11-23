@@ -213,6 +213,8 @@ fn dialogs_never_restore() {
     first.show_quit_dialog = true;
     first.show_effects = true;
     first.show_text = true;
+    first.show_color_input = true;
+    first.color_input_buf = "1,2,3".into();
     first.renaming_layer = Some(0);
 
     let store = store_with(&first);
@@ -222,6 +224,8 @@ fn dialogs_never_restore() {
     assert!(!second.show_resize && !second.show_scale && !second.show_export);
     assert!(!second.show_panels && !second.show_settings && !second.show_quit_dialog);
     assert!(!second.show_effects && !second.show_text);
+    assert!(!second.show_color_input);
+    assert!(second.color_input_buf.is_empty());
     assert!(second.renaming_layer.is_none());
 }
 

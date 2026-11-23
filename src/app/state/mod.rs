@@ -121,6 +121,12 @@ pub struct PixeshApp {
     pub(crate) text_buffer: String,
     pub(crate) text_scale: i32,
 
+    /// Ctrl+K: live RGB/hex entry. Changes apply while typing and never enter
+    /// the colour history — this is a picker, not a colour preset.
+    pub(crate) show_color_input: bool,
+    pub(crate) color_input_buf: String,
+    pub(crate) color_input_error: Option<String>,
+
     /// Transient status-bar hint (clipboard, selection, etc.)
     pub(crate) status_hint: String,
     pub(crate) status_hint_until: f64,
@@ -208,6 +214,9 @@ impl PixeshApp {
             text_cursor: None,
             text_buffer: String::new(),
             text_scale: 2,
+            show_color_input: false,
+            color_input_buf: String::new(),
+            color_input_error: None,
             show_effects: false,
             effect: effects::EffectParams::new(effects::EffectKind::OffsetScale),
             effect_all_layers: false,

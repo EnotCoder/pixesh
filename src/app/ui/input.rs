@@ -3,6 +3,7 @@ use eframe::egui;
 use crate::color::*;
 use crate::constants::Tool;
 use crate::app::PixeshApp;
+use crate::app::state::color::format_rgb_input;
 
 impl PixeshApp {
     pub(crate) fn handle_input(&mut self, ctx: &egui::Context) {
@@ -105,6 +106,17 @@ impl PixeshApp {
                     self.tool = Tool::Effects;
                     self.show_effects = true;
                 }
+            }
+            // Ctrl+N = new blank tab; same behaviour as the toolbar "+" button.
+            if clip_ok && i.consume_key(egui::Modifiers::CTRL, egui::Key::N) {
+                self.new_blank_tab();
+            }
+            // Ctrl+K = live RGB/hex entry. The dialog is modal, so it cannot be
+            // opened on top of another dialog or while renaming a layer.
+            if clip_ok && i.consume_key(egui::Modifiers::CTRL, egui::Key::K) {
+                self.color_input_buf = format_rgb_input(self.color);
+                self.color_input_error = None;
+                self.show_color_input = true;
             }
             // Ctrl+O = load image (new tab)
             if i.consume_key(egui::Modifiers::CTRL, egui::Key::O) {
@@ -213,7 +225,12 @@ impl PixeshApp {
             }
             // Escape
             if i.consume_key(egui::Modifiers::NONE, egui::Key::Escape) {
-                if self.docs[self.active_tab].cancel_pending_paste() {
+                if self.show_color_input {
+                    // The text field owns Escape while the colour dialog is up.
+                    self.show_color_input = false;
+                    self.color_input_buf.clear();
+                    self.color_input_error = None;
+                } else if self.docs[self.active_tab].cancel_pending_paste() {
                     // paste cancelled: the layer was not touched, just remove the block
                 } else if self.docs[self.active_tab].transforming {
                     self.docs[self.active_tab].transforming = false;
@@ -239,15 +256,24 @@ impl PixeshApp {
                     self.show_scale = false;
                     self.show_quit_dialog = false;
                     self.show_welcome = false;
+                    self.show_color_input = false;
+                    self.color_input_buf.clear();
+                    self.color_input_error = None;
                     self.show_effects = false;
                     if self.tool == Tool::Effects { self.tool = Tool::Brush; }
                 } else {
                     self.docs[self.active_tab].deselect();
                 }
             }
-            // Ctrl+D = deselect
-            if i.consume_key(egui::Modifiers::CTRL, egui::Key::D) {
+            // Ctrl+Shift+D = deselect. Checked before Ctrl+D: consume_key
+            // ignores extra Shift, so the close-tab shortcut would also match.
+            if clip_ok && i.consume_key(egui::Modifiers::CTRL | egui::Modifiers::SHIFT, egui::Key::D) {
                 self.docs[self.active_tab].deselect();
+            }
+            // Ctrl+D = close the active tab (same as the tab bar close button).
+            if clip_ok && i.consume_key(egui::Modifiers::CTRL, egui::Key::D) {
+                let tab = self.active_tab;
+                self.close_tab(tab);
             }
             // Ctrl+A = select the whole canvas, like in Photoshop.
             // The guard is shared with Ctrl+C/Ctrl+V for a reason: the egui
@@ -481,5 +507,47 @@ mod tests {
         app.brush = 1.0;
         press(&mut app, Key::Minus, Modifiers::CTRL);
         assert_eq!(app.brush, 1.0);
+    }
+
+    #[test]
+    fn ctrl_n_creates_a_tab_and_ctrl_d_closes_it() {
+        let mut app = PixeshApp::new();
+        app.show_welcome = false;
+        assert_eq!(app.docs.len(), 1);
+
+        press(&mut app, Key::N, Modifiers::CTRL);
+        assert_eq!(app.docs.len(), 2);
+        assert_eq!(app.active_tab, 1);
+        assert_eq!(app.docs[1].name, "Untitled 1");
+
+        press(&mut app, Key::D, Modifiers::CTRL);
+        assert_eq!(app.docs.len(), 1);
+        assert_eq!(app.active_tab, 0);
+    }
+
+    #[test]
+    fn ctrl_shift_d_deselects_instead_of_closing_a_tab() {
+        let mut app = PixeshApp::new();
+        app.show_welcome = false;
+        app.new_blank_tab();
+        app.docs[app.active_tab].sel = Some((0, 0, 1, 1));
+
+        press(&mut app, Key::D, Modifiers::CTRL | Modifiers::SHIFT);
+        assert!(app.docs[1].sel.is_none(), "Ctrl+Shift+D должен снимать выделение");
+        assert_eq!(app.docs.len(), 2, "Ctrl+Shift+D не должен закрывать вкладку");
+    }
+
+    #[test]
+    fn ctrl_k_opens_live_color_input_without_history_change() {
+        let mut app = PixeshApp::new();
+        app.show_welcome = false;
+        app.set_color(eframe::egui::Color32::from_rgb(12, 34, 56));
+        app.color_history.push(eframe::egui::Color32::RED);
+
+        press(&mut app, Key::K, Modifiers::CTRL);
+        assert!(app.show_color_input);
+        assert_eq!(app.color_input_buf, "12, 34, 56");
+        assert!(app.color_input_error.is_none());
+        assert_eq!(app.color_history, vec![eframe::egui::Color32::RED]);
     }
 }

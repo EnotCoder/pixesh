@@ -94,6 +94,14 @@ impl PixeshApp {
         );
     }
 
+    /// Adds a blank document and makes it active. Shared by the toolbar "+"
+    /// button and Ctrl+N so both create exactly the same kind of tab.
+    pub(crate) fn new_blank_tab(&mut self) {
+        let n = self.docs.len();
+        self.docs.push(Document::new(&format!("Untitled {}", n)));
+        self.active_tab = self.docs.len() - 1;
+    }
+
     pub(crate) fn close_tab(&mut self, idx: usize) {
         if self.docs.len() <= 1 {
             self.docs[0] = Document::new_logo("Untitled");

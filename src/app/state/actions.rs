@@ -11,7 +11,7 @@ impl PixeshApp {
         self.show_resize || self.show_export
             || self.show_panels || self.show_settings || self.show_scale
             || self.show_quit_dialog || self.show_text || self.show_welcome
-            || self.show_effects
+            || self.show_color_input || self.show_effects
     }
 
     /// Show a message in the status bar for a couple of seconds.

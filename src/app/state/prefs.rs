@@ -87,6 +87,9 @@ impl PixeshApp {
         self.show_quit_dialog = false;
         self.show_effects = false;
         self.show_text = false;
+        self.show_color_input = false;
+        self.color_input_buf.clear();
+        self.color_input_error = None;
         self.show_welcome = self.welcome_show_again;
         if self.tool == Tool::Effects { self.tool = Tool::Brush; }
         self.renaming_layer = None;

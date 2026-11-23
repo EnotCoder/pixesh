@@ -194,6 +194,8 @@ Four 38 × 38 icon buttons with tooltips:
 - Hue strip: 14 px wide vertical gradient; click or drag to set hue.
 - Alpha strip: 14 px wide vertical preview against a checkerboard; click or
   drag to set opacity.
+- `Ctrl+K` opens the RGB/hex entry dialog (see [RGB colour entry](#rgb-colour-entry--340--190));
+  it applies live and deliberately skips colour history.
 
 All colour controls write back to `color`, `rgb_*` and `hsv_*` together, so the
 picker and the numeric readout never disagree.
@@ -356,6 +358,15 @@ Export behaviour:
 - Draw/Cancel. Draw rasterises the text with the 5×7 bitmap font into the
   active layer.
 
+### RGB colour entry — 340 × 190
+
+Opened with `Ctrl+K`, defined in `src/app/ui/dialogs/color.rs`. Prefilled with
+the current colour. Accepts `r,g,b`, `r,g,b,a` (0–255) or `#RRGGBB` /
+`#RRGGBBAA`. Every valid edit is applied live via `set_color` — there is no
+Apply button and nothing is added to the colour history or undo stack. Invalid
+text shows a hint instead of changing the colour. `Enter` and `Esc` close the
+dialog.
+
 ### Effects — 520 × 620
 
 - Title “Effects” with the note “ported from Pixelorama”.
@@ -389,8 +400,10 @@ Quit and Cancel buttons.
 | `Ctrl+H` | Settings dialog |
 | `Ctrl+Shift+E` | Toggle the effects panel |
 | `Ctrl+Shift+F` | Flatten layers |
+| `Ctrl+N` / `Ctrl+D` | New blank tab / close the active tab (same as the tab bar buttons) |
+| `Ctrl+Shift+D` | Deselect (moved from `Ctrl+D`) |
+| `Ctrl+K` | Open the live RGB/hex colour entry; typing a valid `r,g,b[,a]` or `#RRGGBB[AA]` applies immediately without a history entry; `Enter`/`Esc` close |
 | `Ctrl+Tab` | Next tab |
-| `Ctrl+D` | Deselect |
 | `Ctrl+A` | Select the whole canvas |
 | `Ctrl+C` / `Y` | Copy the selection |
 | `Ctrl+V` / `P` | Paste as a floating selection |

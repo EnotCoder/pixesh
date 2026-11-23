@@ -46,7 +46,8 @@ pixesh --version
 - **Selection** — rectangular marquee, copy/paste, delete, crop the canvas to
   the selection
 - **Editing** — resize or scale the canvas with an optional aspect-ratio lock,
-  text tool, mirror, grid overlay, HSV picker, zoom and pan, zoom-to-fit
+  text tool, mirror, grid overlay, HSV picker, live RGB/hex entry (`Ctrl+K`),
+  zoom and pan, zoom-to-fit
 - **Rearrangeable layout** — drag panels between window edges, resize them,
   hide them; the arrangement and your settings come back on the next launch
 - **Files** — open with `Ctrl+O` or by dropping files onto the window (each
@@ -84,7 +85,10 @@ pixesh --version
 | `Ctrl+W` | Panels dialog — show, hide and arrange panels; `↑`/`↓` select, `Enter` toggle, `Esc` close |
 | `Ctrl+Shift+E` | Effects panel |
 | `Ctrl+Shift+F` | Flatten layers |
-| `Ctrl+H` / `Ctrl+D` | Settings / deselect |
+| `Ctrl+H` | Settings dialog |
+| `Ctrl+N` / `Ctrl+D` | New blank tab / close the active tab (like the tab bar `+` and `×`) |
+| `Ctrl+Shift+D` | Deselect |
+| `Ctrl+K` | Enter a colour live from the keyboard: `r,g,b[,a]` or `#RRGGBB[AA]`; `Enter`/`Esc` close. No undo/history entry |
 | `Ctrl+Tab` | Next tab |
 | `Ctrl+Z` / `Ctrl+Shift+Z` | Undo / redo |
 | `G` | Toggle grid |

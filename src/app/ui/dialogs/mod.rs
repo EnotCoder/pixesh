@@ -2,6 +2,7 @@ use eframe::egui;
 use crate::app::PixeshApp;
 
 mod fit;
+mod color;
 mod resize;
 mod effects;
 mod export;
@@ -21,5 +22,6 @@ impl PixeshApp {
         self.ui_settings_dialog(ctx);
         self.ui_scale_dialog(ctx);
         self.ui_text_dialog(ctx);
+        self.ui_color_input_dialog(ctx);
     }
 }

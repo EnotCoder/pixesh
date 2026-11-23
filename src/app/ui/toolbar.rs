@@ -476,9 +476,7 @@ impl PixeshApp {
                 Color32::WHITE,
             );
             if plus_resp.clicked() {
-                let n = self.docs.len();
-                self.docs.push(crate::app::Document::new(&format!("Untitled {}", n)));
-                self.active_tab = self.docs.len() - 1;
+                self.new_blank_tab();
             }
 
             ui.add_space(6.0);
