@@ -288,22 +288,26 @@ impl PixeshApp {
                     self.docs[self.active_tab].flatten_layers();
                 }
             }
-            // Y = copy selection, Ctrl+C = same.
+            // Y = copy selection, Ctrl+C = same. The clipboard belongs to the
+            // app, not the document, so the block stays available in other tabs.
             if i.consume_key(egui::Modifiers::NONE, egui::Key::Y)
                 || (clip_ok && i.consume_key(egui::Modifiers::CTRL, egui::Key::C))
             {
                 let tab = self.active_tab;
-                if !self.docs[tab].copy_selection() {
+                if let Some(clip) = self.docs[tab].copy_selection() {
+                    self.clipboard = clip;
+                } else {
                     self.status_hint = "nothing selected".into();
                     self.status_hint_until = now + 2.0;
                 }
             }
-            // P = paste selection, Ctrl+V = same
+            // P = paste selection, Ctrl+V = same. Pasting into another canvas
+            // leaves this one's floating selection untouched.
             if i.consume_key(egui::Modifiers::NONE, egui::Key::P)
                 || (clip_ok && i.consume_key(egui::Modifiers::CTRL, egui::Key::V))
             {
                 let tab = self.active_tab;
-                if !self.docs[tab].paste_clipboard() {
+                if !self.docs[tab].paste_clipboard(&self.clipboard) {
                     self.status_hint = "clipboard is empty".into();
                     self.status_hint_until = now + 2.0;
                 }
@@ -498,6 +502,48 @@ mod tests {
         assert!(app.docs[0].pasting, "Ctrl+L не должен коммитить вставку");
         press(&mut app, Key::L, Modifiers::CTRL | Modifiers::SHIFT);
         assert!(app.docs[0].pasting, "Ctrl+Shift+L не должен коммитить вставку");
+    }
+
+    #[test]
+    fn copied_pixels_survive_tab_switch_and_paste_without_committing_source() {
+        let mut app = PixeshApp::new();
+        app.show_welcome = false;
+        app.new_blank_tab();
+        app.active_tab = 0;
+
+        // A floating paste in tab 0: the layer itself is still untouched.
+        {
+            let doc = &mut app.docs[0];
+            doc.sel = Some((1, 1, 1, 1));
+            doc.sel_buffer = Some(vec![eframe::egui::Color32::RED]);
+            doc.sel_buf_w = 1;
+            doc.sel_buf_h = 1;
+            doc.pasting = true;
+        }
+        let source_before = app.docs[0].layers[0].cels[0].clone();
+
+        press(&mut app, Key::C, Modifiers::CTRL);
+        press(&mut app, Key::Tab, Modifiers::CTRL);
+        assert_eq!(app.active_tab, 1, "Ctrl+Tab должен переключить холст");
+        press(&mut app, Key::V, Modifiers::CTRL);
+
+        assert!(app.docs[0].pasting, "копирование не коммитит вставку в источнике");
+        assert_eq!(app.docs[0].layers[0].cels[0], source_before);
+        assert!(app.docs[1].pasting, "вставка в другом холсте тоже плавающая");
+        assert_eq!(
+            app.docs[1].sel_buffer.as_ref().unwrap(),
+            &vec![eframe::egui::Color32::RED],
+            "скопированные пиксели доступны во второй вкладке"
+        );
+
+        assert_eq!(app.docs[1].sel, Some((7, 7, 7, 7)), "блок в центре 16×16");
+        app.docs[1].commit_pending_paste();
+        assert_eq!(
+            app.docs[1].layers[0].cels[0][119], // row 7, col 7 of a 16x16 canvas
+            eframe::egui::Color32::RED,
+            "вставка легла в центр второго холста"
+        );
+        assert_eq!(app.docs[0].layers[0].cels[0], source_before);
     }
 
     #[test]

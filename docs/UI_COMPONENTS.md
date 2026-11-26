@@ -405,8 +405,8 @@ Quit and Cancel buttons.
 | `Ctrl+K` | Open the live RGB/hex colour entry; typing a valid `r,g,b[,a]` or `#RRGGBB[AA]` applies immediately without a history entry; `Enter`/`Esc` close |
 | `Ctrl+Tab` | Next tab |
 | `Ctrl+A` | Select the whole canvas |
-| `Ctrl+C` / `Y` | Copy the selection |
-| `Ctrl+V` / `P` | Paste as a floating selection |
+| `Ctrl+C` / `Y` | Copy the selection into the shared clipboard (works across tabs, no commit needed) |
+| `Ctrl+V` / `P` | Paste as a floating selection in the active tab |
 | `B` `E` `F` | Brush, Eraser, Fill |
 | `R` `M` `T` | Select, Move, Text |
 | `X` | Toggle Transform (requires a selection) |

@@ -19,9 +19,6 @@ impl Document {
             sel_buf_w: self.sel_buf_w,
             sel_buf_h: self.sel_buf_h,
             pasting: self.pasting,
-            clipboard: self.clipboard.clone(),
-            clip_w: self.clip_w,
-            clip_h: self.clip_h,
         });
         self.redo_stack.clear();
         if self.undo_stack.len() > 50 {
@@ -47,9 +44,6 @@ impl Document {
                 sel_buf_w: self.sel_buf_w,
                 sel_buf_h: self.sel_buf_h,
                 pasting: self.pasting,
-                clipboard: self.clipboard.clone(),
-                clip_w: self.clip_w,
-                clip_h: self.clip_h,
             });
             self.restore_snapshot(state);
         }
@@ -73,9 +67,6 @@ impl Document {
                 sel_buf_w: self.sel_buf_w,
                 sel_buf_h: self.sel_buf_h,
                 pasting: self.pasting,
-                clipboard: self.clipboard.clone(),
-                clip_w: self.clip_w,
-                clip_h: self.clip_h,
             });
             self.restore_snapshot(state);
         }
@@ -98,9 +89,6 @@ impl Document {
         self.sel_buf_w = state.sel_buf_w;
         self.sel_buf_h = state.sel_buf_h;
         self.pasting = state.pasting;
-        self.clipboard = state.clipboard;
-        self.clip_w = state.clip_w;
-        self.clip_h = state.clip_h;
         self.sel_tex = None;
         self.sel_move_origin = None;
         self.sel_move_current = None;

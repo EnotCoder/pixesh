@@ -2,6 +2,7 @@
 
 pub(crate) mod anim;
 pub(crate) mod canvas;
+pub(crate) mod clipboard;
 pub(crate) mod history;
 pub(crate) mod io;
 pub(crate) mod text;
@@ -40,9 +41,6 @@ pub(crate) struct Snapshot {
     pub(crate) sel_buf_w: usize,
     pub(crate) sel_buf_h: usize,
     pub(crate) pasting: bool,
-    pub(crate) clipboard: Option<Vec<Color32>>,
-    pub(crate) clip_w: usize,
-    pub(crate) clip_h: usize,
 }
 
 // ── Document: per-image state ────────────────────────
@@ -93,9 +91,6 @@ pub(crate) struct Document {
     pub(crate) export_name: String,
     pub(crate) needs_zoom_fit: bool,
 
-    pub(crate) clipboard: Option<Vec<Color32>>,
-    pub(crate) clip_w: usize,
-    pub(crate) clip_h: usize,
     pub(crate) pasting: bool,
 
     pub(crate) transforming: bool,
@@ -201,9 +196,6 @@ impl Document {
             export_path: String::new(),
             export_name: "pixesh.png".into(),
             needs_zoom_fit: true,
-            clipboard: None,
-            clip_w: 0,
-            clip_h: 0,
             pasting: false,
             transforming: false,
             transform_orig_rect: None,

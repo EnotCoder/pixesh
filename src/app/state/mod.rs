@@ -12,6 +12,7 @@ mod tests;
 
 use eframe::egui::{self, Color32};
 
+use crate::app::document::clipboard::Clipboard;
 use crate::app::document::Document;
 use crate::app::effects;
 use crate::constants::*;
@@ -20,6 +21,10 @@ use crate::constants::*;
 pub struct PixeshApp {
     pub(crate) docs: Vec<Document>,
     pub(crate) active_tab: usize,
+    /// One pixel clipboard for every canvas: copy in tab A, paste in tab B.
+    /// Deliberately outside `Document` so switching/committing a paste in one
+    /// tab never clears or overwrites the copied pixels.
+    pub(crate) clipboard: Clipboard,
     /// Last tab scrolled into view, so the tab bar only auto-scrolls when the
     /// active tab actually changes instead of fighting manual scrolling.
     pub(crate) tab_bar_last_active: Option<usize>,
@@ -162,6 +167,7 @@ impl PixeshApp {
         Self {
             docs: vec![Document::new_logo("Untitled")],
             active_tab: 0,
+            clipboard: Clipboard::default(),
             tab_bar_last_active: None,
             canvas_rect: egui::Rect::NOTHING,
             color: Color32::BLACK,

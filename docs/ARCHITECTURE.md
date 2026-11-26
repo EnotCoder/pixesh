@@ -145,8 +145,8 @@ One `Document` is one tab. It owns everything that belongs to a single image:
 - animation: `frames`, `active_frame`, `playing`, `fps`, `last_play`;
 - history: `undo_stack`, `redo_stack`;
 - display cache: `canvas_dirty`, `display_cell`, `display_buf`, `tex`;
-- selection and clipboard: `sel`, `sel_start`, `sel_end`, `sel_buffer`,
-  `sel_tex`, `sel_move_*`, `clipboard`, `clip_w`, `clip_h`, `pasting`;
+- selection and floating paste: `sel`, `sel_start`, `sel_end`, `sel_buffer`,
+  `sel_tex`, `sel_move_*`, `pasting` (the clipboard itself is app-wide);
 - whole-layer and selection transforms: `transforming`,
   `transform_orig_rect`, `transform_corner`;
 - view: `zoom`, `pan`, `grid`, `needs_zoom_fit`;
@@ -161,8 +161,9 @@ creates a blank document with an explicit size.
 ### `Snapshot`
 
 An undo entry captures the layers and cels, the active layer/frame, the frame
-count, canvas dimensions, selection/paste state and the clipboard. Layer cels
-are `Arc` clones, so a snapshot is cheap until the live buffer is modified.
+count, canvas dimensions and selection/paste state. The clipboard is shared by
+all tabs and is not part of a document's undo history. Layer cels are `Arc`
+clones, so a snapshot is cheap until the live buffer is modified.
 The undo stack is capped at 50 entries.
 
 ### `PixeshApp`
@@ -170,6 +171,7 @@ The undo stack is capped at 50 entries.
 Application-wide state lives on `PixeshApp`:
 
 - documents: `docs: Vec<Document>`, `active_tab`;
+- shared pixel clipboard: `clipboard: Clipboard` (copy in one tab, paste in another);
 - colour: `color`, `hsv_*`, `rgb_*` — all representations are kept in sync;
 - tools: `tool`, `brush`, `brush_shape`, temporary tool slots
   (`tool_saved`, `tool_saved_shift`);
@@ -190,7 +192,9 @@ Application-wide state lives on `PixeshApp`:
 Opening a file always adds a new tab and activates it. Closing a tab adjusts
 `active_tab`; closing the last tab replaces it with a fresh mascot document
 instead of leaving the application with no canvas. The toolbar renders one tab
-per document with an unsaved marker (`*`) and a close button.
+per document with an unsaved marker (`*`) and a close button. The pixel
+clipboard lives on `PixeshApp`, so copied pixels remain available after
+switching tabs. Copying a floating paste does not commit it in the source tab.
 
 ## Editing pipeline
 
@@ -229,9 +233,10 @@ texture state so the next frame rebuilds the canvas.
 - Dragging with the Select tool creates a rectangular marquee.
 - Dragging inside an existing selection lifts its pixels into `sel_buffer` and
   moves them; releasing commits the move.
-- `Ctrl+C` / `Y` copies the selected pixels. `Ctrl+V` / `P` creates a floating
-  paste that is committed on `Enter`, by switching tools, or by starting
-  another operation.
+- `Ctrl+C` / `Y` copies the selected pixels into the app-wide clipboard (a
+  floating paste can be copied without committing it). `Ctrl+V` / `P` creates a
+  floating paste in the active tab — possibly a different one — that is
+  committed on `Enter`, by switching tools, or by starting another operation.
 - `Delete` clears the selection. `Escape` cancels a paste, a transform, a
   rename or an open dialog before finally deselecting.
 - `Enter` crops the canvas to the selection when nothing is being pasted.

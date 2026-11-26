@@ -1,5 +1,6 @@
 use eframe::egui::Color32;
 
+use super::clipboard::Clipboard;
 use super::Document;
 use crate::constants::BrushShape;
 
@@ -419,19 +420,20 @@ impl Document {
         true
     }
 
-    /// Copies the contents of the selection to the clipboard.
-    /// Returns false if there is no selection.
-    pub(crate) fn copy_selection(&mut self) -> bool {
-        let Some((x0, y0, x1, y1)) = self.sel else { return false };
+    /// Copies the contents of the selection into a shared clipboard.
+    /// Returns `None` if there is no selection. Nothing is committed: a floating
+    /// paste can be copied as-is and pasted into another canvas while still
+    /// remaining uncommitted in this one.
+    pub(crate) fn copy_selection(&self) -> Option<Clipboard> {
+        let (x0, y0, x1, y1) = self.sel?;
 
         // While the paste is unconfirmed, the screen shows sel_buffer rather
         // than the layer pixels — that is what must be copied.
         if self.pasting {
-            let Some(buf) = self.sel_buffer.clone() else { return false };
-            self.clipboard = Some(buf);
-            self.clip_w = self.sel_buf_w;
-            self.clip_h = self.sel_buf_h;
-            return true;
+            let buf = self.sel_buffer.clone()?;
+            let mut clip = Clipboard::default();
+            clip.set(buf, self.sel_buf_w, self.sel_buf_h);
+            return Some(clip);
         }
 
         let sw = (x1 - x0 + 1) as usize;
@@ -446,25 +448,27 @@ impl Document {
                 buf.push(cel[(yy * w + xx) as usize]);
             }
         }
-        self.clipboard = Some(buf);
-        self.clip_w = sw;
-        self.clip_h = sh;
-        true
+        let mut clip = Clipboard::default();
+        clip.set(buf, sw, sh);
+        Some(clip)
     }
 
-    /// Pastes the clipboard as a "floating" selection that is immediately
-    /// ready to be dragged with the mouse. Returns false if the clipboard is empty.
-    pub(crate) fn paste_clipboard(&mut self) -> bool {
-        // Commit the unfinished paste first, otherwise Ctrl+V over Ctrl+V
-        // would lose the first copy.
-        self.commit_pending_paste();
-
-        let Some(clip) = self.clipboard.clone() else { return false };
-        let cw = self.clip_w as i32;
-        let ch = self.clip_h as i32;
-        if cw <= 0 || ch <= 0 || clip.len() != (cw * ch) as usize {
+    /// Pastes a shared clipboard block as a "floating" selection that is
+    /// immediately ready to be dragged with the mouse. Returns false if the
+    /// clipboard is empty.
+    pub(crate) fn paste_clipboard(&mut self, clip: &Clipboard) -> bool {
+        // An empty clipboard must not disturb an existing floating paste.
+        if clip.is_empty() {
             return false;
         }
+        // Commit the unfinished paste first, otherwise Ctrl+V over Ctrl+V
+        // would lose the first copy. This only affects this document: copying
+        // from another canvas never commits the paste there.
+        self.commit_pending_paste();
+
+        let cw = clip.width as i32;
+        let ch = clip.height as i32;
+        let clip_pixels = clip.pixels.as_ref().unwrap();
 
         let w = self.width as i32;
         let h = self.height as i32;
@@ -478,9 +482,9 @@ impl Document {
         cy = cy.clamp(0, (h - ch).max(0));
 
         self.sel = Some((cx, cy, cx + cw - 1, cy + ch - 1));
-        self.sel_buffer = Some(clip);
-        self.sel_buf_w = self.clip_w;
-        self.sel_buf_h = self.clip_h;
+        self.sel_buffer = Some(clip_pixels.clone());
+        self.sel_buf_w = clip.width;
+        self.sel_buf_h = clip.height;
         self.sel_start = None;
         self.sel_end = None;
         self.canvas_move_origin = None;
@@ -523,21 +527,24 @@ mod tests {
         d.layers[0].cels[0][(y * W + x) as usize]
     }
 
+    fn clip_from(d: &Document) -> Clipboard {
+        d.copy_selection().expect("выделение должно скопироваться")
+    }
+
     #[test]
     fn copy_needs_a_selection() {
-        let mut d = doc_with(&[]);
-        assert!(!d.copy_selection());
-        assert!(d.clipboard.is_none());
+        let d = doc_with(&[]);
+        assert!(d.copy_selection().is_none());
     }
 
     #[test]
     fn copy_grabs_selection_pixels() {
         let mut d = doc_with(&[(3, 3, red()), (4, 4, red())]);
         d.sel = Some((3, 3, 4, 4));
-        assert!(d.copy_selection());
-        assert_eq!(d.clip_w, 2);
-        assert_eq!(d.clip_h, 2);
-        assert_eq!(d.clipboard.as_ref().unwrap().len(), 4);
+        let clip = clip_from(&d);
+        assert_eq!(clip.width, 2);
+        assert_eq!(clip.height, 2);
+        assert_eq!(clip.pixels.as_ref().unwrap().len(), 4);
     }
 
     #[test]
@@ -574,8 +581,8 @@ mod tests {
     fn select_all_finishes_a_pending_paste() {
         let mut d = doc_with(&[(3, 3, red())]);
         d.sel = Some((3, 3, 3, 3));
-        assert!(d.copy_selection());
-        assert!(d.paste_clipboard());
+        let clip = clip_from(&d);
+        assert!(d.paste_clipboard(&clip));
         assert!(d.pasting, "вставка висит до select_all");
 
         d.select_all();
@@ -587,18 +594,27 @@ mod tests {
     #[test]
     fn paste_needs_a_clipboard() {
         let mut d = doc_with(&[]);
-        assert!(!d.paste_clipboard());
+        assert!(!d.paste_clipboard(&Clipboard::default()));
         assert!(!d.pasting);
+
+        // Ctrl+V with nothing copied must not commit an unrelated floating paste.
+        d.sel = Some((0, 0, 0, 0));
+        d.sel_buffer = Some(vec![red()]);
+        d.sel_buf_w = 1;
+        d.sel_buf_h = 1;
+        d.pasting = true;
+        assert!(!d.paste_clipboard(&Clipboard::default()));
+        assert!(d.pasting);
     }
 
     #[test]
     fn paste_lands_offset_and_leaves_layer_untouched() {
         let mut d = doc_with(&[(2, 2, red())]);
         d.sel = Some((2, 2, 4, 4));
-        assert!(d.copy_selection());
+        let clip = clip_from(&d);
         let before = d.layers[0].cels[0].clone();
 
-        assert!(d.paste_clipboard());
+        assert!(d.paste_clipboard(&clip));
         assert!(d.pasting, "вставка должна остаться незавершённой");
         assert_eq!(d.sel, Some((4, 4, 6, 6)), "блок вставлен со сдвигом +2,+2");
         assert_eq!(d.layers[0].cels[0], before, "до подтверждения слой не меняется");
@@ -609,8 +625,8 @@ mod tests {
     fn pasted_block_can_be_moved_and_committed() {
         let mut d = doc_with(&[(2, 2, red())]);
         d.sel = Some((2, 2, 4, 4));
-        d.copy_selection();
-        d.paste_clipboard();
+        let clip = clip_from(&d);
+        d.paste_clipboard(&clip);
 
         // grab the floating block (already at 4,4) and drag it by +6,+6 → 10,10
         d.sel_move_origin = Some((5, 5));
@@ -627,8 +643,8 @@ mod tests {
     fn undo_after_paste_restores_original() {
         let mut d = doc_with(&[(2, 2, red())]);
         d.sel = Some((2, 2, 4, 4));
-        d.copy_selection();
-        d.paste_clipboard();
+        let clip = clip_from(&d);
+        d.paste_clipboard(&clip);
         d.sel_move_origin = Some((5, 5));
         d.sel_move_current = Some((11, 11));
         d.handle_move_release();
@@ -643,9 +659,9 @@ mod tests {
     fn escape_cancels_paste_without_touching_layer() {
         let mut d = doc_with(&[(2, 2, red())]);
         d.sel = Some((2, 2, 4, 4));
-        d.copy_selection();
+        let clip = clip_from(&d);
         let before = d.layers[0].cels[0].clone();
-        d.paste_clipboard();
+        d.paste_clipboard(&clip);
         assert!(d.pasting);
 
         assert!(d.cancel_pending_paste());
@@ -659,8 +675,8 @@ mod tests {
     fn delete_ignores_pending_paste() {
         let mut d = doc_with(&[(2, 2, red())]);
         d.sel = Some((2, 2, 4, 4));
-        d.copy_selection();
-        d.paste_clipboard();
+        let clip = clip_from(&d);
+        d.paste_clipboard(&clip);
         // the paste rectangle has not been written to the layer yet — nothing to erase
         d.delete_selection();
         assert_eq!(at(&d, 2, 2), red(), "Delete не вырезал старые пиксели");
@@ -671,10 +687,10 @@ mod tests {
     fn second_paste_commits_the_first() {
         let mut d = doc_with(&[(2, 2, red())]);
         d.sel = Some((2, 2, 2, 2));
-        d.copy_selection();
-        d.paste_clipboard();
+        let clip = clip_from(&d);
+        d.paste_clipboard(&clip);
         // the first block is left unfinished
-        d.paste_clipboard();
+        d.paste_clipboard(&clip);
         assert!(d.pasting, "вторая вставка снова незавершённая");
         // the first one has been committed by now
         assert_eq!(at(&d, 4, 4), red());

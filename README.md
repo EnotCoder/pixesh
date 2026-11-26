@@ -69,7 +69,7 @@ pixesh --version
 | `A` `D` | Less / more saturated |
 | `I` `K` | Hue back / forward |
 | `,` `.` | Decrease / increase opacity |
-| `Ctrl+C` `Ctrl+V` | Copy / paste selection — `Y` and `P` do the same |
+| `Ctrl+C` `Ctrl+V` | Copy / paste selection across tabs — `Y` and `P` do the same |
 | `Ctrl+A` | Select the whole canvas |
 | `1`–`9` | Preset colour — red, green, blue, yellow, cyan, magenta, white, gray, black |
 | `Enter` | Commit pasted pixels, otherwise crop to the selection |
