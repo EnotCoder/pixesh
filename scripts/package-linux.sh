@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Build the Linux distribution artefacts from an already-built release binary.
+# Build the Linux distribution artefacts from an already-built release binary:
+# an install.sh tarball and a self-contained AppImage. No .deb is produced.
 # Usage: scripts/package-linux.sh [OUT_DIR] [BINARY]
 set -euo pipefail
 
@@ -8,7 +9,7 @@ OUT=${1:-"$ROOT/dist"}
 BIN=${2:-"$ROOT/target/release/pixesh"}
 VERSION=$(sed -n 's/^version = "\([^"]*\)".*/\1/p' "$ROOT/Cargo.toml" | head -1)
 ARCHIVE="pixesh-$VERSION-linux-x86_64"
-DEB="pixesh_${VERSION}_amd64.deb"
+APPIMAGE="Pixesh-$VERSION-x86_64.AppImage"
 
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
@@ -22,12 +23,7 @@ cp "$ROOT/README.md" "$ROOT/LICENSE" "$WORK/$ARCHIVE/"
 chmod 755 "$WORK/$ARCHIVE/install.sh"
 
 tar -czf "$OUT/$ARCHIVE.tar.gz" -C "$WORK" "$ARCHIVE"
-python3 "$ROOT/scripts/make-deb.py" \
-    --version "$VERSION" \
-    --binary "$BIN" \
-    --icon "$ROOT/packaging/icons/pixesh.png" \
-    --desktop "$ROOT/packaging/pixesh.desktop" \
-    --out "$OUT/$DEB"
+bash "$ROOT/scripts/package-appimage.sh" "$OUT" "$BIN"
 
-(cd "$OUT" && sha256sum "$ARCHIVE.tar.gz" "$DEB" > SHA256SUMS-linux.txt)
+(cd "$OUT" && sha256sum "$ARCHIVE.tar.gz" "$APPIMAGE" > SHA256SUMS-linux.txt)
 echo "Linux artefacts are in $OUT"
