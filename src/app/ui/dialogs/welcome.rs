@@ -1,10 +1,72 @@
 use eframe::egui::{self, Color32, Pos2, Rect, Sense, Stroke, Vec2};
 
 use crate::app::{Document, PixeshApp};
+use crate::color::lerp_color;
 use crate::constants::*;
 use crate::ui::load_icon_texture;
 
 use super::fit::fitted_dialog;
+
+/// Pixel-art button with a drop shadow, hover fade and pressed offset.
+fn action_button(
+    ui: &egui::Ui,
+    p: &egui::Painter,
+    rect: Rect,
+    id: egui::Id,
+    label: &str,
+    font_size: f32,
+    accent: bool,
+) -> bool {
+    let resp = ui.interact(rect, id, Sense::click());
+    let hover = ui.ctx().animate_bool(resp.id.with("hover"), resp.hovered());
+    let down = resp.is_pointer_button_down_on();
+    let offset = if down { 2.0 } else { 0.0 };
+    let draw = rect.translate(Vec2::new(0.0, offset));
+
+    let base = if accent { PANEL_LIGHT } else { PANEL };
+    let mut bg = lerp_color(base, HOVER, hover);
+    if down {
+        bg = ACCENT;
+    }
+    let border = lerp_color(if accent { ACCENT } else { BORDER }, ACCENT, hover);
+
+    if offset == 0.0 {
+        p.rect_filled(rect.translate(Vec2::new(0.0, 2.0)), 0.0, BORDER);
+    }
+    p.rect_filled(draw, 0.0, bg);
+    p.rect_stroke(
+        draw,
+        0.0,
+        Stroke::new(2.0_f32, border),
+        egui::StrokeKind::Outside,
+    );
+    p.text(
+        draw.center(),
+        egui::Align2::CENTER_CENTER,
+        label,
+        egui::FontId::proportional(font_size),
+        TEXT,
+    );
+    resp.clicked()
+}
+
+/// Small uppercase section heading with an accent pixel and a trailing rule.
+fn section_label(ui: &egui::Ui, p: &egui::Painter, rect: Rect, y: f32, text: &str) {
+    let font = egui::FontId::proportional(14.0);
+    let gal = ui.fonts(|f| f.layout_no_wrap(text.into(), font.clone(), DIM));
+    let x = rect.min.x + 20.0;
+    p.rect_filled(
+        Rect::from_center_size(Pos2::new(x + 3.0, y), Vec2::splat(6.0)),
+        0.0,
+        ACCENT,
+    );
+    p.text(Pos2::new(x + 14.0, y), egui::Align2::LEFT_CENTER, text, font, DIM);
+    p.hline(
+        (x + 14.0 + gal.size().x + 10.0)..=(rect.max.x - 20.0),
+        y,
+        Stroke::new(1.0_f32, BORDER),
+    );
+}
 
 impl PixeshApp {
     pub(crate) fn ui_welcome_dialog(&mut self, ctx: &egui::Context) {
@@ -13,149 +75,261 @@ impl PixeshApp {
             .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
             .order(egui::Order::Foreground)
             .show(ctx, |ui| {
-                let size = Vec2::new(400.0, 380.0);
+                let size = Vec2::new(440.0, 500.0);
                 fitted_dialog(ui, "welcome_scroll", size, |ui, rect| {
-                let p = ui.painter();
+                    let p = ui.painter();
+                    let pad = 20.0;
+                    let content_w = rect.width() - pad * 2.0;
 
-                // ── logo ──
-                let logo_tex = self.logo_tex.get_or_insert_with(|| {
-                    load_icon_texture(ui, "logo", include_bytes!("../../../../img/logo.png"))
-                });
-                let logo_sz = Vec2::splat(56.0);
-                let lr = Rect::from_center_size(Pos2::new(rect.center().x, rect.min.y + 54.0), logo_sz);
-                p.image(logo_tex.id(), lr, Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
-
-                // ── title ──
-                let title = "Welcome to Pixesh";
-                let title_font = egui::FontId::proportional(28.0);
-                let tgal = ui.fonts(|f| f.layout_no_wrap(title.into(), title_font.clone(), TEXT));
-                p.text(
-                    Pos2::new(rect.center().x - tgal.size().x * 0.5, rect.min.y + 90.0),
-                    egui::Align2::LEFT_TOP,
-                    title,
-                    title_font,
-                    TEXT,
-                );
-
-                // ── subtitle ──
-                let sub = "A tiny pixel art editor";
-                let sub_font = egui::FontId::proportional(18.0);
-                let sgal = ui.fonts(|f| f.layout_no_wrap(sub.into(), sub_font.clone(), DIM));
-                p.text(
-                    Pos2::new(rect.center().x - sgal.size().x * 0.5, rect.min.y + 128.0),
-                    egui::Align2::LEFT_TOP,
-                    sub,
-                    sub_font,
-                    DIM,
-                );
-
-                // ── quick actions grid (4 cols) ──
-                let grid_y = rect.min.y + 160.0;
-                let cols = 4;
-                let gap = 8.0;
-                let cell = Vec2::new((rect.width() - (cols + 1) as f32 * gap) / cols as f32, 44.0);
-                let actions: [(usize, usize); 8] = [
-                    (0, 0), (1, 0), (2, 0), (3, 0),
-                    (0, 1), (1, 1), (2, 1), (3, 1),
-                ];
-                let mut picked: Option<usize> = None;
-                for (i, (cx, cy)) in actions.iter().enumerate() {
-                    let c = *cx as f32;
-                    let r = *cy as f32;
-                    let cell_rect = Rect::from_min_size(
-                        Pos2::new(rect.min.x + gap + c * (cell.x + gap), grid_y + r * (cell.y + gap)),
-                        cell,
+                    // ── header band ──
+                    let header = Rect::from_min_size(
+                        rect.min,
+                        Vec2::new(rect.width(), 176.0),
                     );
-                    let resp = ui.interact(cell_rect, egui::Id::new(("welcome_action", i)), Sense::click());
-                    let bg = if resp.clicked() { ACCENT } else if resp.hovered() { HOVER } else { PANEL_LIGHT };
-                    p.rect_filled(cell_rect, 0.0, bg);
-                    p.rect_stroke(cell_rect, 0.0, Stroke::new(2.0_f32, BORDER), egui::StrokeKind::Outside);
-                    if resp.clicked() {
-                        picked = Some(i);
-                    }
-                }
-                let labels = [
-                    "New File", "Open...", "16x16", "32x32",
-                    "64x64", "128x128", "512x512", "1280x720",
-                ];
-                let a_font = egui::FontId::proportional(18.0);
-                for (i, (cx, cy)) in actions.iter().enumerate() {
-                    let c = *cx as f32;
-                    let r = *cy as f32;
-                    let cell_rect = Rect::from_min_size(
-                        Pos2::new(rect.min.x + gap + c * (cell.x + gap), grid_y + r * (cell.y + gap)),
-                        cell,
+                    p.rect_filled(header, 0.0, BG);
+                    p.rect_filled(
+                        Rect::from_min_size(rect.min, Vec2::new(rect.width(), 6.0)),
+                        0.0,
+                        ACCENT,
                     );
-                    p.text(cell_rect.center(), egui::Align2::CENTER_CENTER, labels[i], a_font.clone(), TEXT);
-                }
+                    p.hline(
+                        rect.x_range(),
+                        header.max.y,
+                        Stroke::new(2.0_f32, BORDER),
+                    );
 
-                // ── checkbox: show on startup ──
-                let cb_row = Rect::from_min_size(
-                    Pos2::new(rect.min.x + gap, grid_y + cell.y * 2.0 + gap * 2.0 + 10.0),
-                    Vec2::new(rect.width() - gap * 2.0, 28.0),
-                );
-                let cb_sz = 22.0;
-                let cb_rect = Rect::from_center_size(
-                    Pos2::new(cb_row.min.x + cb_sz * 0.5, cb_row.center().y),
-                    Vec2::splat(cb_sz),
-                );
-                let cb_resp = ui.interact(cb_rect, egui::Id::new("welcome_cb"), Sense::click());
-                let t_resp = ui.interact(cb_row, egui::Id::new("welcome_cb_row"), Sense::click());
-                if cb_resp.clicked() || t_resp.clicked() {
-                    self.welcome_show_again = !self.welcome_show_again;
-                }
-                p.rect_filled(cb_rect, 0.0, PANEL);
-                p.rect_stroke(cb_rect, 0.0, Stroke::new(4.0_f32, BORDER), egui::StrokeKind::Outside);
-                if self.welcome_show_again {
-                    p.rect_filled(cb_rect.shrink(5.0), 0.0, ACCENT);
-                }
-                let cb_font = egui::FontId::proportional(18.0);
-                let label_x = cb_row.min.x + cb_sz + 8.0;
-                p.text(
-                    Pos2::new(label_x, cb_row.center().y),
-                    egui::Align2::LEFT_CENTER,
-                    "Show this window on startup",
-                    cb_font,
-                    TEXT,
-                );
+                    // ── logo in a framed tile ──
+                    let logo_tex = self.logo_tex.get_or_insert_with(|| {
+                        load_icon_texture(
+                            ui,
+                            "logo",
+                            include_bytes!("../../../../img/logo.png"),
+                        )
+                    });
+                    let logo_center = Pos2::new(rect.center().x, rect.min.y + 56.0);
+                    p.rect_filled(
+                        Rect::from_center_size(logo_center, Vec2::splat(92.0)),
+                        0.0,
+                        ACCENT.gamma_multiply(0.10),
+                    );
+                    let tile = Rect::from_center_size(logo_center, Vec2::splat(76.0));
+                    p.rect_filled(tile, 0.0, PANEL_LIGHT);
+                    p.rect_stroke(
+                        tile,
+                        0.0,
+                        Stroke::new(2.0_f32, ACCENT),
+                        egui::StrokeKind::Outside,
+                    );
+                    let lr = Rect::from_center_size(logo_center, Vec2::splat(60.0));
+                    p.image(
+                        logo_tex.id(),
+                        lr,
+                        Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)),
+                        Color32::WHITE,
+                    );
 
-                // ── Close button ──
-                let close_rect = Rect::from_min_size(
-                    Pos2::new(rect.min.x + gap, rect.max.y - 48.0),
-                    Vec2::new(rect.width() - gap * 2.0, 38.0),
-                );
-                let close_resp = ui.interact(close_rect, egui::Id::new("welcome_close"), Sense::click());
-                let close_bg = if close_resp.clicked() { ACCENT } else if close_resp.hovered() { HOVER } else { PANEL };
-                p.rect_filled(close_rect, 0.0, close_bg);
-                p.rect_stroke(close_rect, 0.0, Stroke::new(4.0_f32, BORDER), egui::StrokeKind::Outside);
-                p.text(close_rect.center(), egui::Align2::CENTER_CENTER, "Close", egui::FontId::proportional(22.0), TEXT);
+                    // ── title (two-tone) ──
+                    let title_font = egui::FontId::proportional(30.0);
+                    let t1 = "Welcome to ";
+                    let t2 = "Pixesh";
+                    let g1 = ui.fonts(|f| {
+                        f.layout_no_wrap(t1.into(), title_font.clone(), TEXT)
+                    });
+                    let g2 = ui.fonts(|f| {
+                        f.layout_no_wrap(t2.into(), title_font.clone(), ACCENT)
+                    });
+                    let total_w = g1.size().x + g2.size().x;
+                    let tx = rect.center().x - total_w * 0.5;
+                    let ty = rect.min.y + 104.0;
+                    p.text(
+                        Pos2::new(tx, ty),
+                        egui::Align2::LEFT_TOP,
+                        t1,
+                        title_font.clone(),
+                        TEXT,
+                    );
+                    p.text(
+                        Pos2::new(tx + g1.size().x, ty),
+                        egui::Align2::LEFT_TOP,
+                        t2,
+                        title_font,
+                        ACCENT,
+                    );
 
-                // ── handle close + persist ──
-                let enter = ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Enter));
-                let esc = ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Escape));
-                if close_resp.clicked() || enter || esc {
-                    self.show_welcome = false;
-                    return;
-                }
+                    // ── subtitle ──
+                    let sub = "A tiny pixel art editor";
+                    let sub_font = egui::FontId::proportional(17.0);
+                    let sgal = ui.fonts(|f| {
+                        f.layout_no_wrap(sub.into(), sub_font.clone(), DIM)
+                    });
+                    p.text(
+                        Pos2::new(rect.center().x - sgal.size().x * 0.5, rect.min.y + 146.0),
+                        egui::Align2::LEFT_TOP,
+                        sub,
+                        sub_font,
+                        DIM,
+                    );
 
-                // ── handle quick action ──
-                if let Some(i) = picked {
-                    match labels[i] {
-                        "New File" => self.new_tab(Document::new_sized("Untitled", 16, 16)),
-                        "Open..." => self.open_file_dialog(),
-                        label => {
-                            let (w, h) = parse_canvas_preset(label).unwrap_or((16, 16));
-                            self.new_tab(Document::new_sized("Untitled", w, h));
-                            // Large presets start with the round brush so the
-                            // first stroke already looks right on a big canvas.
-                            if matches!(label, "512x512" | "1280x720") {
-                                self.tool = Tool::Brush;
-                                self.brush_shape = BrushShape::Round;
-                            }
+                    // ── primary actions ──
+                    section_label(ui, p, rect, rect.min.y + 196.0, "START");
+                    let primary_y = rect.min.y + 212.0;
+                    let primary_w = (content_w - 10.0) * 0.5;
+                    let new_clicked = action_button(
+                        ui,
+                        p,
+                        Rect::from_min_size(
+                            Pos2::new(rect.min.x + pad, primary_y),
+                            Vec2::new(primary_w, 48.0),
+                        ),
+                        egui::Id::new("welcome_new"),
+                        "New File",
+                        20.0,
+                        true,
+                    );
+                    let open_clicked = action_button(
+                        ui,
+                        p,
+                        Rect::from_min_size(
+                            Pos2::new(rect.min.x + pad + primary_w + 10.0, primary_y),
+                            Vec2::new(primary_w, 48.0),
+                        ),
+                        egui::Id::new("welcome_open"),
+                        "Open...",
+                        20.0,
+                        false,
+                    );
+
+                    // ── canvas size presets ──
+                    section_label(ui, p, rect, rect.min.y + 282.0, "CANVAS SIZE");
+                    let presets = [
+                        "16x16", "32x32", "64x64",
+                        "128x128", "512x512", "1280x720",
+                    ];
+                    let cols = 3;
+                    let gap = 8.0;
+                    let cell = Vec2::new(
+                        (content_w - (cols - 1) as f32 * gap) / cols as f32,
+                        42.0,
+                    );
+                    let grid_y = rect.min.y + 298.0;
+                    let mut picked: Option<usize> = None;
+                    for (i, label) in presets.iter().enumerate() {
+                        let c = (i % cols) as f32;
+                        let r = (i / cols) as f32;
+                        let cell_rect = Rect::from_min_size(
+                            Pos2::new(
+                                rect.min.x + pad + c * (cell.x + gap),
+                                grid_y + r * (cell.y + gap),
+                            ),
+                            cell,
+                        );
+                        if action_button(
+                            ui,
+                            p,
+                            cell_rect,
+                            egui::Id::new(("welcome_preset", i)),
+                            label,
+                            17.0,
+                            false,
+                        ) {
+                            picked = Some(i);
                         }
                     }
-                    self.show_welcome = false;
-                }
+
+                    // ── checkbox: show on startup ──
+                    let cb_row = Rect::from_min_size(
+                        Pos2::new(rect.min.x + pad, rect.min.y + 408.0),
+                        Vec2::new(content_w, 28.0),
+                    );
+                    let cb_sz = 18.0;
+                    let cb_rect = Rect::from_center_size(
+                        Pos2::new(cb_row.min.x + cb_sz * 0.5, cb_row.center().y),
+                        Vec2::splat(cb_sz),
+                    );
+                    let cb_resp =
+                        ui.interact(cb_rect, egui::Id::new("welcome_cb"), Sense::click());
+                    let t_resp =
+                        ui.interact(cb_row, egui::Id::new("welcome_cb_row"), Sense::click());
+                    if cb_resp.clicked() || t_resp.clicked() {
+                        self.welcome_show_again = !self.welcome_show_again;
+                    }
+                    p.rect_filled(cb_rect, 0.0, PANEL);
+                    p.rect_stroke(
+                        cb_rect,
+                        0.0,
+                        Stroke::new(3.0_f32, BORDER),
+                        egui::StrokeKind::Outside,
+                    );
+                    if self.welcome_show_again {
+                        p.rect_filled(cb_rect.shrink(4.0), 0.0, ACCENT);
+                    }
+                    let cb_font = egui::FontId::proportional(17.0);
+                    let label_x = cb_row.min.x + cb_sz + 8.0;
+                    p.text(
+                        Pos2::new(label_x, cb_row.center().y),
+                        egui::Align2::LEFT_CENTER,
+                        "Show this window on startup",
+                        cb_font,
+                        TEXT,
+                    );
+
+                    // ── Close button ──
+                    let close_rect = Rect::from_min_size(
+                        Pos2::new(rect.min.x + pad, rect.max.y - 50.0),
+                        Vec2::new(content_w, 40.0),
+                    );
+                    let close_clicked = action_button(
+                        ui,
+                        p,
+                        close_rect,
+                        egui::Id::new("welcome_close"),
+                        "Close",
+                        22.0,
+                        true,
+                    );
+                    p.text(
+                        Pos2::new(close_rect.max.x - 14.0, close_rect.center().y),
+                        egui::Align2::RIGHT_CENTER,
+                        "Enter / Esc",
+                        egui::FontId::proportional(13.0),
+                        DIM,
+                    );
+
+                    // ── handle close + persist ──
+                    let enter = ctx.input_mut(|i| {
+                        i.consume_key(egui::Modifiers::NONE, egui::Key::Enter)
+                    });
+                    let esc = ctx.input_mut(|i| {
+                        i.consume_key(egui::Modifiers::NONE, egui::Key::Escape)
+                    });
+                    if close_clicked || enter || esc {
+                        self.show_welcome = false;
+                        return;
+                    }
+
+                    // ── handle quick actions ──
+                    if new_clicked {
+                        self.new_tab(Document::new_sized("Untitled", 16, 16));
+                        self.show_welcome = false;
+                        return;
+                    }
+                    if open_clicked {
+                        self.open_file_dialog();
+                        self.show_welcome = false;
+                        return;
+                    }
+                    if let Some(i) = picked {
+                        let label = presets[i];
+                        let (w, h) = parse_canvas_preset(label).unwrap_or((16, 16));
+                        self.new_tab(Document::new_sized("Untitled", w, h));
+                        // Large presets start with the round brush so the
+                        // first stroke already looks right on a big canvas.
+                        if matches!(label, "512x512" | "1280x720") {
+                            self.tool = Tool::Brush;
+                            self.brush_shape = BrushShape::Round;
+                        }
+                        self.show_welcome = false;
+                    }
                 });
             });
     }

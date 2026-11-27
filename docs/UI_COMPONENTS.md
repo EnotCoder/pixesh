@@ -287,14 +287,20 @@ All dialogs are `egui::Area`s anchored to the screen centre, rendered in
 modal in practice: `dialog_open()` blocks canvas interaction, wheel zoom and
 most shortcuts.
 
-### Welcome — 400 × 380
+### Welcome — 440 × 500
 
-- Logo (56 px), title “Welcome to Pixesh” (28 pt) and subtitle (18 pt).
-- 3 × 2 quick-action grid: New File, Open..., 16×16, 32×32, 64×64, 128×128.
-- “Show this window on startup” checkbox.
-- Close button; `Enter` and `Escape` also close it.
+- Dark header band with a 6 px accent bar and the logo in a framed 76 px tile.
+- Two-tone title (“Welcome to” + accent “Pixesh”) at 30 pt and subtitle at 17 pt.
+- “START” section with New File (accent) and Open... buttons.
+- “CANVAS SIZE” section with a 3 × 2 preset grid: 16×16, 32×32, 64×64,
+  128×128, 512×512, 1280×720.
+- Buttons have animated hover, accent borders and a pressed offset.
+- “Show this window on startup” checkbox using the shared pixel style
+  (18 px box, 3 px border, accent fill when checked).
+- Close button with an “Enter / Esc” hint; both keys also close it.
 - “New File” creates a 16×16 document; Open uses the native file dialog;
-  the numbered actions create a square document of that size.
+  presets create a canvas of that size (large presets also select the round
+  brush).
 
 ### Resize Canvas — 250 × 250
 
