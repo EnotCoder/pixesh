@@ -135,7 +135,7 @@ row, the document tab bar and a 4 px bottom border.
 | 9 | Text | Custom 38 × 38 | “T”, opens the Text dialog on canvas click |
 | 10 | Effects | Custom 38 × 38 | Pixel sparkle icon, opens the effects panel |
 | 11 | Separator | `separator()` | |
-| 12 | Clear | `icon_btn_tip` | Clears every cel of every layer, with undo |
+| 12 | Clear | `icon_btn_tip` | Asks for Yes/No confirmation, then clears every cel of every layer, with undo |
 | 13 | Separator | `separator()` | |
 | 14 | Grid | Custom checkbox | 18 px checkbox + “Grid” label; toggles the grid |
 | 15 | Mirror H | `icon_btn_tip` | Mirrors the active layer horizontally |
@@ -385,6 +385,12 @@ Defined inline in `src/app/state/update.rs`. Appears when the window is closed w
 least one document is unsaved: “Unsaved changes!” / “Quit anyway?” with
 Quit and Cancel buttons.
 
+### Clear all confirmation — 260 × 260
+
+Opened by `X` or the toolbar Clear button. Uses the same frame, fade/scale
+animation and `btn_min_w` buttons as the quit confirmation: “Clear all layers?”
+with Yes / No. Yes erases every layer’s active-frame cel as one undoable step.
+
 ## Keyboard and mouse shortcuts (`src/app/ui/input.rs`)
 
 | Input | Action |
@@ -409,7 +415,8 @@ Quit and Cancel buttons.
 | `Ctrl+V` / `P` | Paste as a floating selection in the active tab |
 | `B` `E` `F` | Brush, Eraser, Fill |
 | `R` `M` `T` | Select, Move, Text |
-| `X` | Toggle Transform (requires a selection) |
+| `X` | Clear all layers (Yes/No confirmation) |
+| `Shift+X` | Toggle Transform (requires a selection) |
 | `G` | Toggle the grid |
 | `W` / `S` | Increase / decrease value (brightness) by 5 |
 | `A` / `D` | Decrease / increase saturation by 5 |

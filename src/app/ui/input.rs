@@ -225,7 +225,9 @@ impl PixeshApp {
             }
             // Escape
             if i.consume_key(egui::Modifiers::NONE, egui::Key::Escape) {
-                if self.show_color_input {
+                if self.show_clear_confirm {
+                    self.show_clear_confirm = false;
+                } else if self.show_color_input {
                     // The text field owns Escape while the colour dialog is up.
                     self.show_color_input = false;
                     self.color_input_buf.clear();
@@ -255,6 +257,7 @@ impl PixeshApp {
                     self.show_settings = false;
                     self.show_scale = false;
                     self.show_quit_dialog = false;
+                    self.show_clear_confirm = false;
                     self.show_welcome = false;
                     self.show_color_input = false;
                     self.color_input_buf.clear();
@@ -312,10 +315,17 @@ impl PixeshApp {
                     self.status_hint_until = now + 2.0;
                 }
             }
-            // X = toggle transform (when selection exists).
+            // Shift+X = toggle transform (when selection exists).
+            // Checked before plain X: consume_key ignores extra Shift when
+            // matching, so X would otherwise fire here too.
             // text_focused is needed: otherwise "x" typed into a text field or
             // a DragValue would switch the tool out from under the user.
-            if i.consume_key(egui::Modifiers::NONE, egui::Key::X) && !text_focused {
+            if i.consume_key(egui::Modifiers::SHIFT, egui::Key::X)
+                && !i.modifiers.alt
+                && !i.modifiers.ctrl
+                && !text_focused
+                && !self.dialog_open()
+            {
                 let tab = self.active_tab;
                 let has_sel = self.docs[tab].sel.is_some();
                 if has_sel && self.tool != Tool::Transform {
@@ -349,6 +359,16 @@ impl PixeshApp {
                     self.docs[tab].transform_orig_rect = None;
                     self.docs[tab].canvas_dirty = true;
                 }
+            }
+            // X = clear all layers, but only after the Yes/No confirmation.
+            if i.consume_key(egui::Modifiers::NONE, egui::Key::X)
+                && !i.modifiers.alt
+                && !i.modifiers.ctrl
+                && !text_focused
+                && !self.dialog_open()
+                && self.renaming_layer.is_none()
+            {
+                self.show_clear_confirm = true;
             }
         });
 

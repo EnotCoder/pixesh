@@ -26,6 +26,23 @@ fn blank_document_stays_blank() {
 }
 
 #[test]
+fn clear_all_layers_is_a_single_undoable_step() {
+    let mut doc = Document::new_logo("t");
+    doc.add_layer();
+    let owl = doc.layers[0].cels[0].clone();
+
+    doc.clear_all_layers();
+    assert!(
+        doc.layers.iter().all(|l| l.cels[0].iter().all(|c| c.a() == 0)),
+        "очищены все слои, а не только активный"
+    );
+
+    doc.undo();
+    assert_eq!(doc.layers[0].cels[0], owl, "одного Ctrl+Z хватает, чтобы вернуть всё");
+    assert_eq!(doc.layers.len(), 2, "структура слоёв не пострадала");
+}
+
+#[test]
 fn mascot_is_a_faithful_copy_of_the_source_png() {
     let doc = Document::new_logo("t");
     let src = image::load_from_memory(include_bytes!("../../../img/pixel_logo.png"))

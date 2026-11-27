@@ -245,7 +245,7 @@ texture state so the next frame rebuilds the canvas.
 
 - Move drags the selection when the press starts inside it, otherwise it moves
   the whole active layer.
-- Transform (`X` with a selection) exposes four corner handles. Dragging a
+- Transform (`Shift+X` with a selection) exposes four corner handles. Dragging a
   corner resizes the selection rectangle; the result is committed when the
   drag ends. `Escape` cancels the transform and restores the previous tool.
 

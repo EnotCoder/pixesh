@@ -72,6 +72,16 @@ let cell = checker_cell(self.zoom) as usize;
         &self.display_buf
     }
 
+    /// Erases every layer's active-frame cel as one undoable action.
+    pub(crate) fn clear_all_layers(&mut self) {
+        self.push_undo();
+        let blank = Arc::new(vec![Color32::TRANSPARENT; self.width * self.height]);
+        for layer in &mut self.layers {
+            layer.cels[self.active_frame] = blank.clone();
+        }
+        self.canvas_dirty = true;
+    }
+
     pub(crate) fn paint_pixel(&mut self, px: i32, py: i32, color: Color32, brush: f32, shape: BrushShape) {
         let idx = self.active_layer;
         if idx >= self.layers.len() { return; }

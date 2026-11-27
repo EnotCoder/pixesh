@@ -2,6 +2,7 @@ use eframe::egui;
 use crate::app::PixeshApp;
 
 mod fit;
+mod clear;
 mod color;
 mod resize;
 mod effects;
@@ -15,6 +16,7 @@ mod welcome;
 impl PixeshApp {
     pub(crate) fn ui_dialogs(&mut self, ctx: &egui::Context) {
         self.ui_welcome_dialog(ctx);
+        self.ui_clear_confirm_dialog(ctx);
         self.ui_resize_dialog(ctx);
         self.ui_effects_panel(ctx);
         self.ui_export_dialog(ctx);

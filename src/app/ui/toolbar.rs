@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use eframe::egui::{self, Color32, Pos2, Rect, Sense, Stroke, Vec2, epaint};
 use eframe::egui::epaint::Vertex;
 
@@ -227,13 +225,8 @@ impl PixeshApp {
             let clear_tex = self.clear_tex.get_or_insert_with(|| {
                 load_icon_texture(ui, "clear_icon", include_bytes!("../../../tex/tools/clear.png"))
             });
-            if icon_btn_tip(ui, clear_tex.id(), false, "Clear All Layers") {
-                let doc = &mut self.docs[self.active_tab];
-                doc.push_undo();
-                for layer in &mut doc.layers {
-                    layer.cels[doc.active_frame] = Arc::new(vec![Color32::TRANSPARENT; doc.width * doc.height]);
-                }
-                doc.canvas_dirty = true;
+            if icon_btn_tip(ui, clear_tex.id(), false, "Clear All Layers (X)") {
+                self.show_clear_confirm = true;
             }
 
             // grid + zoom

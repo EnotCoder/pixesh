@@ -61,7 +61,9 @@ pixesh --version
 | Key | Action |
 |-----|--------|
 | `B` `E` `F` | Brush, Eraser, Fill |
-| `R` `M` `T` `X` | Select, Move, Text, Transform (needs a selection) |
+| `R` `M` `T` | Select, Move, Text |
+| `Shift+X` | Transform (needs a selection) |
+| `X` | Clear all layers (asks for Yes/No confirmation) |
 | `Alt` (hold) | Eyedropper |
 | `Right-click + drag` | Eraser |
 | `W` `S` | Brighten / darken the colour |

@@ -109,6 +109,8 @@ pub struct PixeshApp {
     /// Where the drag started — the move is cancelled if dropped in the same place
     pub(crate) drag_from_edge: Edge,
     pub(crate) show_quit_dialog: bool,
+    /// "Clear all layers?" confirmation, opened by X or the toolbar button.
+    pub(crate) show_clear_confirm: bool,
     pub(crate) show_welcome: bool,
     pub(crate) welcome_show_again: bool,
 
@@ -206,6 +208,7 @@ impl PixeshApp {
             dragging_panel: None,
             drag_from_edge: Edge::Top,
             show_quit_dialog: false,
+            show_clear_confirm: false,
             welcome_show_again: prefs.welcome_show_again,
             show_welcome: prefs.welcome_show_again,
             arrow_speed: prefs.arrow_speed,
