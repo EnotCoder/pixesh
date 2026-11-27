@@ -49,14 +49,14 @@ impl PixeshApp {
                     DIM,
                 );
 
-                // ── quick actions grid (3 cols) ──
+                // ── quick actions grid (4 cols) ──
                 let grid_y = rect.min.y + 160.0;
-                let cols = 3;
+                let cols = 4;
                 let gap = 8.0;
                 let cell = Vec2::new((rect.width() - (cols + 1) as f32 * gap) / cols as f32, 44.0);
-                let actions: [(usize, usize); 6] = [
-                    (0, 0), (1, 0), (2, 0),
-                    (0, 1), (1, 1), (2, 1),
+                let actions: [(usize, usize); 8] = [
+                    (0, 0), (1, 0), (2, 0), (3, 0),
+                    (0, 1), (1, 1), (2, 1), (3, 1),
                 ];
                 let mut picked: Option<usize> = None;
                 for (i, (cx, cy)) in actions.iter().enumerate() {
@@ -74,7 +74,10 @@ impl PixeshApp {
                         picked = Some(i);
                     }
                 }
-                let labels = ["New File", "Open...", "16x16", "32x32", "64x64", "128x128"];
+                let labels = [
+                    "New File", "Open...", "16x16", "32x32",
+                    "64x64", "128x128", "512x512", "1280x720",
+                ];
                 let a_font = egui::FontId::proportional(18.0);
                 for (i, (cx, cy)) in actions.iter().enumerate() {
                     let c = *cx as f32;
@@ -141,10 +144,14 @@ impl PixeshApp {
                         "New File" => self.new_tab(Document::new_sized("Untitled", 16, 16)),
                         "Open..." => self.open_file_dialog(),
                         label => {
-                            let side: usize = label.trim_end_matches("x")
-                                .split('x').next().and_then(|s| s.parse().ok())
-                                .unwrap_or(16);
-                            self.new_tab(Document::new_sized("Untitled", side, side));
+                            let (w, h) = parse_canvas_preset(label).unwrap_or((16, 16));
+                            self.new_tab(Document::new_sized("Untitled", w, h));
+                            // Large presets start with the round brush so the
+                            // first stroke already looks right on a big canvas.
+                            if matches!(label, "512x512" | "1280x720") {
+                                self.tool = Tool::Brush;
+                                self.brush_shape = BrushShape::Round;
+                            }
                         }
                     }
                     self.show_welcome = false;
@@ -171,5 +178,30 @@ impl PixeshApp {
                 self.open_path(&path);
             }
         }
+    }
+}
+
+/// Parses a "WxH" canvas preset label from the welcome grid.
+fn parse_canvas_preset(label: &str) -> Option<(usize, usize)> {
+    let (w, h) = label.split_once('x')?;
+    Some((w.parse().ok()?, h.parse().ok()?))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_canvas_preset;
+
+    #[test]
+    fn parses_square_and_rectangular_presets() {
+        assert_eq!(parse_canvas_preset("16x16"), Some((16, 16)));
+        assert_eq!(parse_canvas_preset("512x512"), Some((512, 512)));
+        assert_eq!(parse_canvas_preset("1280x720"), Some((1280, 720)));
+    }
+
+    #[test]
+    fn rejects_non_preset_labels() {
+        assert_eq!(parse_canvas_preset("New File"), None);
+        assert_eq!(parse_canvas_preset("Open..."), None);
+        assert_eq!(parse_canvas_preset("16x"), None);
     }
 }
