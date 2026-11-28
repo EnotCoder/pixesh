@@ -32,7 +32,7 @@ impl PixeshApp {
                 painter.rect_filled(
                     Rect::from_center_size(c, Vec2::splat(3.0)),
                     0.0,
-                    if hot { ACCENT } else { DIM },
+                    if hot { crate::constants::accent() } else { crate::constants::dim() },
                 );
             }
         }
@@ -89,7 +89,7 @@ impl PixeshApp {
             painter.rect_stroke(
                 zone,
                 0.0,
-                egui::Stroke::new(if active { 6.0_f32 } else { 3.0_f32 }, ACCENT),
+                egui::Stroke::new(if active { 6.0_f32 } else { 3.0_f32 }, crate::constants::accent()),
                 egui::StrokeKind::Inside,
             );
         }

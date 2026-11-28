@@ -37,13 +37,15 @@ pixesh/
 ├── src/
 │   ├── main.rs                  — native window options, application entry point
 │   ├── lib.rs                   — run_native_app(), embedded font, global egui style
-│   ├── constants.rs             — theme colours, dimensions, Tool/BrushShape/
-│   │                              ExportBg/Edge/PanelId, NUM_PALETTE, linked_side()
+│   ├── constants.rs             — runtime accessors for Lua-configured colours/
+│   │                              dimensions, Tool/BrushShape/ExportBg/Edge/
+│   │                              PanelId, linked_side()
 │   ├── color.rs                 — RGB/HSV conversion and lerp_color()
-│   ├── ui.rs                    — shared widgets and texture loading
+│   ├── ui.rs                    — shared widgets, texture loading, apply_style()
 │   └── app/
 │       ├── mod.rs               — thin facade: module declarations and re-exports
 │       ├── config.rs            — persisted Prefs, validation, eframe storage helpers
+│       ├── lua_config.rs        — Lua tables → Config, reload, global runtime access
 │       ├── effects.rs           — 17 effects ported from Pixelorama
 │       ├── snow.rs              — animated falling-snow overlay for the canvas
 │       ├── document/
@@ -81,6 +83,7 @@ pixesh/
 │               ├── settings.rs  — settings dialog
 │               ├── text.rs      — text tool dialog
 │               └── welcome.rs   — welcome/quick-start dialog
+├── config/config.lua            — documented default Lua config (embedded in the binary)
 ├── img/                         — logo and mascot images
 ├── tex/                         — tool icons and the embedded font
 └── docs/                        — architecture and UI reference
@@ -92,12 +95,14 @@ pixesh/
 main()
   └─ pixesh::run_native_app()
        ├─ load embedded font
-       ├─ install the global dark, square-corner egui style
+       ├─ init Lua config (create default file, parse ~/.config/pixesh/config.lua)
+       ├─ install the dark, square-corner egui style from the config colours
        ├─ PixeshApp::new()
        ├─ PixeshApp::load_prefs(storage)
        └─ eframe::App::update(ctx, frame)  — once per frame
             ├─ record last_time
-            ├─ handle_input()              — shortcuts, wheel zoom/brush, arrow pan, Alt eyedropper
+            ├─ handle_input()              — Lua-bound actions, wheel zoom/brush, arrow pan, Alt eyedropper
+            ├─ reapply style if the config version changed (Ctrl+Shift+R)
             ├─ update_playback()           — advance playing animations
             ├─ handle_dropped_files()      — open dropped images as new tabs
             ├─ for panel in draw_order():
@@ -339,6 +344,13 @@ Two effects intentionally differ from the originals:
   being reused as a height after moving a panel to another edge.
 
 ## Preferences and persistence
+
+User-editable colours, constants and key bindings live in a separate Lua file,
+not in `app.ron`: see [CONFIG.md](CONFIG.md). `app::lua_config` parses it with
+vendored mlua into a process-wide `Config`; `constants.rs` exposes small
+accessors so every painter reads the current values. Invalid files never
+replace the last valid config. Arrow/zoom speed stay in `Prefs` because the
+Settings dialog writes them at runtime.
 
 Preferences are stored through eframe's storage (RON, `app.ron`). egui itself
 persists window geometry, panel sizes and other memory; Pixesh adds a custom

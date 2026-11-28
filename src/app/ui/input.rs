@@ -1,8 +1,9 @@
 use eframe::egui;
 
 use crate::color::*;
-use crate::constants::Tool;
+use crate::constants::{self, Tool};
 use crate::app::PixeshApp;
+use crate::app::lua_config::{Action, Guard};
 use crate::app::state::color::format_rgb_input;
 
 impl PixeshApp {
@@ -13,37 +14,113 @@ impl PixeshApp {
         if now > self.status_hint_until {
             self.status_hint.clear();
         }
+
+        // All bindings come from the Lua config. `consume_key` ignores extra
+        // Shift/Alt, so bindings are sorted by modifier count (most specific
+        // first): Ctrl+Shift+L wins over Ctrl+L and consumes the key. The
+        // bundled "Ctrl+=" / "Ctrl+Shift+=" pair covers layouts where '+' is
+        // produced with Shift.
+        let bindings = crate::app::lua_config::bindings();
         ctx.input_mut(|i| {
-            // Shared guard for shortcuts that must not steal text input.
-            let clip_ok = !self.dialog_open() && self.renaming_layer.is_none();
-            // Ctrl+Z = undo
-            if i.consume_key(egui::Modifiers::CTRL, egui::Key::Z) {
+            for (action, combo) in &bindings {
+                if !self.guard_allows(action.guard(), i.modifiers, text_focused) {
+                    continue;
+                }
+                if i.consume_key(combo.modifiers, combo.key) {
+                    self.apply_action(*action, now);
+                }
+            }
+        });
+
+        // scroll zoom / brush size.
+        // While a dialog is open, the wheel should scroll the panel inside it
+        // rather than zoom the canvas underneath. The same applies to scrollable
+        // panels (layers, timeline, ...): only zoom when the cursor is actually
+        // over the canvas.
+        let over_canvas = ctx
+            .pointer_hover_pos()
+            .is_some_and(|p| self.canvas_rect.contains(p));
+        if !self.dialog_open() && over_canvas {
+            let scroll = ctx.input(|i| i.raw_scroll_delta.y);
+            if scroll != 0.0 {
+                let scroll_norm = scroll.signum();
+                if ctx.input(|i| i.modifiers.shift) {
+                    let tab = self.active_tab;
+                    let max = self.docs[tab].width.max(self.docs[tab].height) as f32;
+                    self.brush = (self.brush + scroll_norm * constants::brush_step()).clamp(1.0, max);
+                } else {
+                    let tab = self.active_tab;
+                    let doc = &mut self.docs[tab];
+                    let old = doc.zoom;
+                    doc.zoom = (doc.zoom
+                        * (1.0 + scroll_norm * self.zoom_speed * constants::zoom_step()))
+                        .clamp(constants::zoom_min(), constants::zoom_max());
+                    doc.pan *= doc.zoom / old;
+                }
+            }
+        }
+
+        // arrow pan
+        if !self.dialog_open() {
+            let tab = self.active_tab;
+            ctx.input(|i| {
+                let fast = if i.modifiers.shift { constants::pan_shift_multiplier() } else { 1.0 };
+                let speed = self.arrow_speed * fast;
+                if i.key_down(egui::Key::ArrowLeft)  { self.docs[tab].pan.x += speed; }
+                if i.key_down(egui::Key::ArrowRight) { self.docs[tab].pan.x -= speed; }
+                if i.key_down(egui::Key::ArrowUp)    { self.docs[tab].pan.y += speed; }
+                if i.key_down(egui::Key::ArrowDown)  { self.docs[tab].pan.y -= speed; }
+            });
+        }
+
+        // temporary eyedropper (Alt)
+        ctx.input(|i| {
+            let held = i.modifiers.alt;
+            if held && self.tool_saved.is_none() {
+                self.tool_saved = Some(self.tool);
+                self.tool = Tool::Eyedropper;
+            } else if !held {
+                if let Some(saved) = self.tool_saved.take() {
+                    self.tool = saved;
+                }
+            }
+        });
+    }
+
+    /// Scope of a binding, derived from the action (not configurable).
+    fn guard_allows(&self, guard: Guard, modifiers: egui::Modifiers, text_focused: bool) -> bool {
+        let clean = !self.dialog_open() && self.renaming_layer.is_none();
+        match guard {
+            Guard::Global => true,
+            Guard::Clean => clean,
+            Guard::DialogFree => !self.dialog_open(),
+            Guard::Bare => !modifiers.ctrl && !modifiers.alt && !modifiers.mac_cmd && !text_focused,
+            Guard::BareClean => clean
+                && !modifiers.ctrl && !modifiers.alt && !modifiers.mac_cmd && !text_focused,
+        }
+    }
+
+    /// Perform the action bound to the pressed combination.
+    pub(crate) fn apply_action(&mut self, action: Action, now: f64) {
+        match action {
+            Action::Undo => {
                 self.docs[self.active_tab].undo();
             }
-            // Ctrl+Shift+Z = redo
-            if i.consume_key(egui::Modifiers::CTRL | egui::Modifiers::SHIFT, egui::Key::Z) {
+            Action::Redo => {
                 self.docs[self.active_tab].redo();
             }
-            // Ctrl++ / Ctrl+- = brush size. "+" is Shift+= on most layouts,
-            // so Equals is accepted too (modifier matching ignores Shift).
-            if clip_ok {
+            Action::BrushUp | Action::BrushDown => {
                 let tab = self.active_tab;
                 let max = self.docs[tab].width.max(self.docs[tab].height) as f32;
-                if i.consume_key(egui::Modifiers::CTRL, egui::Key::Plus)
-                    || i.consume_key(egui::Modifiers::CTRL, egui::Key::Equals)
-                {
-                    self.brush = (self.brush + 1.0).clamp(1.0, max);
-                }
-                if i.consume_key(egui::Modifiers::CTRL, egui::Key::Minus) {
-                    self.brush = (self.brush - 1.0).clamp(1.0, max);
-                }
+                let delta = constants::brush_step()
+                    * if action == Action::BrushUp { 1.0 } else { -1.0 };
+                self.brush = (self.brush + delta).clamp(1.0, max);
             }
-            // Ctrl+Shift+L = remove the active layer. Checked before Ctrl+L:
-            // consume_key ignores extra Shift when matching, so the generic
-            // shortcut would otherwise fire on Ctrl+Shift+L as well.
-            // Both layer shortcuts act directly on the document — they never
-            // commit a floating paste or a transform in progress.
-            if clip_ok && i.consume_key(egui::Modifiers::CTRL | egui::Modifiers::SHIFT, egui::Key::L) {
+            Action::AddLayer => {
+                let tab = self.active_tab;
+                self.docs[tab].add_layer();
+            }
+            Action::RemoveLayer => {
                 let tab = self.active_tab;
                 if self.docs[tab].layers.len() > 1 {
                     let al = self.docs[tab].active_layer;
@@ -52,53 +129,28 @@ impl PixeshApp {
                     self.hint("cannot remove the last layer");
                 }
             }
-            // Ctrl+L = add a new layer above the active one
-            if clip_ok && i.consume_key(egui::Modifiers::CTRL, egui::Key::L) {
+            Action::Export => {
                 let tab = self.active_tab;
-                self.docs[tab].add_layer();
-            }
-            // Ctrl+S = export dialog
-            if i.consume_key(egui::Modifiers::CTRL, egui::Key::S) {
-                if !self.dialog_open() {
-                    let tab = self.active_tab;
-                    if self.docs[tab].export_name.is_empty() {
-                        self.docs[tab].export_name = "pixesh.png".into();
-                    }
-                    self.show_export = true;
+                if self.docs[tab].export_name.is_empty() {
+                    self.docs[tab].export_name = "pixesh.png".into();
                 }
+                self.show_export = true;
             }
-            // Ctrl+R = resize dialog
-            if i.consume_key(egui::Modifiers::CTRL, egui::Key::R) {
-                if !self.dialog_open() {
-                    let tab = self.active_tab;
-                    self.resize_w = self.docs[tab].width as f32;
-                    self.resize_h = self.docs[tab].height as f32;
-                    self.show_resize = true;
-                }
+            Action::Resize => {
+                let tab = self.active_tab;
+                self.resize_w = self.docs[tab].width as f32;
+                self.resize_h = self.docs[tab].height as f32;
+                self.show_resize = true;
             }
-            // Ctrl+W = panels dialog
-            if i.consume_key(egui::Modifiers::CTRL, egui::Key::W) {
-                if !self.dialog_open() {
-                    self.show_panels = !self.show_panels;
-                }
+            Action::Panels => self.show_panels = !self.show_panels,
+            Action::Settings => self.show_settings = !self.show_settings,
+            Action::Scale => {
+                let tab = self.active_tab;
+                self.scale_w = self.docs[tab].width as f32;
+                self.scale_h = self.docs[tab].height as f32;
+                self.show_scale = true;
             }
-            // Ctrl+H = settings
-            if i.consume_key(egui::Modifiers::CTRL, egui::Key::H) {
-                if !self.dialog_open() {
-                    self.show_settings = !self.show_settings;
-                }
-            }
-            // Ctrl+I = scale dialog
-            if i.consume_key(egui::Modifiers::CTRL, egui::Key::I) {
-                if !self.dialog_open() {
-                    let tab = self.active_tab;
-                    self.scale_w = self.docs[tab].width as f32;
-                    self.scale_h = self.docs[tab].height as f32;
-                    self.show_scale = true;
-                }
-            }
-            // Ctrl+Shift+E = effects panel
-            if i.consume_key(egui::Modifiers::CTRL | egui::Modifiers::SHIFT, egui::Key::E) {
+            Action::Effects => {
                 if self.show_effects {
                     self.show_effects = false;
                     if self.tool == Tool::Effects { self.tool = Tool::Brush; }
@@ -107,19 +159,13 @@ impl PixeshApp {
                     self.show_effects = true;
                 }
             }
-            // Ctrl+N = new blank tab; same behaviour as the toolbar "+" button.
-            if clip_ok && i.consume_key(egui::Modifiers::CTRL, egui::Key::N) {
-                self.new_blank_tab();
-            }
-            // Ctrl+K = live RGB/hex entry. The dialog is modal, so it cannot be
-            // opened on top of another dialog or while renaming a layer.
-            if clip_ok && i.consume_key(egui::Modifiers::CTRL, egui::Key::K) {
+            Action::NewTab => self.new_blank_tab(),
+            Action::ColorInput => {
                 self.color_input_buf = format_rgb_input(self.color);
                 self.color_input_error = None;
                 self.show_color_input = true;
             }
-            // Ctrl+O = load image (new tab)
-            if i.consume_key(egui::Modifiers::CTRL, egui::Key::O) {
+            Action::OpenFile => {
                 #[cfg(feature = "rfd")]
                 {
                     let home = crate::app::config::default_dir();
@@ -132,99 +178,74 @@ impl PixeshApp {
                     }
                 }
             }
-            // Ctrl+Tab = next tab
-            if i.consume_key(egui::Modifiers::CTRL, egui::Key::Tab) {
+            Action::NextTab => {
                 let n = self.docs.len();
                 if n > 1 {
                     self.active_tab = (self.active_tab + 1) % n;
                 }
             }
-            // tool keys
-            if !i.modifiers.alt && !i.modifiers.ctrl && !text_focused {
-                if i.consume_key(egui::Modifiers::NONE, egui::Key::B) { self.tool = Tool::Brush; }
-                if i.consume_key(egui::Modifiers::NONE, egui::Key::E) { self.tool = Tool::Eraser; }
-                if i.consume_key(egui::Modifiers::NONE, egui::Key::F) { self.tool = Tool::Fill; }
-                if i.consume_key(egui::Modifiers::NONE, egui::Key::R) { self.tool = Tool::Select; }
-                if i.consume_key(egui::Modifiers::NONE, egui::Key::M) { self.tool = Tool::Move; }
-                if i.consume_key(egui::Modifiers::NONE, egui::Key::T) { self.tool = Tool::Text; }
-
-                if i.consume_key(egui::Modifiers::NONE, egui::Key::G) {
-                    self.docs[self.active_tab].grid = !self.docs[self.active_tab].grid;
-                }
-                // colour: W/S value, A/D saturation, I/K hue
-                if i.consume_key(egui::Modifiers::NONE, egui::Key::W) { self.bump_hsv(0.0, 0.0, 5.0); }
-                if i.consume_key(egui::Modifiers::NONE, egui::Key::S) { self.bump_hsv(0.0, 0.0, -5.0); }
-                if i.consume_key(egui::Modifiers::NONE, egui::Key::A) { self.bump_hsv(0.0, -5.0, 0.0); }
-                if i.consume_key(egui::Modifiers::NONE, egui::Key::D) { self.bump_hsv(0.0, 5.0, 0.0); }
-                if i.consume_key(egui::Modifiers::NONE, egui::Key::I) { self.bump_hsv(-5.0, 0.0, 0.0); }
-                if i.consume_key(egui::Modifiers::NONE, egui::Key::K) { self.bump_hsv(5.0, 0.0, 0.0); }
-                // , / . = opacity
-                if i.consume_key(egui::Modifiers::NONE, egui::Key::Comma) { self.bump_alpha(-5.0); }
-                if i.consume_key(egui::Modifiers::NONE, egui::Key::Period) { self.bump_alpha(5.0); }
-                // 1–9 = preset colours from NUM_PALETTE.
-                // The index is called idx rather than i: the ctx.input_mut(|i| …)
-                // closure already uses the name i, and shadowing would break
-                // the surrounding handlers.
-                for (idx, key) in [
-                    egui::Key::Num1,
-                    egui::Key::Num2,
-                    egui::Key::Num3,
-                    egui::Key::Num4,
-                    egui::Key::Num5,
-                    egui::Key::Num6,
-                    egui::Key::Num7,
-                    egui::Key::Num8,
-                    egui::Key::Num9,
-                ]
-                .into_iter()
-                .enumerate()
-                {
-                    if i.consume_key(egui::Modifiers::NONE, key) {
-                        self.pick_preset(idx);
-                    }
-                }
-                // [ / ] = previous / next frame
-                if i.consume_key(egui::Modifiers::NONE, egui::Key::OpenBracket) {
-                    let tab = self.active_tab;
-                    let af = self.docs[tab].active_frame;
-                    if af > 0 {
-                        self.docs[tab].set_active_frame(af - 1);
-                    }
-                }
-                if i.consume_key(egui::Modifiers::NONE, egui::Key::CloseBracket) {
-                    let tab = self.active_tab;
-                    let af = self.docs[tab].active_frame;
-                    let frames = self.docs[tab].frames;
-                    if af + 1 < frames {
-                        self.docs[tab].set_active_frame(af + 1);
-                    }
-                }
-                // Space = play / pause animation
-                if i.consume_key(egui::Modifiers::NONE, egui::Key::Space) {
-                    let tab = self.active_tab;
-                    let doc = &mut self.docs[tab];
-                    doc.playing = !doc.playing;
-                    doc.canvas_dirty = true;
+            Action::ToolBrush => self.tool = Tool::Brush,
+            Action::ToolEraser => self.tool = Tool::Eraser,
+            Action::ToolFill => self.tool = Tool::Fill,
+            Action::ToolSelect => self.tool = Tool::Select,
+            Action::ToolMove => self.tool = Tool::Move,
+            Action::ToolText => self.tool = Tool::Text,
+            Action::ToggleGrid => {
+                let tab = self.active_tab;
+                self.docs[tab].grid = !self.docs[tab].grid;
+            }
+            Action::HsvValueUp => self.bump_hsv(0.0, 0.0, constants::hsv_step()),
+            Action::HsvValueDown => self.bump_hsv(0.0, 0.0, -constants::hsv_step()),
+            Action::HsvSatDown => self.bump_hsv(0.0, -constants::hsv_step(), 0.0),
+            Action::HsvSatUp => self.bump_hsv(0.0, constants::hsv_step(), 0.0),
+            Action::HsvHueDown => self.bump_hsv(-constants::hsv_step(), 0.0, 0.0),
+            Action::HsvHueUp => self.bump_hsv(constants::hsv_step(), 0.0, 0.0),
+            Action::AlphaDown => self.bump_alpha(-constants::alpha_step()),
+            Action::AlphaUp => self.bump_alpha(constants::alpha_step()),
+            Action::Palette1 => self.pick_preset(0),
+            Action::Palette2 => self.pick_preset(1),
+            Action::Palette3 => self.pick_preset(2),
+            Action::Palette4 => self.pick_preset(3),
+            Action::Palette5 => self.pick_preset(4),
+            Action::Palette6 => self.pick_preset(5),
+            Action::Palette7 => self.pick_preset(6),
+            Action::Palette8 => self.pick_preset(7),
+            Action::Palette9 => self.pick_preset(8),
+            Action::FramePrev => {
+                let tab = self.active_tab;
+                let af = self.docs[tab].active_frame;
+                if af > 0 {
+                    self.docs[tab].set_active_frame(af - 1);
                 }
             }
-            // Delete
-            if i.consume_key(egui::Modifiers::NONE, egui::Key::Delete) {
+            Action::FrameNext => {
+                let tab = self.active_tab;
+                let af = self.docs[tab].active_frame;
+                let frames = self.docs[tab].frames;
+                if af + 1 < frames {
+                    self.docs[tab].set_active_frame(af + 1);
+                }
+            }
+            Action::TogglePlay => {
+                let tab = self.active_tab;
+                let doc = &mut self.docs[tab];
+                doc.playing = !doc.playing;
+                doc.canvas_dirty = true;
+            }
+            Action::Delete => {
                 self.docs[self.active_tab].delete_selection();
             }
-            // Enter = commit the paste, otherwise crop the canvas to the selection
-            if self.docs[self.active_tab].sel.is_some() && !self.dialog_open() && self.renaming_layer.is_none() {
-                if i.consume_key(egui::Modifiers::NONE, egui::Key::Enter) {
+            Action::CommitOrCrop => {
+                if self.docs[self.active_tab].sel.is_some() {
                     let doc = &mut self.docs[self.active_tab];
                     if doc.pasting {
-                        // the paste never landed on the layer — nothing to crop here
                         doc.commit_pending_paste();
                     } else {
                         doc.crop_to_selection();
                     }
                 }
             }
-            // Escape
-            if i.consume_key(egui::Modifiers::NONE, egui::Key::Escape) {
+            Action::Escape => {
                 if self.show_clear_confirm {
                     self.show_clear_confirm = false;
                 } else if self.show_color_input {
@@ -268,34 +289,20 @@ impl PixeshApp {
                     self.docs[self.active_tab].deselect();
                 }
             }
-            // Ctrl+Shift+D = deselect. Checked before Ctrl+D: consume_key
-            // ignores extra Shift, so the close-tab shortcut would also match.
-            if clip_ok && i.consume_key(egui::Modifiers::CTRL | egui::Modifiers::SHIFT, egui::Key::D) {
+            Action::Deselect => {
                 self.docs[self.active_tab].deselect();
             }
-            // Ctrl+D = close the active tab (same as the tab bar close button).
-            if clip_ok && i.consume_key(egui::Modifiers::CTRL, egui::Key::D) {
+            Action::CloseTab => {
                 let tab = self.active_tab;
                 self.close_tab(tab);
             }
-            // Ctrl+A = select the whole canvas, like in Photoshop.
-            // The guard is shared with Ctrl+C/Ctrl+V for a reason: the egui
-            // TextEdit field itself uses Ctrl+A to select all text, and
-            // without this check we would take it away from the field.
-            if clip_ok && i.consume_key(egui::Modifiers::CTRL, egui::Key::A) {
+            Action::SelectAll => {
                 self.docs[self.active_tab].select_all();
             }
-            // Ctrl+Shift+F = flatten layers
-            if i.consume_key(egui::Modifiers::CTRL | egui::Modifiers::SHIFT, egui::Key::F) {
-                if !self.dialog_open() {
-                    self.docs[self.active_tab].flatten_layers();
-                }
+            Action::Flatten => {
+                self.docs[self.active_tab].flatten_layers();
             }
-            // Y = copy selection, Ctrl+C = same. The clipboard belongs to the
-            // app, not the document, so the block stays available in other tabs.
-            if i.consume_key(egui::Modifiers::NONE, egui::Key::Y)
-                || (clip_ok && i.consume_key(egui::Modifiers::CTRL, egui::Key::C))
-            {
+            Action::Copy | Action::CopyClipboard => {
                 let tab = self.active_tab;
                 if let Some(clip) = self.docs[tab].copy_selection() {
                     self.clipboard = clip;
@@ -304,28 +311,14 @@ impl PixeshApp {
                     self.status_hint_until = now + 2.0;
                 }
             }
-            // P = paste selection, Ctrl+V = same. Pasting into another canvas
-            // leaves this one's floating selection untouched.
-            if i.consume_key(egui::Modifiers::NONE, egui::Key::P)
-                || (clip_ok && i.consume_key(egui::Modifiers::CTRL, egui::Key::V))
-            {
+            Action::Paste | Action::PasteClipboard => {
                 let tab = self.active_tab;
                 if !self.docs[tab].paste_clipboard(&self.clipboard) {
                     self.status_hint = "clipboard is empty".into();
                     self.status_hint_until = now + 2.0;
                 }
             }
-            // Shift+X = toggle transform (when selection exists).
-            // Checked before plain X: consume_key ignores extra Shift when
-            // matching, so X would otherwise fire here too.
-            // text_focused is needed: otherwise "x" typed into a text field or
-            // a DragValue would switch the tool out from under the user.
-            if i.consume_key(egui::Modifiers::SHIFT, egui::Key::X)
-                && !i.modifiers.alt
-                && !i.modifiers.ctrl
-                && !text_focused
-                && !self.dialog_open()
-            {
+            Action::Transform => {
                 let tab = self.active_tab;
                 let has_sel = self.docs[tab].sel.is_some();
                 if has_sel && self.tool != Tool::Transform {
@@ -360,69 +353,18 @@ impl PixeshApp {
                     self.docs[tab].canvas_dirty = true;
                 }
             }
-            // X = clear all layers, but only after the Yes/No confirmation.
-            if i.consume_key(egui::Modifiers::NONE, egui::Key::X)
-                && !i.modifiers.alt
-                && !i.modifiers.ctrl
-                && !text_focused
-                && !self.dialog_open()
-                && self.renaming_layer.is_none()
-            {
+            Action::ClearAll => {
                 self.show_clear_confirm = true;
             }
-        });
-
-        // scroll zoom / brush size.
-        // While a dialog is open, the wheel should scroll the panel inside it
-        // rather than zoom the canvas underneath. The same applies to scrollable
-        // panels (layers, timeline, ...): only zoom when the cursor is actually
-        // over the canvas.
-        let over_canvas = ctx
-            .pointer_hover_pos()
-            .is_some_and(|p| self.canvas_rect.contains(p));
-        if !self.dialog_open() && over_canvas {
-            let scroll = ctx.input(|i| i.raw_scroll_delta.y);
-            if scroll != 0.0 {
-                let scroll_norm = scroll.signum();
-                if ctx.input(|i| i.modifiers.shift) {
-                    let tab = self.active_tab;
-                    let max = self.docs[tab].width.max(self.docs[tab].height) as f32;
-                    self.brush = (self.brush + scroll_norm).clamp(1.0, max);
-                } else {
-                    let tab = self.active_tab;
-                    let doc = &mut self.docs[tab];
-                    let old = doc.zoom;
-                    doc.zoom = (doc.zoom * (1.0 + scroll_norm * self.zoom_speed * 0.1)).clamp(0.1, 60.0);
-                    doc.pan *= doc.zoom / old;
+            Action::ReloadConfig => {
+                match crate::app::lua_config::reload() {
+                    Ok(msg) => self.hint(msg),
+                    Err(msg) => self.hint(format!("config error: {msg}")),
                 }
             }
         }
-
-        // arrow pan
-        if !self.dialog_open() {
-            let tab = self.active_tab;
-            ctx.input(|i| {
-                let speed = if i.modifiers.shift { self.arrow_speed * 4.0 } else { self.arrow_speed };
-                if i.key_down(egui::Key::ArrowLeft)  { self.docs[tab].pan.x += speed; }
-                if i.key_down(egui::Key::ArrowRight) { self.docs[tab].pan.x -= speed; }
-                if i.key_down(egui::Key::ArrowUp)    { self.docs[tab].pan.y += speed; }
-                if i.key_down(egui::Key::ArrowDown)  { self.docs[tab].pan.y -= speed; }
-            });
-        }
-
-        // temporary eyedropper (Alt)
-        ctx.input(|i| {
-            let held = i.modifiers.alt;
-            if held && self.tool_saved.is_none() {
-                self.tool_saved = Some(self.tool);
-                self.tool = Tool::Eyedropper;
-            } else if !held {
-                if let Some(saved) = self.tool_saved.take() {
-                    self.tool = saved;
-                }
-            }
-        });
     }
+
 
     pub(crate) fn handle_eyedropper(&mut self, px: i32, py: i32) {
         let tab = self.active_tab;
@@ -615,5 +557,35 @@ mod tests {
         assert_eq!(app.color_input_buf, "12, 34, 56");
         assert!(app.color_input_error.is_none());
         assert_eq!(app.color_history, vec![eframe::egui::Color32::RED]);
+    }
+
+    #[test]
+    fn lua_config_can_replace_a_default_shortcut() {
+        let cfg = crate::app::lua_config::parse_for_test(
+            "keys = { tool_brush = 'V' }",
+        ).unwrap();
+        crate::app::lua_config::with_test_config(cfg, || {
+            let mut app = PixeshApp::new();
+            app.show_welcome = false;
+
+            app.tool = Tool::Eraser;
+            press(&mut app, Key::V, Modifiers::NONE);
+            assert_eq!(app.tool, Tool::Brush, "V must select the brush");
+
+            app.tool = Tool::Text;
+            press(&mut app, Key::B, Modifiers::NONE);
+            assert_eq!(app.tool, Tool::Text, "the old B binding is gone");
+        });
+    }
+
+    #[test]
+    fn lua_config_values_reach_the_runtime_constants() {
+        let cfg = crate::app::lua_config::parse_for_test(
+            "colors = { palette = { '#01020304' } } constants = { hsv_step = 9 }",
+        ).unwrap();
+        crate::app::lua_config::with_test_config(cfg, || {
+            assert_eq!(crate::constants::num_palette()[0], [1, 2, 3, 4]);
+            assert_eq!(crate::constants::hsv_step(), 9.0);
+        });
     }
 }

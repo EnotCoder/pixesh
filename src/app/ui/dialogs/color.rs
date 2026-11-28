@@ -2,7 +2,6 @@ use eframe::egui::{self, Vec2};
 
 use crate::app::state::color::{format_rgb_input, parse_rgb_input};
 use crate::app::PixeshApp;
-use crate::constants::*;
 
 use super::fit::fitted_dialog;
 
@@ -35,7 +34,7 @@ impl PixeshApp {
 
                     child.add_space(12.0);
                     child.vertical_centered(|ui| {
-                        ui.label(egui::RichText::new("RGB colour").size(28.0).color(TEXT));
+                        ui.label(egui::RichText::new("RGB colour").size(28.0).color(crate::constants::text()));
                     });
                     child.add_space(12.0);
 
@@ -71,7 +70,7 @@ impl PixeshApp {
                     } else {
                         let text = format_rgb_input(self.color);
                         child.vertical_centered(|ui| {
-                            ui.label(egui::RichText::new(text).size(18.0).color(TEXT));
+                            ui.label(egui::RichText::new(text).size(18.0).color(crate::constants::text()));
                         });
                     }
 

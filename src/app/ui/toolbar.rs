@@ -11,7 +11,7 @@ impl PixeshApp {
         let edge = self.toolbar_edge;
         let id = PanelId::Toolbar.ui_id(edge);
         let mut body = |ui: &mut egui::Ui| self.toolbar_body(ui);
-        let frame = egui::Frame::new().fill(PANEL);
+        let frame = egui::Frame::new().fill(crate::constants::panel());
         // Toolbar is a horizontal strip, restricted to Top or Bottom
         if edge == Edge::Top {
             egui::TopBottomPanel::top(id)
@@ -54,7 +54,7 @@ impl PixeshApp {
                 let panel_bottom = ui.max_rect().bottom();
                 let panel_left = ui.max_rect().left();
                 let panel_right = ui.max_rect().right();
-                ui.painter().hline(panel_left..=panel_right, panel_bottom, Stroke::new(4.0_f32, BORDER));
+                ui.painter().hline(panel_left..=panel_right, panel_bottom, Stroke::new(4.0_f32, crate::constants::border()));
     }
 
     /// Main tool row (logo + tools + grid + zoom + brush controls).
@@ -66,7 +66,7 @@ impl PixeshApp {
             let logo_tex = self.logo_tex.get_or_insert_with(|| {
                 load_icon_texture(ui, "logo", include_bytes!("../../../img/logo.png"))
             });
-            let logo_sz = Vec2::splat((ROW_H + 6.0) * 1.5);
+            let logo_sz = Vec2::splat((crate::constants::row_h() + 6.0) * 1.5);
             let (lr, lresp) = ui.allocate_exact_size(logo_sz, Sense::click());
             let t_logo = ui.ctx().animate_bool(lresp.id, lresp.hovered());
             let logo_rect = lr.translate(Vec2::new(0.0, 4.0 - t_logo * 4.0));
@@ -147,25 +147,25 @@ impl PixeshApp {
 
             // Text tool
             {
-                let sz = ROW_H + 16.0;
+                let sz = crate::constants::row_h() + 16.0;
                 let (rect, resp) = ui.allocate_exact_size(Vec2::splat(sz), Sense::click());
                 let t_hover = ui.ctx().animate_bool(resp.id.with("hover"), resp.hovered());
                 let t_active = ui.ctx().animate_bool(resp.id.with("active"), self.tool == Tool::Text);
                 
-                let mut bg = PANEL;
-                bg = lerp_color(bg, HOVER, t_hover);
-                bg = lerp_color(bg, ACCENT, t_active);
+                let mut bg = crate::constants::panel();
+                bg = lerp_color(bg, crate::constants::hover(), t_hover);
+                bg = lerp_color(bg, crate::constants::accent(), t_active);
 
                 let offset = if resp.is_pointer_button_down_on() { 2.0 } else { 0.0 };
                 let draw_rect = rect.translate(Vec2::new(0.0, offset));
 
                 let p = ui.painter();
                 if offset == 0.0 {
-                    p.rect_filled(rect.translate(Vec2::new(0.0, 2.0)), 0.0, BORDER);
+                    p.rect_filled(rect.translate(Vec2::new(0.0, 2.0)), 0.0, crate::constants::border());
                 }
                 p.rect_filled(draw_rect, 0.0, bg);
-                p.text(draw_rect.center(), egui::Align2::CENTER_CENTER, "T", egui::FontId::proportional(24.0), TEXT);
-                p.rect_stroke(draw_rect, 0.0, Stroke::new(4.0_f32, BORDER), egui::StrokeKind::Inside);
+                p.text(draw_rect.center(), egui::Align2::CENTER_CENTER, "T", egui::FontId::proportional(24.0), crate::constants::text());
+                p.rect_stroke(draw_rect, 0.0, Stroke::new(4.0_f32, crate::constants::border()), egui::StrokeKind::Inside);
                 
                 let resp = resp.on_hover_text("Text (T)");
                 if resp.clicked() { self.tool = Tool::Text; }
@@ -173,24 +173,24 @@ impl PixeshApp {
 
             // Effects tool — opens the effects dialog panel
             {
-                let sz = ROW_H + 16.0;
+                let sz = crate::constants::row_h() + 16.0;
                 let (rect, resp) = ui.allocate_exact_size(Vec2::splat(sz), Sense::click());
                 let t_hover = ui.ctx().animate_bool(resp.id.with("hover"), resp.hovered());
                 let t_active = ui.ctx().animate_bool(resp.id.with("active"), self.tool == Tool::Effects);
 
-                let mut bg = PANEL;
-                bg = lerp_color(bg, HOVER, t_hover);
-                bg = lerp_color(bg, ACCENT, t_active);
+                let mut bg = crate::constants::panel();
+                bg = lerp_color(bg, crate::constants::hover(), t_hover);
+                bg = lerp_color(bg, crate::constants::accent(), t_active);
 
                 let offset = if resp.is_pointer_button_down_on() { 2.0 } else { 0.0 };
                 let draw_rect = rect.translate(Vec2::new(0.0, offset));
 
                 let p = ui.painter();
                 if offset == 0.0 {
-                    p.rect_filled(rect.translate(Vec2::new(0.0, 2.0)), 0.0, BORDER);
+                    p.rect_filled(rect.translate(Vec2::new(0.0, 2.0)), 0.0, crate::constants::border());
                 }
                 p.rect_filled(draw_rect, 0.0, bg);
-                p.rect_stroke(draw_rect, 0.0, Stroke::new(4.0_f32, BORDER), egui::StrokeKind::Inside);
+                p.rect_stroke(draw_rect, 0.0, Stroke::new(4.0_f32, crate::constants::border()), egui::StrokeKind::Inside);
 
                 // Pixel sparkle icon: two overlaid 4-point stars
                 let c = draw_rect.center();
@@ -209,8 +209,8 @@ impl PixeshApp {
                         col,
                     );
                 };
-                star(p, c + Vec2::new(-r * 0.25, r * 0.25), r, 3.0, TEXT);
-                star(p, c + Vec2::new(r * 0.75, -r * 0.7), r * 0.45, 2.0, ACCENT);
+                star(p, c + Vec2::new(-r * 0.25, r * 0.25), r, 3.0, crate::constants::text());
+                star(p, c + Vec2::new(r * 0.75, -r * 0.7), r * 0.45, 2.0, crate::constants::accent());
 
                 let resp = resp.on_hover_text("Effects (Ctrl+Shift+E)");
                 if resp.clicked() {
@@ -235,8 +235,8 @@ impl PixeshApp {
             ui.add_space(6.0);
 
             let cbs = 18.0;
-            let btn_h = ROW_H + 16.0;
-            let grid_w = cbs + 8.0 + "Grid".len() as f32 * CHAR_W;
+            let btn_h = crate::constants::row_h() + 16.0;
+            let grid_w = cbs + 8.0 + "Grid".len() as f32 * crate::constants::char_w();
             let (grid_rect, grid_resp) = ui.allocate_exact_size(Vec2::new(grid_w, btn_h), Sense::click());
             let p = ui.painter();
             let cb_rect = Rect::from_min_size(
@@ -247,20 +247,20 @@ impl PixeshApp {
             let is_grid = self.docs[self.active_tab].grid;
             let t_grid = ui.ctx().animate_bool(grid_resp.id.with("grid_anim"), is_grid);
 
-            p.rect_filled(cb_rect, 0.0, PANEL);
-            p.rect_stroke(cb_rect, 0.0, Stroke::new(4.0_f32, BORDER), egui::StrokeKind::Outside);
+            p.rect_filled(cb_rect, 0.0, crate::constants::panel());
+            p.rect_stroke(cb_rect, 0.0, Stroke::new(4.0_f32, crate::constants::border()), egui::StrokeKind::Outside);
             
             if t_grid > 0.0 {
                 let inner = cb_rect.shrink(4.0 * (1.0 - t_grid));
-                p.rect_filled(inner, 0.0, lerp_color(PANEL, ACCENT, t_grid));
+                p.rect_filled(inner, 0.0, lerp_color(crate::constants::panel(), crate::constants::accent(), t_grid));
             }
             
             p.text(
                 Pos2::new(cb_rect.max.x + 8.0, grid_rect.center().y),
                 egui::Align2::LEFT_CENTER,
                 "Grid",
-                egui::FontId::proportional(FONT_SZ),
-                TEXT,
+                egui::FontId::proportional(crate::constants::font_sz()),
+                crate::constants::text(),
             );
             
             if grid_resp.clicked() {
@@ -294,12 +294,12 @@ impl PixeshApp {
             ui.spacing_mut().item_spacing.x = 6.0;
 
             // zoom text: measure the real text width instead of estimating it
-            // with CHAR_W, otherwise the allocated rect is much wider than the
+            // with crate::constants::char_w(), otherwise the allocated rect is much wider than the
             // text and leaves a large empty gap before the brush controls.
             let zoom_text = format!("Zoom: {:.2}", self.docs[self.active_tab].zoom);
             let zoom_font = egui::FontId::proportional(20.0);
             let zoom_w = ui.fonts(|f| {
-                f.layout_no_wrap(zoom_text.clone(), zoom_font.clone(), TEXT)
+                f.layout_no_wrap(zoom_text.clone(), zoom_font.clone(), crate::constants::text())
                     .size()
                     .x
             }) + 2.0;
@@ -309,7 +309,7 @@ impl PixeshApp {
                 egui::Align2::LEFT_CENTER,
                 &zoom_text,
                 zoom_font,
-                TEXT,
+                crate::constants::text(),
             );
 
             // ── brush size + shape (only for Brush/Eraser) ──
@@ -322,7 +322,7 @@ impl PixeshApp {
                 ui.add_space(6.0);
 
                 // Label "Size"
-                ui.label(egui::RichText::new("Size:").size(18.0).color(DIM));
+                ui.label(egui::RichText::new("Size:").size(18.0).color(crate::constants::dim()));
                 
                 ui.style_mut().text_styles.insert(
                     egui::TextStyle::Button,
@@ -332,7 +332,7 @@ impl PixeshApp {
                 let mut h = self.brush as i32;
                 ui.add_sized(
                     Vec2::new(btn_h, btn_h),
-                    egui::DragValue::new(&mut h).range(1..=MAX_SIDE),
+                    egui::DragValue::new(&mut h).range(1..=crate::constants::max_side()),
                 );
                 self.brush = h as f32;
 
@@ -394,17 +394,17 @@ impl PixeshApp {
                             let unsaved = self.docs[ti].unsaved;
                             let name = &self.docs[ti].name;
                             let label = if unsaved { format!("*{}", name) } else { name.clone() };
-                            let label_w = label.len() as f32 * CHAR_W * (18.0 / FONT_SZ) + 24.0;
+                            let label_w = label.len() as f32 * crate::constants::char_w() * (18.0 / crate::constants::font_sz()) + 24.0;
                             let close_w = tab_h;
                             let tab_w = label_w + close_w;
 
                             let (tab_rect, tab_resp) = ui.allocate_exact_size(Vec2::new(tab_w, tab_h), Sense::click());
                             let t_active = ui.ctx().animate_bool(tab_resp.id.with("tab_anim"), is_active);
 
-                            let bg = lerp_color(PANEL, HOVER, t_active);
+                            let bg = lerp_color(crate::constants::panel(), crate::constants::hover(), t_active);
                             let p = ui.painter();
                             p.rect_filled(tab_rect, 0.0, bg);
-                            p.rect_stroke(tab_rect, 0.0, Stroke::new(2.0_f32, BORDER), egui::StrokeKind::Inside);
+                            p.rect_stroke(tab_rect, 0.0, Stroke::new(2.0_f32, crate::constants::border()), egui::StrokeKind::Inside);
 
                             // tab label
                             p.text(
@@ -412,7 +412,7 @@ impl PixeshApp {
                                 egui::Align2::LEFT_CENTER,
                                 &label,
                                 egui::FontId::proportional(18.0),
-                                TEXT,
+                                crate::constants::text(),
                             );
 
                             // close button
@@ -422,7 +422,7 @@ impl PixeshApp {
                             );
                             let close_resp = ui.interact(close_rect, egui::Id::new(("tab_close", ti)), Sense::click());
                             let t_close = ui.ctx().animate_bool(close_resp.id.with("close_anim"), close_resp.hovered());
-                            let close_bg = lerp_color(PANEL, ACCENT, t_close);
+                            let close_bg = lerp_color(crate::constants::panel(), crate::constants::accent(), t_close);
 
                             p.rect_filled(close_rect, 0.0, close_bg);
                             let tab_close_tex = self.tab_close_tex.get_or_insert_with(|| {
@@ -455,10 +455,10 @@ impl PixeshApp {
             // "+" button to create new tab
             let (plus_rect, plus_resp) = ui.allocate_exact_size(Vec2::new(plus_w, tab_h), Sense::click());
             let t_plus = ui.ctx().animate_bool(plus_resp.id.with("plus_anim"), plus_resp.hovered());
-            let bg = lerp_color(PANEL, HOVER, t_plus);
+            let bg = lerp_color(crate::constants::panel(), crate::constants::hover(), t_plus);
             
             ui.painter().rect_filled(plus_rect, 0.0, bg);
-            ui.painter().rect_stroke(plus_rect, 0.0, Stroke::new(2.0_f32, BORDER), egui::StrokeKind::Inside);
+            ui.painter().rect_stroke(plus_rect, 0.0, Stroke::new(2.0_f32, crate::constants::border()), egui::StrokeKind::Inside);
             let tab_plus_tex = self.tab_plus_tex.get_or_insert_with(|| {
                 load_icon_texture(ui, "tab_plus", include_bytes!("../../../tex/layers/plus_layer.png"))
             });

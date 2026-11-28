@@ -399,6 +399,11 @@ with Yes / No. Yes erases every layer’s active-frame cel as one undoable step.
 
 ## Keyboard and mouse shortcuts (`src/app/ui/input.rs`)
 
+Every shortcut in the table is a default from `config/config.lua`; the Lua
+`keys` table can rebind or remove it, and `Ctrl+Shift+R` reloads the file. See
+[CONFIG.md](CONFIG.md) for action names and scopes. Dialog-local keys, wheel
+zoom, arrow panning and the Alt eyedropper are fixed by the widgets themselves.
+
 | Input | Action |
 |-------|--------|
 | `Ctrl+Z` | Undo |

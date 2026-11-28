@@ -43,14 +43,14 @@ impl PixeshApp {
                     let p = ui.painter();
 
                     let title = "Export PNG";
-                    let title_galley = ui.fonts(|f| f.layout_no_wrap(title.into(), title_font.clone(), TEXT));
+                    let title_galley = ui.fonts(|f| f.layout_no_wrap(title.into(), title_font.clone(), crate::constants::text()));
                     let title_x = rect.center().x - title_galley.size().x * 0.5;
                     p.text(
                         egui::pos2(title_x, rect.min.y + 12.0),
                         egui::Align2::LEFT_TOP,
                         title,
                         title_font,
-                        TEXT,
+                        crate::constants::text(),
                     );
 
                     p.text(
@@ -58,7 +58,7 @@ impl PixeshApp {
                         egui::Align2::LEFT_TOP,
                         &folder_text,
                         body_font.clone(),
-                        TEXT,
+                        crate::constants::text(),
                     );
 
                     let file_row_y = rect.min.y + 116.0 + 8.0;
@@ -67,7 +67,7 @@ impl PixeshApp {
                         egui::Align2::LEFT_TOP,
                         "File:",
                         body_font.clone(),
-                        TEXT,
+                        crate::constants::text(),
                     );
 
                     p.text(
@@ -75,14 +75,14 @@ impl PixeshApp {
                         egui::Align2::LEFT_TOP,
                         "Scale:",
                         small_font.clone(),
-                        TEXT,
+                        crate::constants::text(),
                     );
                     p.text(
                         egui::pos2(rect.min.x + pad, rect.min.y + 250.0),
                         egui::Align2::LEFT_TOP,
                         "Background:",
                         small_font.clone(),
-                        TEXT,
+                        crate::constants::text(),
                     );
                 }
 
@@ -108,10 +108,10 @@ impl PixeshApp {
                     }
 
                     let p = ui.painter();
-                    let dot_bg = if dot_resp.clicked() { ACCENT } else if dot_resp.hovered() { HOVER } else { PANEL };
+                    let dot_bg = if dot_resp.clicked() { crate::constants::accent() } else if dot_resp.hovered() { crate::constants::hover() } else { crate::constants::panel() };
                     p.rect_filled(dot_btn_rect, 0.0, dot_bg);
-                    p.rect_stroke(dot_btn_rect, 0.0, Stroke::new(4.0_f32, BORDER), egui::StrokeKind::Outside);
-                    p.text(dot_btn_rect.center(), egui::Align2::CENTER_CENTER, "...", body_font.clone(), TEXT);
+                    p.rect_stroke(dot_btn_rect, 0.0, Stroke::new(4.0_f32, crate::constants::border()), egui::StrokeKind::Outside);
+                    p.text(dot_btn_rect.center(), egui::Align2::CENTER_CENTER, "...", body_font.clone(), crate::constants::text());
                 }
 
                 // scale buttons
@@ -196,17 +196,17 @@ impl PixeshApp {
                         self.export_layers = !self.export_layers;
                     }
                     let p = ui.painter();
-                    p.rect_filled(cb_rect, 0.0, PANEL);
-                    p.rect_stroke(cb_rect, 0.0, Stroke::new(4.0_f32, BORDER), egui::StrokeKind::Outside);
+                    p.rect_filled(cb_rect, 0.0, crate::constants::panel());
+                    p.rect_stroke(cb_rect, 0.0, Stroke::new(4.0_f32, crate::constants::border()), egui::StrokeKind::Outside);
                     if self.export_layers {
-                        p.rect_filled(cb_rect.shrink(5.0), 0.0, ACCENT);
+                        p.rect_filled(cb_rect.shrink(5.0), 0.0, crate::constants::accent());
                     }
                     p.text(
                         egui::pos2(cb_row.min.x + cb_sz + 10.0, cb_row.center().y),
                         egui::Align2::LEFT_CENTER,
                         "Each layer",
                         small_font.clone(),
-                        TEXT,
+                        crate::constants::text(),
                     );
                 }
 
@@ -225,7 +225,7 @@ impl PixeshApp {
                         egui::Align2::LEFT_TOP,
                         out,
                         small_font.clone(),
-                        DIM,
+                        crate::constants::dim(),
                     );
                 }
 

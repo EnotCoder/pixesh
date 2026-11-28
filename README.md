@@ -55,6 +55,8 @@ pixesh --version
 - **History** — undo / redo, up to 50 steps
 - **Settings** — arrow-pan speed, zoom speed, falling snow and whether the
   welcome window appears at startup
+- **Lua config** — remap every shortcut, change theme colours, the 1–9 palette
+  and layout/tool constants in a plain text file, reload with `Ctrl+Shift+R`
 
 ## Controls
 
@@ -92,7 +94,10 @@ pixesh --version
 | `Ctrl+K` | Enter a colour live from the keyboard: `r,g,b[,a]` or `#RRGGBB[AA]`; `Enter`/`Esc` close. No undo/history entry |
 | `Ctrl+Tab` | Next tab |
 | `Ctrl+Z` / `Ctrl+Shift+Z` | Undo / redo |
+| `Ctrl+Shift+R` | Reload the Lua config |
 | `G` | Toggle grid |
+
+All shortcuts above are defaults from `config/config.lua`; see [Configuration](#configuration).
 
 ## Effects
 
@@ -124,6 +129,26 @@ since they are shaped differently. Drag a panel's *outer* edge to resize it.
 Everything is kept in one file — `~/.local/share/pixesh/app.ron` on Linux,
 `%APPDATA%\pixesh\data\app.ron` on Windows — written every 10 seconds and on
 exit. Dialogs are never restored, so nothing opens by itself.
+
+## Configuration
+
+On the first launch Pixesh copies the documented default config to
+`~/.config/pixesh/config.lua` (`$XDG_CONFIG_HOME/pixesh/config.lua` if set).
+Use `pixesh --config /path/to/file.lua` to load a different file. It is a Lua
+5.4 file with three optional tables:
+
+```lua
+colors = { accent = "#c8783c", palette = { "#ff0000", ... } }
+constants = { font_size = 20, max_side = 4096, hsv_step = 5 }
+keys = { undo = "Ctrl+Z", copy = { "Y", "C" }, redo = false }
+```
+
+An action set to `false` removes its default binding.
+
+`Ctrl+Shift+R` re-reads the file without restarting; parse errors are shown in
+the status bar and leave the last good config in place. Every action name,
+colour, constant and key syntax is documented in [docs/CONFIG.md](docs/CONFIG.md)
+and in the generated file itself.
 
 ## Build
 

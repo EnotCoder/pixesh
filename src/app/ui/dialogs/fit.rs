@@ -2,7 +2,6 @@
 
 use eframe::egui::{self, Rect, Sense, Stroke, Vec2};
 
-use crate::constants::*;
 
 /// Margin kept free around a dialog, split between both sides.
 const DIALOG_MARGIN: f32 = 16.0;
@@ -31,11 +30,11 @@ pub(crate) fn fitted_dialog(
     let (frame, _) = ui.allocate_exact_size(viewport, Sense::hover());
 
     let p = ui.painter();
-    p.rect_filled(frame, 0.0, PANEL);
+    p.rect_filled(frame, 0.0, crate::constants::panel());
     p.rect_stroke(
         frame,
         0.0,
-        Stroke::new(4.0_f32, BORDER),
+        Stroke::new(4.0_f32, crate::constants::border()),
         egui::StrokeKind::Outside,
     );
 

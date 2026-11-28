@@ -139,6 +139,8 @@ pub struct PixeshApp {
     pub(crate) status_hint_until: f64,
     /// Time of the last frame — lets hint() expire a hint without access to ctx
     pub(crate) last_time: f64,
+    /// Bumped by a successful Lua reload; triggers a style refresh in update().
+    pub(crate) config_version: u64,
 
     // ── effects panel (ports from Pixelorama) ──
     pub(crate) show_effects: bool,
@@ -219,6 +221,7 @@ impl PixeshApp {
             status_hint: String::new(),
             status_hint_until: 0.0,
             last_time: 0.0,
+            config_version: crate::app::lua_config::version(),
             show_text: false,
             text_cursor: None,
             text_buffer: String::new(),

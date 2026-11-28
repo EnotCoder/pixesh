@@ -23,15 +23,15 @@ fn action_button(
     let offset = if down { 2.0 } else { 0.0 };
     let draw = rect.translate(Vec2::new(0.0, offset));
 
-    let base = if accent { PANEL_LIGHT } else { PANEL };
-    let mut bg = lerp_color(base, HOVER, hover);
+    let base = if accent { crate::constants::panel_light() } else { crate::constants::panel() };
+    let mut bg = lerp_color(base, crate::constants::hover(), hover);
     if down {
-        bg = ACCENT;
+        bg = crate::constants::accent();
     }
-    let border = lerp_color(if accent { ACCENT } else { BORDER }, ACCENT, hover);
+    let border = lerp_color(if accent { crate::constants::accent() } else { crate::constants::border() }, crate::constants::accent(), hover);
 
     if offset == 0.0 {
-        p.rect_filled(rect.translate(Vec2::new(0.0, 2.0)), 0.0, BORDER);
+        p.rect_filled(rect.translate(Vec2::new(0.0, 2.0)), 0.0, crate::constants::border());
     }
     p.rect_filled(draw, 0.0, bg);
     p.rect_stroke(
@@ -45,7 +45,7 @@ fn action_button(
         egui::Align2::CENTER_CENTER,
         label,
         egui::FontId::proportional(font_size),
-        TEXT,
+        crate::constants::text(),
     );
     resp.clicked()
 }
@@ -53,18 +53,18 @@ fn action_button(
 /// Small uppercase section heading with an accent pixel and a trailing rule.
 fn section_label(ui: &egui::Ui, p: &egui::Painter, rect: Rect, y: f32, text: &str) {
     let font = egui::FontId::proportional(14.0);
-    let gal = ui.fonts(|f| f.layout_no_wrap(text.into(), font.clone(), DIM));
+    let gal = ui.fonts(|f| f.layout_no_wrap(text.into(), font.clone(), crate::constants::dim()));
     let x = rect.min.x + 20.0;
     p.rect_filled(
         Rect::from_center_size(Pos2::new(x + 3.0, y), Vec2::splat(6.0)),
         0.0,
-        ACCENT,
+        crate::constants::accent(),
     );
-    p.text(Pos2::new(x + 14.0, y), egui::Align2::LEFT_CENTER, text, font, DIM);
+    p.text(Pos2::new(x + 14.0, y), egui::Align2::LEFT_CENTER, text, font, crate::constants::dim());
     p.hline(
         (x + 14.0 + gal.size().x + 10.0)..=(rect.max.x - 20.0),
         y,
-        Stroke::new(1.0_f32, BORDER),
+        Stroke::new(1.0_f32, crate::constants::border()),
     );
 }
 
@@ -86,16 +86,16 @@ impl PixeshApp {
                         rect.min,
                         Vec2::new(rect.width(), 176.0),
                     );
-                    p.rect_filled(header, 0.0, BG);
+                    p.rect_filled(header, 0.0, crate::constants::bg());
                     p.rect_filled(
                         Rect::from_min_size(rect.min, Vec2::new(rect.width(), 6.0)),
                         0.0,
-                        ACCENT,
+                        crate::constants::accent(),
                     );
                     p.hline(
                         rect.x_range(),
                         header.max.y,
-                        Stroke::new(2.0_f32, BORDER),
+                        Stroke::new(2.0_f32, crate::constants::border()),
                     );
 
                     // ── logo in a framed tile ──
@@ -110,14 +110,14 @@ impl PixeshApp {
                     p.rect_filled(
                         Rect::from_center_size(logo_center, Vec2::splat(92.0)),
                         0.0,
-                        ACCENT.gamma_multiply(0.10),
+                        crate::constants::accent().gamma_multiply(0.10),
                     );
                     let tile = Rect::from_center_size(logo_center, Vec2::splat(76.0));
-                    p.rect_filled(tile, 0.0, PANEL_LIGHT);
+                    p.rect_filled(tile, 0.0, crate::constants::panel_light());
                     p.rect_stroke(
                         tile,
                         0.0,
-                        Stroke::new(2.0_f32, ACCENT),
+                        Stroke::new(2.0_f32, crate::constants::accent()),
                         egui::StrokeKind::Outside,
                     );
                     let lr = Rect::from_center_size(logo_center, Vec2::splat(60.0));
@@ -133,10 +133,10 @@ impl PixeshApp {
                     let t1 = "Welcome to ";
                     let t2 = "Pixesh";
                     let g1 = ui.fonts(|f| {
-                        f.layout_no_wrap(t1.into(), title_font.clone(), TEXT)
+                        f.layout_no_wrap(t1.into(), title_font.clone(), crate::constants::text())
                     });
                     let g2 = ui.fonts(|f| {
-                        f.layout_no_wrap(t2.into(), title_font.clone(), ACCENT)
+                        f.layout_no_wrap(t2.into(), title_font.clone(), crate::constants::accent())
                     });
                     let total_w = g1.size().x + g2.size().x;
                     let tx = rect.center().x - total_w * 0.5;
@@ -146,28 +146,28 @@ impl PixeshApp {
                         egui::Align2::LEFT_TOP,
                         t1,
                         title_font.clone(),
-                        TEXT,
+                        crate::constants::text(),
                     );
                     p.text(
                         Pos2::new(tx + g1.size().x, ty),
                         egui::Align2::LEFT_TOP,
                         t2,
                         title_font,
-                        ACCENT,
+                        crate::constants::accent(),
                     );
 
                     // ── subtitle ──
                     let sub = "A tiny pixel art editor";
                     let sub_font = egui::FontId::proportional(17.0);
                     let sgal = ui.fonts(|f| {
-                        f.layout_no_wrap(sub.into(), sub_font.clone(), DIM)
+                        f.layout_no_wrap(sub.into(), sub_font.clone(), crate::constants::dim())
                     });
                     p.text(
                         Pos2::new(rect.center().x - sgal.size().x * 0.5, rect.min.y + 146.0),
                         egui::Align2::LEFT_TOP,
                         sub,
                         sub_font,
-                        DIM,
+                        crate::constants::dim(),
                     );
 
                     // ── primary actions ──
@@ -253,15 +253,15 @@ impl PixeshApp {
                     if cb_resp.clicked() || t_resp.clicked() {
                         self.welcome_show_again = !self.welcome_show_again;
                     }
-                    p.rect_filled(cb_rect, 0.0, PANEL);
+                    p.rect_filled(cb_rect, 0.0, crate::constants::panel());
                     p.rect_stroke(
                         cb_rect,
                         0.0,
-                        Stroke::new(3.0_f32, BORDER),
+                        Stroke::new(3.0_f32, crate::constants::border()),
                         egui::StrokeKind::Outside,
                     );
                     if self.welcome_show_again {
-                        p.rect_filled(cb_rect.shrink(4.0), 0.0, ACCENT);
+                        p.rect_filled(cb_rect.shrink(4.0), 0.0, crate::constants::accent());
                     }
                     let cb_font = egui::FontId::proportional(17.0);
                     let label_x = cb_row.min.x + cb_sz + 8.0;
@@ -270,7 +270,7 @@ impl PixeshApp {
                         egui::Align2::LEFT_CENTER,
                         "Show this window on startup",
                         cb_font,
-                        TEXT,
+                        crate::constants::text(),
                     );
 
                     // ── Close button ──
@@ -292,7 +292,7 @@ impl PixeshApp {
                         egui::Align2::RIGHT_CENTER,
                         "Enter / Esc",
                         egui::FontId::proportional(13.0),
-                        DIM,
+                        crate::constants::dim(),
                     );
 
                     // ── handle close + persist ──

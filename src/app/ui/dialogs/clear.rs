@@ -1,7 +1,6 @@
 use eframe::egui::{self, Stroke, Vec2};
 
 use crate::app::PixeshApp;
-use crate::constants::*;
 use crate::ui::btn_min_w;
 
 impl PixeshApp {
@@ -24,8 +23,8 @@ impl PixeshApp {
                 let (rect, _) = ui.allocate_exact_size(size, egui::Sense::hover());
                 let p = ui.painter();
 
-                let bg = PANEL.gamma_multiply(t);
-                let brd = BORDER.gamma_multiply(t);
+                let bg = crate::constants::panel().gamma_multiply(t);
+                let brd = crate::constants::border().gamma_multiply(t);
 
                 p.rect_filled(rect, 0.0, bg);
                 p.rect_stroke(rect, 0.0, Stroke::new(4.0_f32, brd), egui::StrokeKind::Outside);
@@ -43,12 +42,12 @@ impl PixeshApp {
                     egui::FontId::proportional(28.0),
                 );
                 child.add_space(24.0);
-                child.label(egui::RichText::new("Clear all layers?").size(26.0).color(TEXT));
+                child.label(egui::RichText::new("Clear all layers?").size(26.0).color(crate::constants::text()));
                 child.add_space(12.0);
                 child.label(
                     egui::RichText::new("This can be undone with Ctrl+Z.")
                         .size(20.0)
-                        .color(DIM),
+                        .color(crate::constants::dim()),
                 );
                 child.add_space(child.available_height() - 44.0);
                 let spacing = child.style().spacing.item_spacing.x;

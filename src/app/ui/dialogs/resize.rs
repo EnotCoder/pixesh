@@ -32,7 +32,7 @@ impl PixeshApp {
 
                 child_ui.add_space(8.0);
                 child_ui.vertical_centered(|ui| {
-                    ui.label(egui::RichText::new("Resize Canvas").size(32.0).color(TEXT));
+                    ui.label(egui::RichText::new("Resize Canvas").size(32.0).color(crate::constants::text()));
                 });
 
                 child_ui.add_space(20.0);
@@ -42,7 +42,7 @@ impl PixeshApp {
                     let mut w = self.resize_w as i32;
                     ui.add(
                         egui::DragValue::new(&mut w)
-                            .range(1..=MAX_SIDE)
+                            .range(1..=crate::constants::max_side())
                             .prefix("W: "),
                     );
                     self.resize_w = w as f32;
@@ -52,7 +52,7 @@ impl PixeshApp {
                     let mut h = self.resize_h as i32;
                     ui.add(
                         egui::DragValue::new(&mut h)
-                            .range(1..=MAX_SIDE)
+                            .range(1..=crate::constants::max_side())
                             .prefix("H: "),
                     );
                     self.resize_h = h as f32;

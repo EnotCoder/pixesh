@@ -1,7 +1,6 @@
 use eframe::egui::{self, Color32, Rect, Stroke, Vec2};
 
 use crate::app::document::Document;
-use crate::constants::*;
 
 use super::PixeshApp;
 
@@ -80,7 +79,7 @@ impl PixeshApp {
         );
         let inset = 8.0;
         let r = Rect::from_min_max(screen.min + Vec2::splat(inset), screen.max - Vec2::splat(inset));
-        p.rect_stroke(r, 0.0, Stroke::new(6.0_f32, ACCENT), egui::StrokeKind::Inside);
+        p.rect_stroke(r, 0.0, Stroke::new(6.0_f32, crate::constants::accent()), egui::StrokeKind::Inside);
         let label = match ctx.input(|i| i.raw.hovered_files.len()) {
             1 => "Open image".to_owned(),
             n => format!("Open {} images", n),
@@ -90,7 +89,7 @@ impl PixeshApp {
             egui::Align2::CENTER_CENTER,
             label,
             egui::FontId::proportional(32.0),
-            ACCENT,
+            crate::constants::accent(),
         );
     }
 

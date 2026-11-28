@@ -33,7 +33,7 @@ impl PixeshApp {
             .default_width(def_w)
             .min_width(120.0)
             .max_width(500.0)
-            .frame(egui::Frame::new().fill(PANEL))
+            .frame(egui::Frame::new().fill(crate::constants::panel()))
             .show_separator_line(false)
             .show(ctx, &mut body);
     }
@@ -42,17 +42,17 @@ impl PixeshApp {
                 ui.add_space(8.0);
 
                 let header = "Layers";
-                let hdr_w = header.len() as f32 * CHAR_W * 1.5;
+                let hdr_w = header.len() as f32 * crate::constants::char_w() * 1.5;
                 let (hdr, _) = ui.allocate_exact_size(
-                    Vec2::new(hdr_w + 12.0, ROW_H * 1.5 + 8.0),
+                    Vec2::new(hdr_w + 12.0, crate::constants::row_h() * 1.5 + 8.0),
                     Sense::hover(),
                 );
                 ui.painter().text(
-                    hdr.min + Vec2::new(PANEL_PAD, 4.0),
+                    hdr.min + Vec2::new(crate::constants::panel_pad(), 4.0),
                     egui::Align2::LEFT_TOP,
                     header,
-                    egui::FontId::proportional(FONT_SZ * 1.5),
-                    TEXT,
+                    egui::FontId::proportional(crate::constants::font_sz() * 1.5),
+                    crate::constants::text(),
                 );
 
                 ui.add_space(4.0);
@@ -68,7 +68,7 @@ impl PixeshApp {
                     let renaming = self.renaming_layer == Some(li);
                     let dragging_this = self.dragging_layer == Some(li);
 
-                    let row_h = ROW_H * 1.5 + 16.0;
+                    let row_h = crate::constants::row_h() * 1.5 + 16.0;
                     let (rect, resp) = ui.allocate_exact_size(
                         Vec2::new(ui.available_size().x, row_h),
                         Sense::click_and_drag(),
@@ -77,9 +77,9 @@ impl PixeshApp {
 
                     let t_active = ui.ctx().animate_bool(resp.id.with("lay_act"), is_active);
                     let t_hover = ui.ctx().animate_bool(resp.id.with("lay_hov"), resp.hovered());
-                    let bg = lerp_color(PANEL, HOVER, t_hover.max(t_active));
+                    let bg = lerp_color(crate::constants::panel(), crate::constants::hover(), t_hover.max(t_active));
                     let bg = if dragging_this {
-                        lerp_color(bg, ACCENT, 0.25)
+                        lerp_color(bg, crate::constants::accent(), 0.25)
                     } else {
                         bg
                     };
@@ -88,24 +88,24 @@ impl PixeshApp {
 
                     let cbs = 14.0;
                     let cb_rect = Rect::from_min_size(
-                        Pos2::new(rect.min.x + PANEL_PAD, rect.center().y - cbs * 0.5),
+                        Pos2::new(rect.min.x + crate::constants::panel_pad(), rect.center().y - cbs * 0.5),
                         Vec2::splat(cbs),
                     );
 
                     let t_visible = ui.ctx().animate_bool(egui::Id::new(("vis_anim", li)), cb);
 
                     let p = ui.painter();
-                    p.rect_filled(cb_rect, 0.0, PANEL_LIGHT);
+                    p.rect_filled(cb_rect, 0.0, crate::constants::panel_light());
                     p.rect_stroke(
                         cb_rect,
                         0.0,
-                        Stroke::new(4.0_f32, BORDER),
+                        Stroke::new(4.0_f32, crate::constants::border()),
                         egui::StrokeKind::Outside,
                     );
 
                     if t_visible > 0.0 {
                         let inner = cb_rect.shrink(3.0 * (1.0 - t_visible));
-                        p.rect_filled(inner, 0.0, lerp_color(PANEL_LIGHT, ACCENT, t_visible));
+                        p.rect_filled(inner, 0.0, lerp_color(crate::constants::panel_light(), crate::constants::accent(), t_visible));
                     }
 
                     let cb_resp =
@@ -116,7 +116,7 @@ impl PixeshApp {
                     }
 
                     let text_x = cb_rect.max.x + 8.0;
-                    let text_w = rect.max.x - text_x - PANEL_PAD;
+                    let text_w = rect.max.x - text_x - crate::constants::panel_pad();
                     if renaming {
                         let te_rect = Rect::from_min_size(
                             Pos2::new(text_x, rect.min.y + 4.0),
@@ -153,12 +153,12 @@ impl PixeshApp {
                             self.renaming_layer = None;
                         }
                     } else {
-                        let text_color = lerp_color(TEXT, Color32::WHITE, t_hover);
+                        let text_color = lerp_color(crate::constants::text(), Color32::WHITE, t_hover);
                         p.text(
                             Pos2::new(text_x, rect.min.y + 8.0),
                             egui::Align2::LEFT_TOP,
                             &self.docs[i].layers[li].name,
-                            egui::FontId::proportional(FONT_SZ * 1.5),
+                            egui::FontId::proportional(crate::constants::font_sz() * 1.5),
                             text_color,
                         );
                         if resp.double_clicked() && !cb_resp.clicked() {
@@ -202,9 +202,9 @@ impl PixeshApp {
                             0.0
                         };
                         if !visual_rows.is_empty() {
-                            let x0 = visual_rows[0].1.min.x + PANEL_PAD;
-                            let x1 = visual_rows[0].1.max.x - PANEL_PAD;
-                            ui.painter().hline(x0..=x1, y, Stroke::new(3.0, ACCENT));
+                            let x0 = visual_rows[0].1.min.x + crate::constants::panel_pad();
+                            let x1 = visual_rows[0].1.max.x - crate::constants::panel_pad();
+                            ui.painter().hline(x0..=x1, y, Stroke::new(3.0, crate::constants::accent()));
                         }
                     }
                     if dropped_from.is_none() && !ui.ctx().input(|inp| inp.pointer.any_down()) {
@@ -230,9 +230,9 @@ impl PixeshApp {
                 }
 
                 // layer action buttons
-                ui.add_space(PANEL_PAD);
+                ui.add_space(crate::constants::panel_pad());
                 ui.horizontal(|ui| {
-                    ui.add_space(PANEL_PAD);
+                    ui.add_space(crate::constants::panel_pad());
 
                     let plus_tex = self.plus_layer_tex.get_or_insert_with(|| {
                         load_icon_texture(ui, "plus_layer", include_bytes!("../../../tex/layers/plus_layer.png"))
@@ -276,24 +276,24 @@ impl PixeshApp {
                 // ── HSV picker ──
                 ui.add_space(12.0);
                 let hdr = "Color";
-                let hw = hdr.len() as f32 * CHAR_W * 1.5;
+                let hw = hdr.len() as f32 * crate::constants::char_w() * 1.5;
                 let (hr, _) = ui.allocate_exact_size(
-                    Vec2::new(hw + 12.0, ROW_H * 1.5 + 8.0),
+                    Vec2::new(hw + 12.0, crate::constants::row_h() * 1.5 + 8.0),
                     Sense::hover(),
                 );
                 ui.painter().text(
-                    hr.min + Vec2::new(PANEL_PAD, 4.0),
+                    hr.min + Vec2::new(crate::constants::panel_pad(), 4.0),
                     egui::Align2::LEFT_TOP,
                     hdr,
-                    egui::FontId::proportional(FONT_SZ * 1.5),
-                    TEXT,
+                    egui::FontId::proportional(crate::constants::font_sz() * 1.5),
+                    crate::constants::text(),
                 );
 
                 ui.add_space(4.0);
 
                 // preview + RGB readout
                 ui.horizontal(|ui| {
-                    ui.add_space(PANEL_PAD);
+                    ui.add_space(crate::constants::panel_pad());
                     let ps = 100.0;
                     let (pr, pr_resp) = ui.allocate_exact_size(Vec2::new(ps, ps), Sense::hover());
                     let pv = pr.translate(Vec2::new(0.0, -4.0));
@@ -302,14 +302,14 @@ impl PixeshApp {
                     let t_hover = ui.ctx().animate_bool(pr_resp.id, pr_resp.hovered());
                     
                     ui.painter().rect_filled(pv, 0.0, pc);
-                    let border_color = lerp_color(BORDER, Color32::WHITE, t_hover);
+                    let border_color = lerp_color(crate::constants::border(), Color32::WHITE, t_hover);
                     ui.painter().rect_stroke(pv, 0.0, Stroke::new(4.0_f32, border_color), egui::StrokeKind::Outside);
 
-                    ui.add_space(PANEL_PAD);
+                    ui.add_space(crate::constants::panel_pad());
                     ui.vertical(|ui| {
                         let mut y = ui.cursor().min.y;
-                        let font_sz = FONT_SZ;
-                        let row_step = ROW_H + 4.0;
+                        let font_sz = crate::constants::font_sz();
+                        let row_step = crate::constants::row_h() + 4.0;
                         
                         for (ch, &v) in [("R", &self.rgb_r), ("G", &self.rgb_g), ("B", &self.rgb_b), ("A", &self.rgb_a)] {
                             let txt = format!("{} {}", ch, v as u8);
@@ -318,7 +318,7 @@ impl PixeshApp {
                                 egui::Align2::LEFT_TOP,
                                 &txt,
                                 egui::FontId::proportional(font_sz),
-                                TEXT,
+                                crate::constants::text(),
                             );
                             y += row_step;
                         }
@@ -332,10 +332,10 @@ impl PixeshApp {
                 if !self.color_history.is_empty() {
                     ui.add_space(8.0);
                     ui.horizontal(|ui| {
-                        ui.add_space(PANEL_PAD);
+                        ui.add_space(crate::constants::panel_pad());
                         let sw = 22.0;
                         let gap = 4.0;
-                        let max_cols = ((ui.available_width() - PANEL_PAD) / (sw + gap)).max(1.0) as usize;
+                        let max_cols = ((ui.available_width() - crate::constants::panel_pad()) / (sw + gap)).max(1.0) as usize;
                         let mut rows: Vec<Vec<Color32>> = Vec::new();
                         for (ii, c) in self.color_history.iter().rev().enumerate() {
                             if ii % max_cols == 0 { rows.push(Vec::new()); }
@@ -348,11 +348,11 @@ impl PixeshApp {
                                 let draw_r = if resp.is_pointer_button_down_on() { r.translate(Vec2::new(0.0, 2.0)) } else { r };
                                 
                                 if !resp.is_pointer_button_down_on() {
-                                    ui.painter().rect_filled(r.translate(Vec2::new(0.0, 2.0)), 0.0, BORDER);
+                                    ui.painter().rect_filled(r.translate(Vec2::new(0.0, 2.0)), 0.0, crate::constants::border());
                                 }
                                 
                                 ui.painter().rect_filled(draw_r, 0.0, c);
-                                let b_col = lerp_color(BORDER, Color32::WHITE, t_hov);
+                                let b_col = lerp_color(crate::constants::border(), Color32::WHITE, t_hov);
                                 ui.painter().rect_stroke(draw_r, 0.0, Stroke::new(2.0_f32, b_col), egui::StrokeKind::Outside);
                                 if resp.clicked() {
                                     self.color = c;
@@ -379,7 +379,7 @@ impl PixeshApp {
                 let strip_w = 14.0;
                 ui.horizontal(|ui| {
 
-                    ui.add_space(PANEL_PAD);
+                    ui.add_space(crate::constants::panel_pad());
 
                     let (rect, resp) = ui.allocate_exact_size(Vec2::splat(fsize), Sense::click_and_drag());
 
@@ -403,7 +403,7 @@ impl PixeshApp {
                     if let Some(tex) = &self.sv_tex {
                         let p = ui.painter();
                         p.image(tex.id(), rect, Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
-                        p.rect_stroke(rect, 0.0, Stroke::new(2.0_f32, BORDER), egui::StrokeKind::Outside);
+                        p.rect_stroke(rect, 0.0, Stroke::new(2.0_f32, crate::constants::border()), egui::StrokeKind::Outside);
 
                         let cx = rect.min.x + (self.hsv_s / 255.0) * rect.width();
                         let cy = rect.min.y + (1.0 - self.hsv_v / 255.0) * rect.height();
@@ -443,7 +443,7 @@ impl PixeshApp {
                     let stex = self.h_tex.as_ref().unwrap();
                     let sp = ui.painter();
                     sp.image(stex.id(), srect, Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
-                    sp.rect_stroke(srect, 0.0, Stroke::new(2.0_f32, BORDER), egui::StrokeKind::Outside);
+                    sp.rect_stroke(srect, 0.0, Stroke::new(2.0_f32, crate::constants::border()), egui::StrokeKind::Outside);
 
                     let hy = srect.min.y + (self.hsv_h / 360.0) * srect.height();
                     sp.hline(srect.x_range(), hy, Stroke::new(4.0_f32, Color32::WHITE));
@@ -482,7 +482,7 @@ impl PixeshApp {
 
                     let ap = ui.painter();
                     ap.image(atex.id(), arect, Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
-                    ap.rect_stroke(arect, 0.0, Stroke::new(2.0_f32, BORDER), egui::StrokeKind::Outside);
+                    ap.rect_stroke(arect, 0.0, Stroke::new(2.0_f32, crate::constants::border()), egui::StrokeKind::Outside);
 
                     let ay = arect.min.y + (1.0 - self.rgb_a / 255.0) * arect.height();
                     ap.hline(arect.x_range(), ay, Stroke::new(4.0_f32, Color32::WHITE));

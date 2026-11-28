@@ -38,7 +38,7 @@ impl PixeshApp {
                 .default_width(260.0)
                 .min_width(180.0)
                 .max_width(520.0)
-                .frame(egui::Frame::new().fill(PANEL))
+                .frame(egui::Frame::new().fill(crate::constants::panel()))
                 .show_separator_line(false)
                 .show(ctx, &mut body);
         } else {
@@ -47,7 +47,7 @@ impl PixeshApp {
                 .default_height(150.0)
                 .min_height(120.0)
                 .max_height(screen.height() * 0.7)
-                .frame(egui::Frame::new().fill(PANEL))
+                .frame(egui::Frame::new().fill(crate::constants::panel()))
                 .show_separator_line(false)
                 .show(ctx, &mut body);
         }
@@ -79,10 +79,10 @@ impl PixeshApp {
                                 Pos2::new(ui.cursor().min.x + 10.0, ui.cursor().min.y + 10.0),
                                 egui::Align2::LEFT_TOP,
                                 "Frames",
-                                egui::FontId::proportional(FONT_SZ * 1.3),
-                                TEXT,
+                                egui::FontId::proportional(crate::constants::font_sz() * 1.3),
+                                crate::constants::text(),
                             );
-                            ui.add_space("Frames".len() as f32 * CHAR_W * 1.3 + 8.0);
+                            ui.add_space("Frames".len() as f32 * crate::constants::char_w() * 1.3 + 8.0);
 
                             separator(ui);
                             ui.add_space(8.0);
@@ -90,7 +90,7 @@ impl PixeshApp {
                             // play / pause
                             ui.style_mut().text_styles.insert(
                                 egui::TextStyle::Button,
-                                egui::FontId::proportional(FONT_SZ * 1.3),
+                                egui::FontId::proportional(crate::constants::font_sz() * 1.3),
                             );
                             let play_label = if doc.playing { "Pause" } else { "Play" };
                             if toggle_btn(ui, play_label, doc.playing) {
@@ -108,9 +108,9 @@ impl PixeshApp {
                             // fps
                             ui.style_mut().text_styles.insert(
                                 egui::TextStyle::Button,
-                                egui::FontId::proportional(FONT_SZ * 1.3),
+                                egui::FontId::proportional(crate::constants::font_sz() * 1.3),
                             );
-                            ui.label(egui::RichText::new("FPS").size(FONT_SZ).color(TEXT));
+                            ui.label(egui::RichText::new("FPS").size(crate::constants::font_sz()).color(crate::constants::text()));
                             ui.add_sized(
                                 Vec2::new(56.0, 30.0),
                                 egui::DragValue::new(&mut doc.fps)
@@ -126,8 +126,8 @@ impl PixeshApp {
                             // frame counter
                             ui.label(
                                 egui::RichText::new(format!("{}/{}", doc.active_frame + 1, doc.frames))
-                                    .size(FONT_SZ)
-                                    .color(DIM),
+                                    .size(crate::constants::font_sz())
+                                    .color(crate::constants::dim()),
                             );
 
                             // gap that right-aligns the buttons when the row
@@ -180,7 +180,7 @@ impl PixeshApp {
                                 let is_active = f == doc.active_frame;
 
                                 let p = ui.painter();
-                                p.rect_filled(rect, 0.0, PANEL_LIGHT);
+                                p.rect_filled(rect, 0.0, crate::constants::panel_light());
 
                                 let img_rect = Rect::from_min_size(rect.min, Vec2::new(th, th));
                                 let img = thumb_color(doc, f);
@@ -196,13 +196,13 @@ impl PixeshApp {
                                     Pos2::new(rect.min.x + 4.0, rect.min.y + th + 2.0),
                                     egui::Align2::LEFT_TOP,
                                     &format!("{}", f + 1),
-                                    egui::FontId::proportional(FONT_SZ),
-                                    if is_active { ACCENT } else { DIM },
+                                    egui::FontId::proportional(crate::constants::font_sz()),
+                                    if is_active { crate::constants::accent() } else { crate::constants::dim() },
                                 );
 
                                 // border
                                 let bw = if is_active { 4.0_f32 } else { 2.0_f32 };
-                                let bc = if is_active { ACCENT } else { BORDER };
+                                let bc = if is_active { crate::constants::accent() } else { crate::constants::border() };
                                 p.rect_stroke(rect, 0.0, Stroke::new(bw, bc), egui::StrokeKind::Outside);
 
                                 if resp.clicked() {
@@ -217,7 +217,7 @@ impl PixeshApp {
                 let panel_left = ui.max_rect().left();
                 let panel_right = ui.max_rect().right();
                 let panel_top = ui.max_rect().top();
-                ui.painter().hline(panel_left..=panel_right, panel_top, Stroke::new(8.0_f32, BORDER));
+                ui.painter().hline(panel_left..=panel_right, panel_top, Stroke::new(8.0_f32, crate::constants::border()));
                 ui.style_mut().always_scroll_the_only_direction = prev_scroll;
     }
 }

@@ -37,7 +37,7 @@ impl PixeshApp {
                 );
                 child_ui.add_space(6.0);
                 child_ui.vertical_centered(|ui| {
-                    ui.label(egui::RichText::new("Panels").size(32.0).color(TEXT));
+                    ui.label(egui::RichText::new("Panels").size(32.0).color(crate::constants::text()));
                 });
                 child_ui.add_space(20.0);
                 child_ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
@@ -67,11 +67,11 @@ impl PixeshApp {
                         let (row_rect, _) = ui.allocate_exact_size(Vec2::new(160.0, row_h), egui::Sense::click());
                         let p = ui.painter();
                         if selected {
-                            p.rect_filled(row_rect, 0.0, HOVER);
+                            p.rect_filled(row_rect, 0.0, crate::constants::hover());
                             p.rect_stroke(
                                 row_rect,
                                 0.0,
-                                Stroke::new(2.0_f32, ACCENT),
+                                Stroke::new(2.0_f32, crate::constants::accent()),
                                 egui::StrokeKind::Inside,
                             );
                         }
@@ -80,17 +80,17 @@ impl PixeshApp {
                             egui::Align2::LEFT_CENTER,
                             label,
                             egui::FontId::proportional(sz),
-                            TEXT,
+                            crate::constants::text(),
                         );
                         let cb_rect = Rect::from_min_size(
                             Pos2::new(row_rect.max.x - cbs - 4.0, row_rect.center().y - cbs * 0.5),
                             Vec2::splat(cbs),
                         );
-                        p.rect_filled(cb_rect, 0.0, PANEL);
-                        p.rect_stroke(cb_rect, 0.0, egui::Stroke::new(4.0_f32, BORDER), egui::StrokeKind::Outside);
+                        p.rect_filled(cb_rect, 0.0, crate::constants::panel());
+                        p.rect_stroke(cb_rect, 0.0, egui::Stroke::new(4.0_f32, crate::constants::border()), egui::StrokeKind::Outside);
                         if self.panel_visible(panel) {
                             let inner = cb_rect.shrink(4.0);
-                            p.rect_filled(inner, 0.0, ACCENT);
+                            p.rect_filled(inner, 0.0, crate::constants::accent());
                         }
                         let clicked = ui.interact(row_rect, egui::Id::new(("row", id_salt)), egui::Sense::click()).clicked()
                             || ui.interact(cb_rect, egui::Id::new(("cb", id_salt)), egui::Sense::click()).clicked();
@@ -101,7 +101,7 @@ impl PixeshApp {
 
                         if idx + 1 < ROWS.len() {
                             let line = ui.allocate_exact_size(Vec2::new(160.0, 1.0), egui::Sense::hover()).0;
-                            ui.painter().hline(line.x_range(), line.center().y, egui::Stroke::new(2.0_f32, BORDER));
+                            ui.painter().hline(line.x_range(), line.center().y, egui::Stroke::new(2.0_f32, crate::constants::border()));
                         }
                     }
 
@@ -120,7 +120,7 @@ impl PixeshApp {
                     ui.label(
                         egui::RichText::new("↑ ↓ select · Enter toggle · Esc close")
                             .size(14.0)
-                            .color(DIM),
+                            .color(crate::constants::dim()),
                     );
                 });
                 child_ui.add_space(4.0);
@@ -132,10 +132,10 @@ impl PixeshApp {
                 );
                 let p = child_ui.painter();
                 let btn_resp = ui.interact(btn_rect, egui::Id::new("btn_ok"), egui::Sense::click());
-                let bg = if btn_resp.clicked() { ACCENT } else if btn_resp.hovered() { HOVER } else { PANEL };
+                let bg = if btn_resp.clicked() { crate::constants::accent() } else if btn_resp.hovered() { crate::constants::hover() } else { crate::constants::panel() };
                 p.rect_filled(btn_rect, 0.0, bg);
-                p.rect_stroke(btn_rect, 0.0, egui::Stroke::new(4.0_f32, BORDER), egui::StrokeKind::Outside);
-                p.text(btn_rect.center(), egui::Align2::CENTER_CENTER, "OK", egui::FontId::proportional(FONT_SZ * 1.5), TEXT);
+                p.rect_stroke(btn_rect, 0.0, egui::Stroke::new(4.0_f32, crate::constants::border()), egui::StrokeKind::Outside);
+                p.text(btn_rect.center(), egui::Align2::CENTER_CENTER, "OK", egui::FontId::proportional(crate::constants::font_sz() * 1.5), crate::constants::text());
                 if btn_resp.clicked() {
                     self.show_panels = false;
                 }

@@ -1,6 +1,5 @@
 use eframe::egui::{self, Vec2};
 use crate::app::PixeshApp;
-use crate::constants::*;
 use crate::ui::*;
 use crate::app::document::text::draw_text;
 
@@ -33,7 +32,7 @@ impl PixeshApp {
 
                 child_ui.add_space(8.0);
                 child_ui.vertical_centered(|ui| {
-                    ui.label(egui::RichText::new("Add Text").size(32.0).color(TEXT));
+                    ui.label(egui::RichText::new("Add Text").size(32.0).color(crate::constants::text()));
                 });
 
                 child_ui.add_space(16.0);

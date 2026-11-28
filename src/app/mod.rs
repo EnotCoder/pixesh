@@ -2,6 +2,7 @@
 
 pub(crate) mod config;
 pub(crate) mod document;
+pub(crate) mod lua_config;
 pub(crate) mod effects;
 pub(crate) mod snow;
 pub(crate) mod state;

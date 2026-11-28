@@ -9,7 +9,7 @@ impl PixeshApp {
         let edge = self.status_edge;
         let id = PanelId::Status.ui_id(edge);
         let mut body = |ui: &mut egui::Ui| self.status_body(ui);
-        let frame = egui::Frame::new().fill(PANEL);
+        let frame = egui::Frame::new().fill(crate::constants::panel());
         // Status bar is a horizontal strip, restricted to Top or Bottom
         if edge == Edge::Top {
             egui::TopBottomPanel::top(id)
@@ -47,8 +47,8 @@ impl PixeshApp {
                     };
                     ui.label(
                         egui::RichText::new(format!("Tool: {}", tool_name))
-                            .size(FONT_SZ)
-                            .color(TEXT),
+                            .size(crate::constants::font_sz())
+                            .color(crate::constants::text()),
                     );
 
                     separator(ui);
@@ -56,8 +56,8 @@ impl PixeshApp {
                     // canvas size
                     ui.label(
                         egui::RichText::new(format!("Canvas: {}x{}", doc.width, doc.height))
-                            .size(FONT_SZ)
-                            .color(TEXT),
+                            .size(crate::constants::font_sz())
+                            .color(crate::constants::text()),
                     );
 
                     separator(ui);
@@ -65,8 +65,8 @@ impl PixeshApp {
                     // frame
                     ui.label(
                         egui::RichText::new(format!("Frame: {}/{}", doc.active_frame + 1, doc.frames))
-                            .size(FONT_SZ)
-                            .color(TEXT),
+                            .size(crate::constants::font_sz())
+                            .color(crate::constants::text()),
                     );
 
                     separator(ui);
@@ -75,14 +75,14 @@ impl PixeshApp {
                     if let Some((px, py)) = self.cursor_px {
                         ui.label(
                             egui::RichText::new(format!("Pos: ({}, {})", px, py))
-                                .size(FONT_SZ)
-                                .color(TEXT),
+                                .size(crate::constants::font_sz())
+                                .color(crate::constants::text()),
                         );
                     } else {
                         ui.label(
                             egui::RichText::new("Pos: --")
-                                .size(FONT_SZ)
-                                .color(DIM),
+                                .size(crate::constants::font_sz())
+                                .color(crate::constants::dim()),
                         );
                     }
 
@@ -92,8 +92,8 @@ impl PixeshApp {
                     let zoom_pct = (doc.zoom * 12.5) as u32;
                     ui.label(
                         egui::RichText::new(format!("Zoom: {}%", zoom_pct))
-                            .size(FONT_SZ)
-                            .color(TEXT),
+                            .size(crate::constants::font_sz())
+                            .color(crate::constants::text()),
                     );
 
                     separator(ui);
@@ -102,8 +102,8 @@ impl PixeshApp {
                     if let Some(layer) = doc.layers.get(doc.active_layer) {
                         ui.label(
                             egui::RichText::new(format!("Layer: {}", layer.name))
-                                .size(FONT_SZ)
-                                .color(TEXT),
+                                .size(crate::constants::font_sz())
+                                .color(crate::constants::text()),
                         );
                     }
 
@@ -114,8 +114,8 @@ impl PixeshApp {
                         // brush size
                         ui.label(
                             egui::RichText::new(format!("Brush: {}", self.brush as i32))
-                                .size(FONT_SZ)
-                                .color(DIM),
+                                .size(crate::constants::font_sz())
+                                .color(crate::constants::dim()),
                         );
 
                         separator(ui);
@@ -124,8 +124,8 @@ impl PixeshApp {
                         if doc.unsaved {
                             ui.label(
                                 egui::RichText::new("Unsaved")
-                                    .size(FONT_SZ)
-                                    .color(ACCENT),
+                                    .size(crate::constants::font_sz())
+                                    .color(crate::constants::accent()),
                             );
                         }
 
@@ -135,8 +135,8 @@ impl PixeshApp {
                             separator(ui);
                             ui.label(
                                 egui::RichText::new(&self.status_hint)
-                                    .size(FONT_SZ)
-                                    .color(ACCENT),
+                                    .size(crate::constants::font_sz())
+                                    .color(crate::constants::accent()),
                             );
                         }
                     });
@@ -146,6 +146,6 @@ impl PixeshApp {
                 let panel_left = ui.max_rect().left();
                 let panel_right = ui.max_rect().right();
                 let panel_top = ui.max_rect().top();
-                ui.painter().hline(panel_left..=panel_right, panel_top, Stroke::new(8.0_f32, BORDER));
+                ui.painter().hline(panel_left..=panel_right, panel_top, Stroke::new(8.0_f32, crate::constants::border()));
     }
 }

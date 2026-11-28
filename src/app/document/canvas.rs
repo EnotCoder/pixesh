@@ -3,10 +3,10 @@ use std::sync::Arc;
 use eframe::egui::{Color32, Pos2};
 
 use super::Document;
-use crate::constants::{BrushShape, CHECKER_PX};
+use crate::constants::BrushShape;
 
 pub(crate) fn checker_cell(zoom: f32) -> i32 {
-    ((CHECKER_PX / zoom.max(0.1)).round() as i32).max(1)
+    ((crate::constants::checker_px() / zoom.max(0.1)).round() as i32).max(1)
 }
 
 fn brush_mask(dx: i32, dy: i32, b: i32, shape: BrushShape) -> bool {

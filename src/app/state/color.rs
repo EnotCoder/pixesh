@@ -1,6 +1,5 @@
 use eframe::egui::Color32;
 
-use crate::constants::NUM_PALETTE;
 
 use super::PixeshApp;
 
@@ -96,13 +95,13 @@ impl PixeshApp {
         );
     }
 
-    /// Keys 1–9: apply a ready-made colour from `NUM_PALETTE`. The index is
-    /// zero-based, so the "1" key is `NUM_PALETTE[0]`.
+    /// Keys 1–9: apply a ready-made colour from `crate::constants::num_palette()`. The index is
+    /// zero-based, so the "1" key is `crate::constants::num_palette()[0]`.
     ///
     /// `set_color` propagates the colour to `color`, `rgb_*` and `hsv_*`, so
     /// the picker and the sliders show the new value immediately.
     pub(crate) fn pick_preset(&mut self, idx: usize) {
-        let [r, g, b, a] = NUM_PALETTE[idx];
+        let [r, g, b, a] = crate::constants::num_palette()[idx];
         self.set_color(Color32::from_rgba_unmultiplied(r, g, b, a));
         self.push_history(self.color);
     }

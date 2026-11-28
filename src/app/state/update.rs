@@ -1,6 +1,6 @@
 use eframe::egui::{self, Stroke, Vec2};
 
-use crate::ui::btn_min_w;
+use crate::ui::{apply_style, btn_min_w};
 
 use crate::constants::*;
 
@@ -27,6 +27,12 @@ impl eframe::App for PixeshApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.last_time = ctx.input(|i| i.time);
         self.handle_input(ctx);
+        // Ctrl+Shift+R (or any other reload) may have changed the theme.
+        let version = crate::app::lua_config::version();
+        if self.config_version != version {
+            self.config_version = version;
+            apply_style(ctx);
+        }
         self.update_playback(ctx);
         self.handle_dropped_files(ctx);
 
@@ -68,8 +74,8 @@ impl eframe::App for PixeshApp {
                     let p = ui.painter();
 
                     let _alpha = (t * 255.0) as u8;
-                    let bg = PANEL.gamma_multiply(t);
-                    let brd = BORDER.gamma_multiply(t);
+                    let bg = crate::constants::panel().gamma_multiply(t);
+                    let brd = crate::constants::border().gamma_multiply(t);
 
                     p.rect_filled(rect, 0.0, bg);
                     p.rect_stroke(rect, 0.0, Stroke::new(4.0_f32, brd), egui::StrokeKind::Outside);
@@ -87,9 +93,9 @@ impl eframe::App for PixeshApp {
                         egui::FontId::proportional(28.0),
                     );
                     child.add_space(24.0);
-                    child.label(egui::RichText::new("Unsaved changes!").size(26.0).color(TEXT));
+                    child.label(egui::RichText::new("Unsaved changes!").size(26.0).color(crate::constants::text()));
                     child.add_space(12.0);
-                    child.label(egui::RichText::new("Quit anyway?").size(22.0).color(TEXT));
+                    child.label(egui::RichText::new("Quit anyway?").size(22.0).color(crate::constants::text()));
                     child.add_space(child.available_height() - 44.0);
                     let spacing = child.style().spacing.item_spacing.x;
                     let half = (child.available_width() - spacing) / 2.0;

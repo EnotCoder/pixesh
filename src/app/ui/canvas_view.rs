@@ -34,7 +34,7 @@ fn dashes_rect(p: &egui::Painter, edges: &[[Pos2; 2]; 4], off: f32, dash: f32, g
 impl PixeshApp {
     pub(crate) fn ui_canvas(&mut self, ctx: &egui::Context) {
         egui::CentralPanel::default()
-            .frame(egui::Frame::new().fill(BG))
+            .frame(egui::Frame::new().fill(crate::constants::bg()))
             .show(ctx, |ui| {
                 let i = self.active_tab;
                 let brush = self.brush;
@@ -51,7 +51,8 @@ impl PixeshApp {
                     let avail = ui.available_size();
                     let zoom_x = avail.x / width as f32;
                     let zoom_y = avail.y / height as f32;
-                    self.docs[i].zoom = zoom_x.min(zoom_y).clamp(0.1, 60.0);
+                    self.docs[i].zoom = zoom_x.min(zoom_y)
+                        .clamp(crate::constants::zoom_min(), crate::constants::zoom_max());
                     self.docs[i].pan = Vec2::ZERO;
                     self.docs[i].needs_zoom_fit = false;
                 }
@@ -523,8 +524,8 @@ impl PixeshApp {
                             }
 
                             for &c in &corners {
-                                ui.painter().rect_filled(Rect::from_center_size(c, Vec2::splat(handle_size)), 0.0, ACCENT);
-                                ui.painter().rect_stroke(Rect::from_center_size(c, Vec2::splat(handle_size)), 0.0, Stroke::new(2.0_f32, BORDER), egui::StrokeKind::Outside);
+                                ui.painter().rect_filled(Rect::from_center_size(c, Vec2::splat(handle_size)), 0.0, crate::constants::accent());
+                                ui.painter().rect_stroke(Rect::from_center_size(c, Vec2::splat(handle_size)), 0.0, Stroke::new(2.0_f32, crate::constants::border()), egui::StrokeKind::Outside);
                             }
                         }
                     }

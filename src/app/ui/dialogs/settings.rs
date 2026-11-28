@@ -1,6 +1,5 @@
 use eframe::egui::{self, Pos2, Rect, Stroke, Vec2};
 use crate::app::PixeshApp;
-use crate::constants::*;
 
 use super::fit::fitted_dialog;
 
@@ -17,17 +16,17 @@ fn toggle_row(ui: &mut egui::Ui, id: &str, label: &str, value: bool) -> bool {
         egui::Align2::LEFT_CENTER,
         label,
         egui::FontId::proportional(sz),
-        TEXT,
+        crate::constants::text(),
     );
     let cb_rect = Rect::from_min_size(
         Pos2::new(row_rect.max.x - cbs - 4.0, row_rect.center().y - cbs * 0.5),
         Vec2::splat(cbs),
     );
-    p.rect_filled(cb_rect, 0.0, PANEL);
-    p.rect_stroke(cb_rect, 0.0, egui::Stroke::new(4.0_f32, BORDER), egui::StrokeKind::Outside);
+    p.rect_filled(cb_rect, 0.0, crate::constants::panel());
+    p.rect_stroke(cb_rect, 0.0, egui::Stroke::new(4.0_f32, crate::constants::border()), egui::StrokeKind::Outside);
     if value {
         let inner = cb_rect.shrink(5.0);
-        p.rect_filled(inner, 0.0, ACCENT);
+        p.rect_filled(inner, 0.0, crate::constants::accent());
     }
     ui.interact(row_rect, egui::Id::new((id, "row")), egui::Sense::click()).clicked()
         || ui.interact(cb_rect, egui::Id::new((id, "box")), egui::Sense::click()).clicked()
@@ -59,17 +58,17 @@ impl PixeshApp {
 
                 child_ui.add_space(6.0);
                 child_ui.vertical_centered(|ui| {
-                    ui.label(egui::RichText::new("Settings").size(32.0).color(TEXT));
+                    ui.label(egui::RichText::new("Settings").size(32.0).color(crate::constants::text()));
                 });
                 child_ui.add_space(16.0);
 
                 // ── Arrow Speed ──
                 child_ui.vertical_centered(|ui| {
-                    ui.label(egui::RichText::new("Arrow Speed").size(24.0).color(TEXT));
+                    ui.label(egui::RichText::new("Arrow Speed").size(24.0).color(crate::constants::text()));
                 });
                 child_ui.add_space(4.0);
                 child_ui.horizontal(|ui| {
-                    ui.add_space(ui.available_width() - 200.0 - PANEL_PAD);
+                    ui.add_space(ui.available_width() - 200.0 - crate::constants::panel_pad());
                     ui.add_sized(
                         Vec2::new(200.0, 32.0),
                         egui::Slider::new(&mut self.arrow_speed, 1.0..=100.0)
@@ -81,11 +80,11 @@ impl PixeshApp {
 
                 // ── Zoom Speed ──
                 child_ui.vertical_centered(|ui| {
-                    ui.label(egui::RichText::new("Zoom Speed").size(24.0).color(TEXT));
+                    ui.label(egui::RichText::new("Zoom Speed").size(24.0).color(crate::constants::text()));
                 });
                 child_ui.add_space(4.0);
                 child_ui.horizontal(|ui| {
-                    ui.add_space(ui.available_width() - 200.0 - PANEL_PAD);
+                    ui.add_space(ui.available_width() - 200.0 - crate::constants::panel_pad());
                     ui.add_sized(
                         Vec2::new(200.0, 32.0),
                         egui::Slider::new(&mut self.zoom_speed, 0.005..=5.0)
@@ -128,11 +127,11 @@ impl PixeshApp {
                     Vec2::new(w, 40.0),
                 );
                 let btn_resp = ui.interact(btn_rect, egui::Id::new("btn_settings_ok"), egui::Sense::click());
-                let bg = if btn_resp.clicked() { ACCENT } else if btn_resp.hovered() { HOVER } else { PANEL };
+                let bg = if btn_resp.clicked() { crate::constants::accent() } else if btn_resp.hovered() { crate::constants::hover() } else { crate::constants::panel() };
                 let p2 = child_ui.painter();
                 p2.rect_filled(btn_rect, 0.0, bg);
-                p2.rect_stroke(btn_rect, 0.0, Stroke::new(4.0_f32, BORDER), egui::StrokeKind::Outside);
-                p2.text(btn_rect.center(), egui::Align2::CENTER_CENTER, "OK", egui::FontId::proportional(FONT_SZ), TEXT);
+                p2.rect_stroke(btn_rect, 0.0, Stroke::new(4.0_f32, crate::constants::border()), egui::StrokeKind::Outside);
+                p2.text(btn_rect.center(), egui::Align2::CENTER_CENTER, "OK", egui::FontId::proportional(crate::constants::font_sz()), crate::constants::text());
                 if btn_resp.clicked() {
                     self.show_settings = false;
                 }

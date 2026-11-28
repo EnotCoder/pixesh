@@ -36,5 +36,9 @@ image = "0.25"
 # Derives for the persisted preference struct in src/app/config.rs.
 serde = { version = "1", features = ["derive"] }
 
+# User-editable Lua config (keybindings, theme colors, numeric constants).
+# Lua is built from the vendored source so releases do not need liblua installed.
+mlua = { version = "0.10", default-features = false, features = ["lua54", "vendored"] }
+
 # GTK3 file dialogs; Linux only in practice.
 rfd = { version = "0.15", default-features = false, features = ["gtk3"], optional = true }

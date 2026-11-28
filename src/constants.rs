@@ -98,49 +98,48 @@ impl PanelId {
 }
 
 // ── Theme colors ──
-pub const BG: Color32 = Color32::from_rgb(24, 24, 24);          // Darkest (canvas background)
-pub const PANEL: Color32 = Color32::from_rgb(32, 32, 32);       // Panels background
-pub const PANEL_LIGHT: Color32 = Color32::from_rgb(44, 44, 44); // Lighter panel elements
-pub const BORDER: Color32 = Color32::from_rgb(80, 80, 80);      // Widget borders
-pub const TEXT: Color32 = Color32::from_rgb(220, 220, 220);      // Text color
-pub const ACCENT: Color32 = Color32::from_rgb(200, 120, 60);     // Accent / selection
-pub const HOVER: Color32 = Color32::from_rgb(60, 60, 60);       // Hover state
-pub const DIM: Color32 = Color32::from_rgb(120, 120, 120);      // Dimmed text
+// These were compile-time constants; they now read from the Lua config so a
+// reload changes every painted widget without restarting. Defaults live in
+// `config/config.lua`, values are validated while parsing.
+
+pub fn bg() -> Color32 { crate::app::lua_config::get().colors.bg }
+pub fn panel() -> Color32 { crate::app::lua_config::get().colors.panel }
+pub fn panel_light() -> Color32 { crate::app::lua_config::get().colors.panel_light }
+pub fn border() -> Color32 { crate::app::lua_config::get().colors.border }
+pub fn text() -> Color32 { crate::app::lua_config::get().colors.text }
+pub fn accent() -> Color32 { crate::app::lua_config::get().colors.accent }
+pub fn hover() -> Color32 { crate::app::lua_config::get().colors.hover }
+pub fn dim() -> Color32 { crate::app::lua_config::get().colors.dim }
 
 // ── Numeric key palette ──
-/// Preset colors mapped to keys 1–9. Index plus one corresponds to the key.
-/// Full opacity (alpha 255) is preserved; opacity is modified independently.
-///
-/// Order: RGB channels, then combinations, then neutrals — putting both colors
-/// and stroke/fill tones within immediate reach.
-pub const NUM_PALETTE: [[u8; 4]; 9] = [
-    [255, 0, 0, 255],     // 1 Red
-    [0, 255, 0, 255],     // 2 Green
-    [0, 0, 255, 255],     // 3 Blue
-    [255, 255, 0, 255],   // 4 Yellow
-    [0, 255, 255, 255],   // 5 Cyan
-    [255, 0, 255, 255],   // 6 Magenta
-    [255, 255, 255, 255], // 7 White
-    [128, 128, 128, 255], // 8 Gray
-    [0, 0, 0, 255],       // 9 Black
-];
+/// Preset colors mapped to keys 1–9 (index plus one is the key). Configurable
+/// through `colors.palette` in the Lua config.
+pub fn num_palette() -> [[u8; 4]; 9] { crate::app::lua_config::get().palette }
 
 // ── Dimensions ──
-pub const FONT_SZ: f32 = 20.0;    // Font size in pixels
-pub const CHAR_W: f32 = 11.0;     // Approximate character width for layout calculations
-pub const ROW_H: f32 = 22.0;      // Row height in pixels
-pub const PANEL_PAD: f32 = 12.0;   // Panel padding
-pub const CHECKER_PX: f32 = 8.0;  // Checkerboard square size on screen for transparent background
+pub fn font_sz() -> f32 { crate::app::lua_config::get().numbers.font_size }
+pub fn char_w() -> f32 { crate::app::lua_config::get().numbers.char_width }
+pub fn row_h() -> f32 { crate::app::lua_config::get().numbers.row_height }
+pub fn panel_pad() -> f32 { crate::app::lua_config::get().numbers.panel_padding }
+pub fn checker_px() -> f32 { crate::app::lua_config::get().numbers.checker_px }
 
 /// Maximum canvas side dimension in pixels (matches DragValue limit in dialogs).
-pub const MAX_SIDE: i32 = 4096;
+pub fn max_side() -> i32 { crate::app::lua_config::get().numbers.max_side }
+
+pub fn hsv_step() -> f32 { crate::app::lua_config::get().numbers.hsv_step }
+pub fn alpha_step() -> f32 { crate::app::lua_config::get().numbers.alpha_step }
+pub fn brush_step() -> f32 { crate::app::lua_config::get().numbers.brush_step }
+pub fn zoom_min() -> f32 { crate::app::lua_config::get().numbers.zoom_min }
+pub fn zoom_max() -> f32 { crate::app::lua_config::get().numbers.zoom_max }
+pub fn zoom_step() -> f32 { crate::app::lua_config::get().numbers.zoom_step }
+pub fn pan_shift_multiplier() -> f32 { crate::app::lua_config::get().numbers.pan_shift_multiplier }
 
 /// Returns a (W, H) pair where the edited side is matched to the other side
 /// preserving the aspect ratio of the original canvas.
 ///
 /// Anchored against `orig_w`/`orig_h` rather than current `w`/`h` to prevent drift.
 pub fn linked_side(orig_w: i32, orig_h: i32, w: i32, h: i32, edited_w: bool) -> (i32, i32) {
-    let clamp = |v: i32| v.clamp(1, MAX_SIDE);
+    let clamp = |v: i32| v.clamp(1, max_side());
     if edited_w {
         if orig_w <= 0 { return (clamp(w), clamp(h)); }
         (clamp(w), clamp(((w as f64 * orig_h as f64 / orig_w as f64).round()) as i32))
@@ -188,13 +187,13 @@ mod linked_tests {
     }
 
     /// Result ratio matches original ratio within one pixel rounding.
-    /// Cases hitting MAX_SIDE 4096 are skipped here and tested in clamp test.
+    /// Cases hitting max_side() 4096 are skipped here and tested in clamp test.
     #[test]
     fn result_stays_within_one_pixel_of_the_original_ratio() {
         for (ow, oh) in [(64, 48), (100, 50), (37, 91), (16, 16), (5, 3)] {
             for target in [1, 7, 33, 64, 200, 4096] {
                 let expect = target as f64 * oh as f64 / ow as f64;
-                if !(1.0..=MAX_SIDE as f64).contains(&expect.round()) { continue; }
+                if !(1.0..=max_side() as f64).contains(&expect.round()) { continue; }
                 let (w, h) = linked_side(ow, oh, target, oh, true);
                 assert_eq!(w, target, "{ow}x{oh}, width must stay untouched");
                 assert!(
@@ -213,8 +212,8 @@ mod linked_tests {
         assert_eq!(h, 1);
         let (w, _) = linked_side(1, 4096, 1, 4096, false);
         assert_eq!(w, 1);
-        // narrow canvas at large width clamps to MAX_SIDE
-        assert_eq!(linked_side(37, 91, 4096, 91, true).1, MAX_SIDE);
+        // narrow canvas at large width clamps to max_side()
+        assert_eq!(linked_side(37, 91, 4096, 91, true).1, max_side());
     }
 
     /// Degenerate anchor avoids division by zero.

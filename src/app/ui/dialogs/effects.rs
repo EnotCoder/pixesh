@@ -45,11 +45,11 @@ impl PixeshApp {
 
                 // ── Title ──
                 ui2.horizontal(|ui| {
-                    ui.label(egui::RichText::new("Effects").size(28.0 * font).color(TEXT));
+                    ui.label(egui::RichText::new("Effects").size(28.0 * font).color(crate::constants::text()));
                     ui.label(
                         egui::RichText::new("ported from Pixelorama")
                             .size(15.0 * font)
-                            .color(DIM),
+                            .color(crate::constants::dim()),
                     );
                 });
                 ui2.add_space(2.0);
@@ -103,7 +103,7 @@ impl PixeshApp {
                         // Reload parameter definitions: clicked effect might have changed this frame
                         let param_defs = self.effect.def().params;
                         if param_defs.is_empty() {
-                            ui.label(egui::RichText::new("no parameters").size(sz).color(DIM));
+                            ui.label(egui::RichText::new("no parameters").size(sz).color(crate::constants::dim()));
                         }
                         for pd in param_defs {
                             self.param_row(ui, pd, font);
@@ -149,7 +149,7 @@ impl PixeshApp {
                             Color32::WHITE,
                         );
                     }
-                    p.rect_stroke(r, 0.0, Stroke::new(4.0_f32, BORDER), egui::StrokeKind::Outside);
+                    p.rect_stroke(r, 0.0, Stroke::new(4.0_f32, crate::constants::border()), egui::StrokeKind::Outside);
 
                     ui.vertical(|ui| {
                         let info = format!(
@@ -161,7 +161,7 @@ impl PixeshApp {
                         );
                         ui.horizontal(|ui| {
                             ui.add_space(24.0);
-                            ui.label(egui::RichText::new(info).size(17.0 * font).color(DIM));
+                            ui.label(egui::RichText::new(info).size(17.0 * font).color(crate::constants::dim()));
                         });
                         if self.docs[tab].sel.is_some() {
                             ui.horizontal(|ui| {
@@ -169,7 +169,7 @@ impl PixeshApp {
                                 ui.label(
                                     egui::RichText::new("selection only")
                                         .size(17.0 * font)
-                                        .color(ACCENT),
+                                        .color(crate::constants::accent()),
                                 );
                             });
                         }
@@ -240,7 +240,7 @@ impl PixeshApp {
                 ui.horizontal(|ui| {
                     ui.add_sized(
                         Vec2::new(label_w, h),
-                        egui::Label::new(egui::RichText::new(pd.name).size(sz).color(TEXT)),
+                        egui::Label::new(egui::RichText::new(pd.name).size(sz).color(crate::constants::text())),
                     );
                     let cur = self.effect.color(pd.name);
                     // Click swatch to adopt current app brush color
@@ -248,13 +248,13 @@ impl PixeshApp {
                     let t_hov = ui.ctx().animate_bool(resp.id.with("hov"), resp.hovered());
                     let p = ui.painter();
                     if !resp.is_pointer_button_down_on() {
-                        p.rect_filled(sw.translate(Vec2::new(0.0, 2.0)), 0.0, BORDER);
+                        p.rect_filled(sw.translate(Vec2::new(0.0, 2.0)), 0.0, crate::constants::border());
                     }
                     p.rect_filled(sw, 0.0, cur);
                     p.rect_stroke(
                         sw,
                         0.0,
-                        Stroke::new(2.0_f32, lerp_color(BORDER, Color32::WHITE, t_hov)),
+                        Stroke::new(2.0_f32, lerp_color(crate::constants::border(), Color32::WHITE, t_hov)),
                         egui::StrokeKind::Outside,
                     );
                     if resp.clicked() {
@@ -270,7 +270,7 @@ impl PixeshApp {
                     for (i, ch) in ["R", "G", "B", "A"].iter().enumerate() {
                         ui.add_sized(
                             Vec2::new(20.0, h),
-                            egui::Label::new(egui::RichText::new(*ch).size(sz).color(DIM)),
+                            egui::Label::new(egui::RichText::new(*ch).size(sz).color(crate::constants::dim())),
                         );
                         let mut v = rgba_now[i] as f32;
                         if ui
@@ -293,7 +293,7 @@ impl PixeshApp {
                 ui.horizontal(|ui| {
                     ui.add_sized(
                         Vec2::new(label_w, h),
-                        egui::Label::new(egui::RichText::new(pd.name).size(sz).color(TEXT)),
+                        egui::Label::new(egui::RichText::new(pd.name).size(sz).color(crate::constants::text())),
                     );
                     let cur = self.effect.choice(pd.name).min(labels.len().saturating_sub(1));
                     ui.horizontal_wrapped(|ui| {
@@ -309,7 +309,7 @@ impl PixeshApp {
                 ui.horizontal(|ui| {
                     ui.add_sized(
                         Vec2::new(label_w, h),
-                        egui::Label::new(egui::RichText::new(pd.name).size(sz).color(TEXT)),
+                        egui::Label::new(egui::RichText::new(pd.name).size(sz).color(crate::constants::text())),
                     );
                     let mut v = *self.effect.num_mut(pd.name) as f32;
                     let resp = ui.add_sized(
@@ -326,7 +326,7 @@ impl PixeshApp {
                         egui::Label::new(
                             egui::RichText::new(format!("{}", v.round() as i32))
                                 .size(sz)
-                                .color(ACCENT),
+                                .color(crate::constants::accent()),
                         ),
                     );
                 });
@@ -336,7 +336,7 @@ impl PixeshApp {
                 ui.horizontal(|ui| {
                     ui.add_sized(
                         Vec2::new(label_w, h),
-                        egui::Label::new(egui::RichText::new(pd.name).size(sz).color(TEXT)),
+                        egui::Label::new(egui::RichText::new(pd.name).size(sz).color(crate::constants::text())),
                     );
                     let decimals = if (hi - lo) > 20.0 { 0 } else { 2 };
                     let resp = ui.add_sized(
@@ -355,7 +355,7 @@ impl PixeshApp {
                     };
                     ui.add_sized(
                         Vec2::new(58.0 * font, h),
-                        egui::Label::new(egui::RichText::new(txt).size(sz).color(ACCENT)),
+                        egui::Label::new(egui::RichText::new(txt).size(sz).color(crate::constants::accent())),
                     );
                 });
             }
@@ -443,26 +443,26 @@ fn rgba_bytes(px: &[Color32]) -> Vec<u8> {
 
 fn line(ui: &mut egui::Ui, w: f32) {
     let (r, _) = ui.allocate_exact_size(Vec2::new(w, 2.0), Sense::hover());
-    ui.painter().hline(r.x_range(), r.center().y, Stroke::new(2.0_f32, BORDER));
+    ui.painter().hline(r.x_range(), r.center().y, Stroke::new(2.0_f32, crate::constants::border()));
 }
 
 /// Compact toggle segment button (category / effect / variant).
 fn seg_btn(ui: &mut egui::Ui, label: &str, active: bool, font: f32) -> bool {
     let sz = 20.0 * font;
-    let w = label.len() as f32 * CHAR_W * (sz / FONT_SZ) + 20.0;
+    let w = label.len() as f32 * crate::constants::char_w() * (sz / crate::constants::font_sz()) + 20.0;
     let h = 30.0 * font;
     let (rect, resp) = ui.allocate_exact_size(Vec2::new(w, h), Sense::click());
     let t_hover = ui.ctx().animate_bool(resp.id.with("hov"), resp.hovered());
     let t_act = ui.ctx().animate_bool(resp.id.with("act"), active);
-    let mut bg = PANEL_LIGHT;
-    bg = lerp_color(bg, HOVER, t_hover);
-    bg = lerp_color(bg, ACCENT, t_act);
+    let mut bg = crate::constants::panel_light();
+    bg = lerp_color(bg, crate::constants::hover(), t_hover);
+    bg = lerp_color(bg, crate::constants::accent(), t_act);
     let p = ui.painter();
     if !resp.is_pointer_button_down_on() {
-        p.rect_filled(rect.translate(Vec2::new(0.0, 2.0)), 0.0, BORDER);
+        p.rect_filled(rect.translate(Vec2::new(0.0, 2.0)), 0.0, crate::constants::border());
     }
     p.rect_filled(rect, 0.0, bg);
-    p.rect_stroke(rect, 0.0, Stroke::new(2.0_f32, BORDER), egui::StrokeKind::Inside);
-    p.text(rect.center(), egui::Align2::CENTER_CENTER, label, egui::FontId::proportional(sz), TEXT);
+    p.rect_stroke(rect, 0.0, Stroke::new(2.0_f32, crate::constants::border()), egui::StrokeKind::Inside);
+    p.text(rect.center(), egui::Align2::CENTER_CENTER, label, egui::FontId::proportional(sz), crate::constants::text());
     resp.clicked()
 }
